@@ -1,148 +1,132 @@
-Plataforma Corporativa de Compliance e Auditoria
-🎯 Problema que Resolve
+# Plataforma Corporativa de Compliance e Auditoria
+
+## 🎯 Problema que Resolve
 
 Empresas médias e grandes enfrentam:
 
-Falta de rastreabilidade de ações internas
-
-Dificuldade em provar conformidade regulatória
-
-Risco de fraudes internas
-
-Multas por não conformidade (LGPD, ISO, SOX, etc.)
-
-Auditorias demoradas e manuais
+- Falta de rastreabilidade de ações internas
+- Dificuldade em provar conformidade regulatória
+- Risco de fraudes internas
+- Multas por não conformidade (LGPD, ISO, SOX, etc.)
+- Auditorias demoradas e manuais
 
 O sistema resolve isso centralizando:
 
-✔ Auditoria de eventos
-✔ Monitoramento de conformidade
-✔ Detecção de risco
-✔ Relatórios regulatórios
+- ✔ Auditoria de eventos
+- ✔ Monitoramento de conformidade
+- ✔ Detecção de risco
+- ✔ Relatórios regulatórios
 
-🧱 Arquitetura Corporativa
-🔹 Modelo: Microservices + Event Driven
-Microsserviços principais:
-Serviço	Responsabilidade
-Audit Service	Registro imutável de eventos
-Compliance Engine	Motor de regras e validação
-Risk Analysis Service	Cálculo de risco
-Reporting Service	Relatórios regulatórios
-Integration Service	Conexão com ERPs e sistemas externos
-Notification Service	Alertas automáticos
-🔁 Fluxo Real de Funcionamento
+---
 
-Um usuário altera um contrato no ERP.
+## 🧱 Arquitetura Corporativa
 
-ERP envia evento via API ou webhook.
+### 🔹 Modelo: Microservices + Event Driven
 
-Evento é publicado no RabbitMQ.
+**Microsserviços principais:**
 
-Audit Service consome e grava em banco não relacional (imutável).
+| Serviço | Responsabilidade |
+|---|---|
+| Audit Service | Registro imutável de eventos |
+| Compliance Engine | Motor de regras e validação |
+| Risk Analysis Service | Cálculo de risco |
+| Reporting Service | Relatórios regulatórios |
+| Integration Service | Conexão com ERPs e sistemas externos |
+| Notification Service | Alertas automáticos |
 
-Compliance Engine valida regras.
+---
 
-Se houver violação → gera alerta.
+## 🔁 Fluxo Real de Funcionamento
 
-Dashboard atualiza KPI de risco.
+1. Um usuário altera um contrato no ERP.
+2. ERP envia evento via API ou webhook.
+3. Evento é publicado no RabbitMQ.
+4. Audit Service consome e grava em banco não relacional (imutável).
+5. Compliance Engine valida regras.
+6. Se houver violação → gera alerta.
+7. Dashboard atualiza KPI de risco.
 
-Arquitetura orientada a eventos.
-Totalmente desacoplada.
+> Arquitetura orientada a eventos. Totalmente desacoplada.
 
-🗄️ Estratégia de Banco
-🔹 Relacional (PostgreSQL)
+---
 
-Usuários
+## 🗄️ Estratégia de Banco
 
-Perfis
+### 🔹 Relacional (PostgreSQL)
 
-Regras de compliance
+- Usuários
+- Perfis
+- Regras de compliance
+- Estrutura organizacional
 
-Estrutura organizacional
+### 🔹 Não Relacional (MongoDB)
 
-🔹 Não Relacional (MongoDB)
+- Logs imutáveis
+- Histórico de eventos
+- Trilhas de auditoria
 
-Logs imutáveis
+> **Motivo:** Logs precisam ser rápidos, escaláveis e com alta leitura.
 
-Histórico de eventos
+---
 
-Trilhas de auditoria
+## 📊 Dashboard Executivo
 
-Motivo:
-Logs precisam ser rápidos, escaláveis e com alta leitura.
+**KPIs possíveis:**
 
-📊 Dashboard Executivo
+- Índice de Conformidade (%)
+- Número de violações por período
+- Risco operacional por setor
+- Tempo médio de resolução
+- Auditorias pendentes
 
-KPIs possíveis:
+**Público-alvo:**
 
-Índice de Conformidade (%)
+- Diretoria
+- Compliance Officer
+- Jurídico
+- Auditor externo
 
-Número de violações por período
+---
 
-Risco operacional por setor
-
-Tempo médio de resolução
-
-Auditorias pendentes
-
-Público alvo:
-
-Diretoria
-
-Compliance Officer
-
-Jurídico
-
-Auditor externo
-
-⚙️ Processamento Assíncrono
+## ⚙️ Processamento Assíncrono
 
 Usando RabbitMQ:
 
-Avaliação de regras complexas
+- Avaliação de regras complexas
+- Análise de comportamento
+- Geração de relatórios pesados
+- Notificações automáticas
 
-Análise de comportamento
+**Benefícios:**
 
-Geração de relatórios pesados
+- Sistema principal não trava
+- Escalável
+- Alta tolerância a falhas
 
-Notificações automáticas
+---
 
-Benefícios:
-
-Sistema principal não trava
-
-Escalável
-
-Alta tolerância a falhas
-
-🔐 Segurança
+## 🔐 Segurança
 
 Esse sistema precisa ser extremo:
 
-Criptografia de logs sensíveis
+- Criptografia de logs sensíveis
+- Assinatura digital de eventos
+- Controle rígido de acesso
+- Logs imutáveis
+- Versionamento de regras
+- Controle de auditoria sobre o próprio sistema
 
-Assinatura digital de eventos
+> É sistema nível banco ou multinacional.
 
-Controle rígido de acesso
+---
 
-Logs imutáveis
-
-Versionamento de regras
-
-Controle de auditoria sobre o próprio sistema
-
-É sistema nível banco ou multinacional.
-
-🧠 Diferencial Estratégico
+## 🧠 Diferencial Estratégico
 
 Você pode incluir:
 
-Engine de regras configurável
+- Engine de regras configurável
+- Sistema de pontuação de risco
+- Machine Learning para detectar padrões suspeitos
+- Integração com sistemas externos regulatórios
 
-Sistema de pontuação de risco
-
-Machine Learning para detectar padrões suspeitos
-
-Integração com sistemas externos regulatórios
-
-Isso transforma o sistema em produto vendável.
+> Isso transforma o sistema em produto vendável.

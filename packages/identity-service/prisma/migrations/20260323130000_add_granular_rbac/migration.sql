@@ -35,13 +35,12 @@ CREATE TABLE "role_permissions" (
 
 -- CreateTable
 CREATE TABLE "user_roles" (
-    "id" TEXT NOT NULL,
     "user_id" TEXT NOT NULL,
     "role_id" TEXT NOT NULL,
     "assigned_by" TEXT,
     "assigned_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "user_roles_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "user_roles_pkey" PRIMARY KEY ("user_id")
 );
 
 -- AlterTable
@@ -53,9 +52,6 @@ CREATE UNIQUE INDEX "roles_code_key" ON "roles"("code");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "permissions_code_key" ON "permissions"("code");
-
--- CreateIndex
-CREATE UNIQUE INDEX "user_roles_user_id_key" ON "user_roles"("user_id");
 
 -- CreateIndex
 CREATE INDEX "user_roles_role_id_idx" ON "user_roles"("role_id");
@@ -86,9 +82,8 @@ BEGIN
     END IF;
 END $$;
 
-INSERT INTO "user_roles" ("id", "user_id", "role_id", "assigned_at")
+INSERT INTO "user_roles" ("user_id", "role_id", "assigned_at")
 SELECT
-    'user-role-' || u."id",
     u."id",
     r."id",
     CURRENT_TIMESTAMP

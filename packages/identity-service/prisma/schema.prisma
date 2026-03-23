@@ -63,8 +63,7 @@ model RolePermissionModel {
 }
 
 model UserRoleModel {
-  id         String    @id @default(uuid())
-  userId     String    @unique @map("user_id")
+  userId     String    @id @map("user_id")
   roleId     String    @map("role_id")
   assignedBy String?   @map("assigned_by")
   assignedAt DateTime  @default(now()) @map("assigned_at")

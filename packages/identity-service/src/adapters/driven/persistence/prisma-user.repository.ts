@@ -64,8 +64,8 @@ export class PrismaUserRepository implements IUserRepository {
             "blocked_until" = EXCLUDED."blocked_until"
         `;
         await tx.$executeRaw`
-          INSERT INTO "user_roles" ("id", "user_id", "role_id", "assigned_at")
-          VALUES (${randomUUID()}, ${user.id}, ${roleId}, NOW())
+          INSERT INTO "user_roles" ("user_id", "role_id", "assigned_at")
+          VALUES (${user.id}, ${roleId}, NOW())
           ON CONFLICT ("user_id") DO UPDATE SET
             "role_id" = EXCLUDED."role_id",
             "assigned_at" = NOW()
@@ -102,8 +102,8 @@ export class PrismaUserRepository implements IUserRepository {
             "blocked_until" = EXCLUDED."blocked_until"
         `;
         await tx.$executeRaw`
-          INSERT INTO "user_roles" ("id", "user_id", "role_id", "assigned_at")
-          VALUES (${randomUUID()}, ${user.id}, ${roleId}, NOW())
+          INSERT INTO "user_roles" ("user_id", "role_id", "assigned_at")
+          VALUES (${user.id}, ${roleId}, NOW())
           ON CONFLICT ("user_id") DO UPDATE SET
             "role_id" = EXCLUDED."role_id",
             "assigned_at" = NOW()

@@ -58,8 +58,13 @@ export function requireSelfOrPermissionWithAudit(
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const authReq = req as AuthenticatedRequest;
     const targetUserId = req.params[paramName];
-    if (!targetUserId || !authReq.userId) {
-      sendError(res, 400, "Invalid user id format");
+    if (!authReq.userId) {
+      sendError(res, 401, "Unauthenticated request");
+      return;
+    }
+
+    if (!targetUserId) {
+      sendError(res, 400, "Missing or invalid target user id");
       return;
     }
 

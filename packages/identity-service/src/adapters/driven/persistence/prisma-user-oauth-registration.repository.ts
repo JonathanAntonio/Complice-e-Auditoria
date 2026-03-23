@@ -43,8 +43,8 @@ export class PrismaUserOAuthRegistrationPersistence implements IUserOAuthRegistr
           )
         `;
         await tx.$executeRaw`
-          INSERT INTO "user_roles" ("id", "user_id", "role_id", "assigned_at")
-          VALUES (${randomUUID()}, ${user.id}, ${roleId}, NOW())
+          INSERT INTO "user_roles" ("user_id", "role_id", "assigned_at")
+          VALUES (${user.id}, ${roleId}, NOW())
         `;
         await tx.oAuthAccountModel.create({
           data: {

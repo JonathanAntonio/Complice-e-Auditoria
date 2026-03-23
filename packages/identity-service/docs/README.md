@@ -29,3 +29,8 @@ Composition root: `src/container.ts`. Entry: `src/index.ts`.
 - [API](../../../docs/API.md) — endpoints e autenticação
 - [DEVELOPMENT](../../../docs/DEVELOPMENT.md) — rodar, testar, troubleshooting
 - [SECURITY](../../../docs/SECURITY.md) — validação e segurança
+- [RBAC Roadmap](../../../docs/RBAC-IDENTITY-ROADMAP.md) — plano detalhado para evoluir o `identity-service` de role única para RBAC granular
+
+## Observação
+
+Parte dos links acima aponta para documentos ainda não presentes no repositório atual. O arquivo `docs/RBAC-IDENTITY-ROADMAP.md` registra esse gap explicitamente e trata essa correção como parte do roadmap técnico.

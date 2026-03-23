@@ -3,7 +3,7 @@ import { GetUserByIdUseCase } from "./get-user-by-id.use-case";
 import { User } from "../../domain/entities/user.entity";
 import type { IUserRepository } from "../ports/user-repository.port";
 import type { ICacheService } from "@lframework/shared";
-import { USER_ROLES } from "../../domain/types";
+import { USER_ROLES, permissionsForRole } from "../../domain/types";
 
 describe("GetUserByIdUseCase", () => {
   let userRepository: IUserRepository;
@@ -40,7 +40,9 @@ describe("GetUserByIdUseCase", () => {
       id: "user-123",
       email: "u@example.com",
       name: "Nome",
-      role: USER_ROLES.VISUALIZADOR,
+      primaryRole: USER_ROLES.VISUALIZADOR,
+      permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+      authzVersion: 1,
       isActive: true,
       createdAt: "2025-01-01T00:00:00.000Z",
     });
@@ -64,7 +66,9 @@ describe("GetUserByIdUseCase", () => {
       id: "cached-1",
       email: "c@example.com",
       name: "Cached",
-      role: USER_ROLES.VISUALIZADOR,
+      primaryRole: USER_ROLES.VISUALIZADOR,
+      permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+      authzVersion: 1,
       isActive: true,
       createdAt: "2025-01-01T00:00:00.000Z",
     };

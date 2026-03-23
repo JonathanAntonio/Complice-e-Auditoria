@@ -7,7 +7,7 @@ import type { IAuthCredentialRepository } from "../ports/auth-credential-reposit
 import type { IOutboxRepository } from "../ports/outbox-repository.port";
 import type { IPasswordHasher } from "../ports/password-hasher.port";
 import type { ITokenService } from "../ports/token-service.port";
-import { USER_ROLES } from "../../domain/types";
+import { USER_ROLES, permissionsForRole } from "../../domain/types";
 import { logger } from "@lframework/shared";
 
 vi.mock("@lframework/shared", async () => {
@@ -76,14 +76,19 @@ describe("LoginUseCase", () => {
       id: "user-1",
       email: "u@example.com",
       name: "Nome",
-      role: USER_ROLES.VISUALIZADOR,
+      primaryRole: USER_ROLES.VISUALIZADOR,
+      permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+      authzVersion: 1,
       isActive: true,
+      createdAt: "2025-01-01T00:00:00.000Z",
     });
     expect(result.accessToken).toBe("fake-jwt-token");
     expect(tokenService.sign).toHaveBeenCalledWith({
       sub: "user-1",
       email: "u@example.com",
-      role: USER_ROLES.VISUALIZADOR,
+      primaryRole: USER_ROLES.VISUALIZADOR,
+      permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+      authzVersion: 1,
     });
     expect(userRepository.saveUserAndOutbox).toHaveBeenCalledTimes(1);
   });
@@ -127,7 +132,7 @@ describe("LoginUseCase", () => {
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
         err: expect.any(Error),
-        email: "naoexiste@example.com",
+        requestId: undefined,
       }),
       "Failed to append login failed audit event"
     );

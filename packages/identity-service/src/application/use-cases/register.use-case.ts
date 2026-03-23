@@ -14,6 +14,7 @@ import {
   InvalidEmailError,
 } from "../errors";
 import { DEFAULT_USER_ROLE } from "../../domain/types";
+import { toAuthUserDto } from "../dtos/user-profile.mapper";
 
 export interface RegisterResultDto {
   user: AuthUserDto;
@@ -73,18 +74,13 @@ export class RegisterUseCase {
     const accessToken = this.tokenService.sign({
       sub: user.id,
       email: user.email.value,
-      role: user.role,
+      primaryRole: user.primaryRole,
+      permissions: user.permissions,
+      authzVersion: user.authorizationVersion,
     });
 
     return {
-      user: {
-        id: user.id,
-        email: user.email.value,
-        name: user.name,
-        role: user.role,
-        isActive: user.isActive,
-        createdAt: user.createdAt.toISOString(),
-      },
+      user: toAuthUserDto(user),
       accessToken,
     };
   }

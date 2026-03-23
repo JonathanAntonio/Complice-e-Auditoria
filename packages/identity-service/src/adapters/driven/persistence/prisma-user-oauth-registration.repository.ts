@@ -5,6 +5,10 @@ import type { OAuthProvider } from "../../../application/ports/oauth-account-rep
 import type { OutboxEvent } from "../../../application/ports/outbox-writer.port";
 import { User } from "../../../domain/entities/user.entity";
 import { UserAlreadyExistsError } from "../../../application/errors";
+import {
+  ensureAuthorizationCatalog,
+  resolveRoleIdByCode,
+} from "./authorization-catalog";
 
 function isPrismaP2002(err: unknown): boolean {
   return typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002";
@@ -25,15 +29,23 @@ export class PrismaUserOAuthRegistrationPersistence implements IUserOAuthRegistr
   ): Promise<void> {
     try {
       await this.prisma.$transaction(async (tx) => {
-        await tx.userModel.create({
-          data: {
-            id: user.id,
-            email: user.email.value,
-            name: user.name,
-            role: user.role,
-            createdAt: user.createdAt,
-          },
-        });
+        await ensureAuthorizationCatalog(tx);
+        const roleId = await resolveRoleIdByCode(tx, user.primaryRole);
+        if (!roleId) {
+          throw new Error(`Role code not found for OAuth user registration: ${user.primaryRole}`);
+        }
+        await tx.$executeRaw`
+          INSERT INTO "users" (
+            "id", "email", "name", "authorization_version", "created_at"
+          )
+          VALUES (
+            ${user.id}, ${user.email.value}, ${user.name}, ${user.authorizationVersion}, ${user.createdAt}
+          )
+        `;
+        await tx.$executeRaw`
+          INSERT INTO "user_roles" ("id", "user_id", "role_id", "assigned_at")
+          VALUES (${randomUUID()}, ${user.id}, ${roleId}, NOW())
+        `;
         await tx.oAuthAccountModel.create({
           data: {
             userId: user.id,

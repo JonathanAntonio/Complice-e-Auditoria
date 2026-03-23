@@ -17,6 +17,7 @@ import { createContainer } from "../../container";
 import { createApp } from "../../app";
 import { createNoOpEventPublisher } from "./test-event-publisher";
 import { createNoOpCache } from "./test-cache";
+import { USER_ROLES, permissionsForRole } from "../../domain/types";
 
 const databaseUrl =
   process.env.IDENTITY_DATABASE_URL ??
@@ -111,7 +112,9 @@ describe("Auth API integration", () => {
         user: {
           email: "alice@example.com",
           name: "Alice",
-          role: "visualizador",
+          primaryRole: USER_ROLES.VISUALIZADOR,
+          permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+          authzVersion: 1,
           isActive: true,
         },
         accessToken: expect.any(String),
@@ -215,7 +218,9 @@ describe("Auth API integration", () => {
         user: {
           email: "login@example.com",
           name: "Login User",
-          role: "visualizador",
+          primaryRole: USER_ROLES.VISUALIZADOR,
+          permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+          authzVersion: 1,
           isActive: true,
         },
         accessToken: expect.any(String),
@@ -338,7 +343,9 @@ describe("Auth API integration", () => {
       expect(res.body).toMatchObject({
         email: "me@example.com",
         name: "Me User",
-        role: "visualizador",
+        primaryRole: USER_ROLES.VISUALIZADOR,
+        permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+        authzVersion: 1,
         isActive: true,
       });
       expect(res.body).toHaveProperty("id");

@@ -39,3 +39,5 @@ pnpm test:integration   # testes de API; se o banco não estiver disponível, os
 - **infrastructure/** — HTTP (Express, rotas), Prisma, Redis, RabbitMQ, adapters OAuth
 
 Ver [README raiz](../../README.md) e [docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md).
+
+Para a evolução do serviço para autorização granular, ver [docs/RBAC-IDENTITY-ROADMAP.md](../../docs/RBAC-IDENTITY-ROADMAP.md).

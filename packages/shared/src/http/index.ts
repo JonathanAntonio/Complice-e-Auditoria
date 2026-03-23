@@ -13,6 +13,9 @@ export {
 } from "./error-handler.middleware";
 export {
   createAuthMiddleware,
+  hasPermission,
+  requireAnyPermission,
+  requirePermission,
   requireRole,
   type JwtPayload,
   type AuthenticatedRequest,

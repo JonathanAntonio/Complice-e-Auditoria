@@ -8,6 +8,7 @@ import { registerSchema } from "./application/dtos/register.dto";
 import { loginSchema } from "./application/dtos/login.dto";
 import { createUserSchema } from "./application/dtos/create-user.dto";
 import { userResponseDtoSchema } from "./application/dtos/user-response.dto";
+import { assignUserRoleSchema } from "./application/dtos/assign-user-role.dto";
 
 extendZodWithOpenApi(z);
 
@@ -23,6 +24,7 @@ const AuthResponseSchema = z
   })
   .openapi("AuthResponse");
 const CreateUserBodySchema = createUserSchema.openapi("CreateUserBody");
+const AssignUserRoleBodySchema = assignUserRoleSchema.openapi("AssignUserRoleBody");
 const OAuthQuerySchema = z.object({ code: z.string(), state: z.string() });
 
 const registry = new OpenAPIRegistry();
@@ -179,6 +181,42 @@ registry.registerPath({
     },
     404: {
       description: "Não encontrado",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "put",
+  path: "/api/users/{id}/role",
+  summary: "Alterar papel principal do usuário",
+  tags: ["Users"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: {
+      content: { "application/json": { schema: AssignUserRoleBodySchema } },
+    },
+  },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: UserResponseSchema } },
+    },
+    400: {
+      description: "Validação",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    401: {
+      description: "Não autenticado",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    403: {
+      description: "Sem permissão",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    404: {
+      description: "Usuário não encontrado",
       content: { "application/json": { schema: ErrorSchema } },
     },
   },

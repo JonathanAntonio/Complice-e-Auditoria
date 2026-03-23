@@ -5,7 +5,9 @@
 export interface TokenVerifierPayload {
   sub: string;
   email?: string;
-  role?: string;
+  primaryRole?: string;
+  permissions?: string[];
+  authzVersion?: number;
 }
 
 /**

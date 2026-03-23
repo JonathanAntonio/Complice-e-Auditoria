@@ -8,7 +8,9 @@ import { sendError } from "./send-error";
 export interface JwtPayload {
   sub: string;
   email?: string;
-  role?: string;
+  primaryRole?: string;
+  permissions?: string[];
+  authzVersion?: number;
 }
 
 /**
@@ -22,6 +24,9 @@ declare global {
       userId?: string;
       userEmail?: string;
       userRole?: string;
+      userPrimaryRole?: string;
+      userPermissions?: string[];
+      authzVersion?: number;
     }
   }
 }
@@ -33,10 +38,13 @@ export type AuthenticatedRequest = Request & {
   userId: string;
   userEmail?: string;
   userRole?: string;
+  userPrimaryRole?: string;
+  userPermissions: string[];
+  authzVersion?: number;
 };
 
 /**
- * Middleware: valida Bearer JWT usando a função verify fornecida e anexa userId, userEmail e userRole em req.
+ * Middleware: valida Bearer JWT usando a função verify fornecida e anexa contexto autenticado em req.
  * Uso: createAuthMiddleware((token) => tokenService.verify(token)) ou createAuthMiddleware((token) => jwt.verify(...)).
  */
 export function createAuthMiddleware(
@@ -60,7 +68,10 @@ export function createAuthMiddleware(
     }
     req.userId = payload.sub;
     req.userEmail = payload.email;
-    req.userRole = payload.role ?? "user";
+    req.userPrimaryRole = payload.primaryRole;
+    req.userRole = payload.primaryRole ?? "user";
+    req.userPermissions = payload.permissions ?? [];
+    req.authzVersion = payload.authzVersion;
     next();
   };
 }
@@ -71,7 +82,31 @@ export function createAuthMiddleware(
  */
 export function requireRole(role: string) {
   return (req: Request, res: Response, next: NextFunction): void => {
-    if (req.userRole !== role) {
+    if ((req.userPrimaryRole ?? req.userRole) !== role) {
+      sendError(res, 403, "Forbidden");
+      return;
+    }
+    next();
+  };
+}
+
+export function hasPermission(req: Request, permission: string): boolean {
+  return req.userPermissions?.includes(permission) ?? false;
+}
+
+export function requirePermission(permission: string) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!hasPermission(req, permission)) {
+      sendError(res, 403, "Forbidden");
+      return;
+    }
+    next();
+  };
+}
+
+export function requireAnyPermission(permissions: string[]) {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    if (!permissions.some((permission) => hasPermission(req, permission))) {
       sendError(res, 403, "Forbidden");
       return;
     }

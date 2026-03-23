@@ -20,6 +20,7 @@ import { GitHubOAuthProvider } from "./adapters/driven/auth/github-oauth.provide
 import type { IOAuthProvider } from "./application/ports/oauth-provider.port";
 import { CreateUserUseCase } from "./application/use-cases/create-user.use-case";
 import { GetUserByIdUseCase } from "./application/use-cases/get-user-by-id.use-case";
+import { AssignUserRoleUseCase } from "./application/use-cases/assign-user-role.use-case";
 import { RegisterUseCase } from "./application/use-cases/register.use-case";
 import { LoginUseCase } from "./application/use-cases/login.use-case";
 import { GetCurrentUserUseCase } from "./application/use-cases/get-current-user.use-case";
@@ -30,6 +31,11 @@ import { createAuthMiddleware } from "@lframework/shared";
 import { createUserRoutes } from "./adapters/driving/http/routes";
 import { createAuthRoutes } from "./adapters/driving/http/auth.routes";
 import { mapApplicationErrorToHttp } from "./adapters/driving/http/error-to-http.mapper";
+import {
+  requirePermissionWithAudit,
+  requireSelfOrPermissionWithAudit,
+} from "./adapters/driving/http/authorization.middleware";
+import { PERMISSIONS } from "./domain/types";
 
 /** Optional event publisher for tests (no-op connect/disconnect). When set, RabbitMQ is not used. */
 export type TestEventPublisher = IEventPublisher & {
@@ -80,9 +86,13 @@ interface IdentityCradle {
   loginUseCase: LoginUseCase;
   getCurrentUserUseCase: GetCurrentUserUseCase;
   oauthCallbackUseCase: OAuthCallbackUseCase;
+  assignUserRoleUseCase: AssignUserRoleUseCase;
   userController: UserController;
   authController: AuthController;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
+  requireUsersCreate: ReturnType<typeof requirePermissionWithAudit>;
+  requireUsersRead: ReturnType<typeof requireSelfOrPermissionWithAudit>;
+  requireRolesAssign: ReturnType<typeof requirePermissionWithAudit>;
   userRoutes: ReturnType<typeof createUserRoutes>;
   authRoutes: ReturnType<typeof createAuthRoutes>;
   outboxRelay: OutboxRelayAdapter;
@@ -214,6 +224,11 @@ export function createContainer(config: ContainerConfig) {
         new GetCurrentUserUseCase(cradle.userRepository)
     ).singleton(),
 
+    assignUserRoleUseCase: asFunction(
+      (cradle: IdentityCradle) =>
+        new AssignUserRoleUseCase(cradle.userRepository)
+    ).singleton(),
+
     oauthCallbackUseCase: asFunction(
       (cradle: IdentityCradle) =>
         new OAuthCallbackUseCase(
@@ -231,7 +246,7 @@ export function createContainer(config: ContainerConfig) {
         new UserController(
           cradle.createUserUseCase,
           cradle.getUserByIdUseCase,
-          cradle.outboxRepository
+          cradle.assignUserRoleUseCase
         )
     ).singleton(),
 
@@ -255,14 +270,50 @@ export function createContainer(config: ContainerConfig) {
         createAuthMiddleware((token) => tokenService.verify(token))
     ).singleton(),
 
+    requireUsersCreate: asFunction(
+      ({ outboxRepository }: { outboxRepository: IOutboxRepository }) =>
+        requirePermissionWithAudit(outboxRepository, PERMISSIONS.USERS_CREATE, "POST /api/users")
+    ).singleton(),
+
+    requireUsersRead: asFunction(
+      ({ outboxRepository }: { outboxRepository: IOutboxRepository }) =>
+        requireSelfOrPermissionWithAudit(
+          outboxRepository,
+          PERMISSIONS.USERS_READ_SELF,
+          PERMISSIONS.USERS_READ_ANY,
+          "GET /api/users/:id"
+        )
+    ).singleton(),
+
+    requireRolesAssign: asFunction(
+      ({ outboxRepository }: { outboxRepository: IOutboxRepository }) =>
+        requirePermissionWithAudit(
+          outboxRepository,
+          PERMISSIONS.ROLES_ASSIGN,
+          "PUT /api/users/:id/role"
+        )
+    ).singleton(),
+
     userRoutes: asFunction(
       ({
         userController,
         authMiddleware,
+        requireUsersCreate,
+        requireUsersRead,
+        requireRolesAssign,
       }: {
         userController: UserController;
         authMiddleware: ReturnType<typeof createAuthMiddleware>;
-      }) => createUserRoutes(userController, authMiddleware)
+        requireUsersCreate: ReturnType<typeof requirePermissionWithAudit>;
+        requireUsersRead: ReturnType<typeof requireSelfOrPermissionWithAudit>;
+        requireRolesAssign: ReturnType<typeof requirePermissionWithAudit>;
+      }) => createUserRoutes(
+        userController,
+        authMiddleware,
+        requireUsersCreate,
+        requireUsersRead,
+        requireRolesAssign
+      )
     ).singleton(),
 
     authRoutes: asFunction(

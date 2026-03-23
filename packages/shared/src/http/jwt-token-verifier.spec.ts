@@ -37,7 +37,13 @@ describe("JwtTokenVerifier", () => {
     it("deve retornar payload válido quando token é assinado com o mesmo secret", () => {
       const verifier = new JwtTokenVerifier(VALID_SECRET);
       const token = jwt.sign(
-        { sub: "user-1", email: "user@example.com", role: "admin" },
+        {
+          sub: "user-1",
+          email: "user@example.com",
+          primaryRole: "admin",
+          permissions: ["users.create"],
+          authzVersion: 3,
+        },
         VALID_SECRET,
         { algorithm: "HS256" }
       );
@@ -45,7 +51,9 @@ describe("JwtTokenVerifier", () => {
       expect(result).toEqual({
         sub: "user-1",
         email: "user@example.com",
-        role: "admin",
+        primaryRole: "admin",
+        permissions: ["users.create"],
+        authzVersion: 3,
       });
     });
 

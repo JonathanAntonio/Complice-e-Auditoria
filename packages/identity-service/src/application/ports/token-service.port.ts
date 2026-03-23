@@ -5,7 +5,9 @@
 export interface TokenPayload {
   sub: string;   // userId
   email: string;
-  role: string;
+  primaryRole: string;
+  permissions: string[];
+  authzVersion: number;
   iat?: number;
   exp?: number;
 }

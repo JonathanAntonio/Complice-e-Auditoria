@@ -5,9 +5,12 @@ export interface AuthUserDto {
   id: string;
   email: string;
   name: string;
-  role: string;
+  primaryRole: string;
+  permissions: string[];
+  authzVersion: number;
   isActive: boolean;
   createdAt?: string;
+  isNewUser?: boolean;
 }
 
 export interface AuthResponseDto {

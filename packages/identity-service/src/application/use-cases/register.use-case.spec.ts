@@ -7,7 +7,7 @@ import type { IUserRegistrationPersistence } from "../ports/user-registration-pe
 import type { IPasswordHasher } from "../ports/password-hasher.port";
 import type { ITokenService } from "../ports/token-service.port";
 import type { IUserCreatedNotifier } from "../ports/user-created-notifier.port";
-import { USER_ROLES } from "../../domain/types";
+import { USER_ROLES, permissionsForRole } from "../../domain/types";
 
 describe("RegisterUseCase", () => {
   let userRepository: IUserRepository;
@@ -58,7 +58,9 @@ describe("RegisterUseCase", () => {
     expect(result.user).toMatchObject({
       email: "novo@example.com",
       name: "Novo User",
-      role: USER_ROLES.VISUALIZADOR,
+      primaryRole: USER_ROLES.VISUALIZADOR,
+      permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+      authzVersion: 1,
       isActive: true,
     });
     expect(result.user.id).toBeDefined();

@@ -1,6 +1,7 @@
 import type { IUserRepository } from "../ports/user-repository.port";
 import type { ICacheService } from "@lframework/shared";
 import { userResponseDtoSchema, type UserResponseDto } from "../dtos/user-response.dto";
+import { toUserResponseDto } from "../dtos/user-profile.mapper";
 
 export class GetUserByIdUseCase {
   constructor(
@@ -20,14 +21,7 @@ export class GetUserByIdUseCase {
       return null;
     }
 
-    const dto: UserResponseDto = {
-      id: user.id,
-      email: user.email.value,
-      name: user.name,
-      role: user.role,
-      isActive: user.isActive,
-      createdAt: user.createdAt.toISOString(),
-    };
+    const dto: UserResponseDto = toUserResponseDto(user);
 
     await this.cache.set(cacheKey, dto, 300);
     return dto;

@@ -14,6 +14,7 @@ import { createContainer } from "../../container";
 import { createApp } from "../../app";
 import { createNoOpEventPublisher } from "./test-event-publisher";
 import { createNoOpCache } from "./test-cache";
+import { USER_ROLES, permissionsForRole } from "../../domain/types";
 
 const databaseUrl =
   process.env.IDENTITY_DATABASE_URL ??
@@ -87,9 +88,16 @@ describe("Users API integration", () => {
           password: "AdminPass123",
         });
       if (regAdmin.status !== 201) throw new Error("Admin register failed");
-      await container.prisma.userModel.updateMany({
+      const adminUser = await container.prisma.userModel.findFirst({
         where: { email: ADMIN_EMAIL },
-        data: { role: "administrador" },
+      });
+      const adminRole = await container.prisma.roleModel.findUnique({
+        where: { code: USER_ROLES.ADMINISTRADOR },
+      });
+      if (!adminUser || !adminRole) throw new Error("Admin role setup failed");
+      await container.prisma.userRoleModel.update({
+        where: { userId: adminUser.id },
+        data: { roleId: adminRole.id },
       });
       const adminLogin = await request(app)
         .post("/api/auth/login")
@@ -166,7 +174,9 @@ describe("Users API integration", () => {
       expect(res.body).toMatchObject({
         email: "created@example.com",
         name: "Created User",
-        role: "visualizador",
+        primaryRole: USER_ROLES.VISUALIZADOR,
+        permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+        authzVersion: 1,
         isActive: true,
       });
       expect(res.body).toHaveProperty("id");

@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GetCurrentUserUseCase } from "./get-current-user.use-case";
 import { User } from "../../domain/entities/user.entity";
 import type { IUserRepository } from "../ports/user-repository.port";
-import { USER_ROLES } from "../../domain/types";
+import { USER_ROLES, permissionsForRole } from "../../domain/types";
 
 describe("GetCurrentUserUseCase", () => {
   let userRepository: IUserRepository;
@@ -33,7 +33,9 @@ describe("GetCurrentUserUseCase", () => {
       id: "user-123",
       email: "u@example.com",
       name: "Nome Completo",
-      role: USER_ROLES.VISUALIZADOR,
+      primaryRole: USER_ROLES.VISUALIZADOR,
+      permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+      authzVersion: 1,
       isActive: true,
       createdAt: "2025-01-15T12:00:00.000Z",
     });

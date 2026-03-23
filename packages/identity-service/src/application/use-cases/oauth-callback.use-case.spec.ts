@@ -9,7 +9,7 @@ import type { ITokenService } from "../ports/token-service.port";
 import type { IUserCreatedNotifier } from "../ports/user-created-notifier.port";
 import type { IOutboxRepository } from "../ports/outbox-repository.port";
 import { AccountLockedError, InvalidCredentialsError, UserInactiveError } from "../errors";
-import { USER_ROLES } from "../../domain/types";
+import { USER_ROLES, permissionsForRole } from "../../domain/types";
 import { logger } from "@lframework/shared";
 
 vi.mock("@lframework/shared", async () => {
@@ -98,7 +98,9 @@ describe("OAuthCallbackUseCase", () => {
     expect(tokenService.sign).toHaveBeenCalledWith({
       sub: "user-1",
       email: "existente@example.com",
-      role: USER_ROLES.VISUALIZADOR,
+      primaryRole: USER_ROLES.VISUALIZADOR,
+      permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+      authzVersion: 1,
     });
     expect(userOAuthRegistrationPersistence.saveUserAndOAuthAccount).not.toHaveBeenCalled();
     expect(userCreatedNotifier.notify).not.toHaveBeenCalled();

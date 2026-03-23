@@ -2,20 +2,24 @@ import { describe, expect, it, vi } from "vitest";
 import { PrismaUserRepository } from "./prisma-user.repository";
 
 describe("PrismaUserRepository", () => {
-  it("deve falhar claramente ao reconstituir usuário com role inválido do banco", async () => {
+  it("should fail clearly when reconstituting user with invalid role from DB", async () => {
     const prisma = {
-      userModel: {
-        findUnique: vi.fn().mockResolvedValue({
-          id: "user-1",
-          email: "u@example.com",
-          name: "Nome",
-          createdAt: new Date("2025-01-01T00:00:00.000Z"),
-          role: "super_admin",
-          isActive: true,
-          failedLoginAttempts: 0,
-          blockedUntil: null,
-        }),
-      },
+      $queryRaw: vi
+        .fn()
+        .mockResolvedValueOnce([
+          {
+            id: "user-1",
+            email: "u@example.com",
+            name: "Nome",
+            createdAt: new Date("2025-01-01T00:00:00.000Z"),
+            authorizationVersion: 1,
+            isActive: true,
+            failedLoginAttempts: 0,
+            blockedUntil: null,
+            primaryRole: "super_admin",
+          },
+        ])
+        .mockResolvedValueOnce([]),
     } as any;
 
     const repository = new PrismaUserRepository(prisma);

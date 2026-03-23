@@ -8,7 +8,9 @@ import { DEFAULT_USER_ROLE } from "../../../domain/types";
 const jwtPayloadSchema = z.object({
   sub: z.string().min(1),
   email: z.string().optional(),
-  role: z.string().optional(),
+  primaryRole: z.string().optional(),
+  permissions: z.array(z.string()).optional(),
+  authzVersion: z.number().int().positive().optional(),
   exp: z.number(),
   iat: z.number(),
 });
@@ -25,9 +27,15 @@ export class JwtTokenService implements ITokenService {
   constructor(private readonly config: JwtTokenServiceConfig) {}
 
   sign(payload: Omit<TokenPayload, "iat" | "exp">): string {
-    const { sub, email, role } = payload;
+    const { sub, email, primaryRole, permissions, authzVersion } = payload;
     return jwt.sign(
-      { sub, email, role: role ?? DEFAULT_USER_ROLE },
+      {
+        sub,
+        email,
+        primaryRole: primaryRole ?? DEFAULT_USER_ROLE,
+        permissions: permissions ?? [],
+        authzVersion: authzVersion ?? 1,
+      },
       this.config.secret,
       { expiresIn: this.config.expiresInSeconds, algorithm: "HS256" }
     );
@@ -47,7 +55,9 @@ export class JwtTokenService implements ITokenService {
       return {
         sub: data.sub,
         email: data.email ?? "",
-        role: data.role ?? DEFAULT_USER_ROLE,
+        primaryRole: data.primaryRole ?? DEFAULT_USER_ROLE,
+        permissions: data.permissions ?? [],
+        authzVersion: data.authzVersion ?? 1,
         iat: data.iat,
         exp: data.exp,
       };

@@ -14,5 +14,5 @@ export function createMockAuthenticatedRequest(
 ): AuthenticatedRequest {
   const { userId, ...rest } = overrides;
   const req = createMockRequest(rest);
-  return { ...req, userId } as AuthenticatedRequest;
+  return { ...req, userId, userPermissions: [] } as unknown as AuthenticatedRequest;
 }

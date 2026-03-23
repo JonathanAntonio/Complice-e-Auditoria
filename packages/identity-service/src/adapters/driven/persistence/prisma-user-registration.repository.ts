@@ -4,6 +4,10 @@ import type { IUserRegistrationPersistence } from "../../../application/ports/us
 import type { OutboxEvent } from "../../../application/ports/outbox-writer.port";
 import { User } from "../../../domain/entities/user.entity";
 import { UserAlreadyExistsError } from "../../../application/errors";
+import {
+  ensureAuthorizationCatalog,
+  resolveRoleIdByCode,
+} from "./authorization-catalog";
 
 function isPrismaP2002(err: unknown): boolean {
   return typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002";
@@ -23,20 +27,30 @@ export class PrismaUserRegistrationPersistence implements IUserRegistrationPersi
   ): Promise<void> {
     try {
       await this.prisma.$transaction(async (tx) => {
-        await tx.userModel.upsert({
-          where: { id: user.id },
-          create: {
-            id: user.id,
-            email: user.email.value,
-            name: user.name,
-            role: user.role,
-            createdAt: user.createdAt,
-          },
-          update: {
-            email: user.email.value,
-            name: user.name,
-          },
-        });
+        await ensureAuthorizationCatalog(tx);
+        const roleId = await resolveRoleIdByCode(tx, user.primaryRole);
+        if (!roleId) {
+          throw new Error(`Role code not found for user registration: ${user.primaryRole}`);
+        }
+        await tx.$executeRaw`
+          INSERT INTO "users" (
+            "id", "email", "name", "authorization_version", "created_at"
+          )
+          VALUES (
+            ${user.id}, ${user.email.value}, ${user.name}, ${user.authorizationVersion}, ${user.createdAt}
+          )
+          ON CONFLICT ("id") DO UPDATE SET
+            "email" = EXCLUDED."email",
+            "name" = EXCLUDED."name",
+            "authorization_version" = EXCLUDED."authorization_version"
+        `;
+        await tx.$executeRaw`
+          INSERT INTO "user_roles" ("id", "user_id", "role_id", "assigned_at")
+          VALUES (${randomUUID()}, ${user.id}, ${roleId}, NOW())
+          ON CONFLICT ("user_id") DO UPDATE SET
+            "role_id" = EXCLUDED."role_id",
+            "assigned_at" = NOW()
+        `;
         await tx.authCredentialModel.upsert({
           where: { userId: user.id },
           create: { userId: user.id, passwordHash },

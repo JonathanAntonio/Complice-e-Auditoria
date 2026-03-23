@@ -17,6 +17,7 @@ import {
   SECURITY_AUDIT_EVENTS,
 } from "../security-audit";
 import { logger } from "@lframework/shared";
+import { toAuthUserDto } from "../dtos/user-profile.mapper";
 
 export type OAuthCallbackResultDto = Omit<OAuthCallbackResponseDto, "expiresIn">;
 
@@ -140,7 +141,9 @@ export class OAuthCallbackUseCase {
       createSecurityAuditEvent(SECURITY_AUDIT_EVENTS.LOGIN_SUCCEEDED, {
         ...baseAuditPayload,
         userId: user.id,
-        role: user.role,
+        primaryRole: user.primaryRole,
+        permissions: user.permissions,
+        authzVersion: user.authorizationVersion,
         isNewUser,
       })
     );
@@ -148,17 +151,13 @@ export class OAuthCallbackUseCase {
     const accessToken = this.tokenService.sign({
       sub: user.id,
       email: user.email.value,
-      role: user.role,
+      primaryRole: user.primaryRole,
+      permissions: user.permissions,
+      authzVersion: user.authorizationVersion,
     });
 
     return {
-      user: {
-        id: user.id,
-        email: user.email.value,
-        name: user.name,
-        createdAt: user.createdAt.toISOString(),
-        isNewUser,
-      },
+      user: toAuthUserDto(user, { isNewUser }),
       accessToken,
     };
   }
@@ -183,14 +182,16 @@ export class OAuthCallbackUseCase {
 
     const now = new Date();
     if (user.isBlocked(now)) {
-      await this.outboxRepository.append(
-        createSecurityAuditEvent(SECURITY_AUDIT_EVENTS.ACCOUNT_LOCKED, {
+      await this.appendAuditEventSafely(
+        SECURITY_AUDIT_EVENTS.ACCOUNT_LOCKED,
+        {
           ...baseAuditPayload,
           userId: user.id,
           email: user.email.value,
           blockedUntil: user.blockedUntil?.toISOString(),
           reason: "account_locked",
-        })
+        },
+        "account_locked"
       );
       throw new AccountLockedError();
     }

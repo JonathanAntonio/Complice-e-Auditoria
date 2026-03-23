@@ -1,5 +1,10 @@
 import { Email } from "../value-objects/email.vo";
-import { DEFAULT_USER_ROLE, type UserRole } from "../types";
+import {
+  DEFAULT_USER_ROLE,
+  permissionsForRole,
+  type Permission,
+  type UserRole,
+} from "../types";
 
 /**
  * Entidade de domínio: User.
@@ -10,7 +15,9 @@ export class User {
     private readonly _id: string,
     private _email: Email,
     private _name: string,
-    private _role: UserRole,
+    private _primaryRole: UserRole,
+    private _permissions: Permission[],
+    private _authorizationVersion: number,
     private _isActive: boolean,
     private _failedLoginAttempts: number,
     private _blockedUntil: Date | null,
@@ -21,12 +28,23 @@ export class User {
     id: string,
     email: Email,
     name: string,
-    role: UserRole = DEFAULT_USER_ROLE
+    primaryRole: UserRole = DEFAULT_USER_ROLE
   ): User {
     if (!name || name.trim().length === 0) {
       throw new Error("Name is required");
     }
-    return new User(id, email, name.trim(), role, true, 0, null, new Date());
+    return new User(
+      id,
+      email,
+      name.trim(),
+      primaryRole,
+      permissionsForRole(primaryRole),
+      1,
+      true,
+      0,
+      null,
+      new Date()
+    );
   }
 
   static reconstitute(
@@ -34,16 +52,38 @@ export class User {
     email: string,
     name: string,
     createdAt: Date,
-    role: UserRole = DEFAULT_USER_ROLE,
-    isActive: boolean = true,
-    failedLoginAttempts: number = 0,
+    primaryRole: UserRole = DEFAULT_USER_ROLE,
+    permissionsOrIsActive: Permission[] | boolean = permissionsForRole(primaryRole),
+    authorizationVersionOrFailedLoginAttempts: number = 1,
+    isActiveOrBlockedUntil: boolean | Date | null = true,
+    failedLoginAttempts = 0,
     blockedUntil: Date | null = null
   ): User {
+    let permissions: Permission[];
+    let authorizationVersion: number;
+    let isActive: boolean;
+
+    if (Array.isArray(permissionsOrIsActive)) {
+      permissions = permissionsOrIsActive;
+      authorizationVersion = authorizationVersionOrFailedLoginAttempts;
+      isActive = typeof isActiveOrBlockedUntil === "boolean" ? isActiveOrBlockedUntil : true;
+    } else {
+      permissions = permissionsForRole(primaryRole);
+      authorizationVersion = 1;
+      isActive = permissionsOrIsActive;
+      failedLoginAttempts = authorizationVersionOrFailedLoginAttempts;
+      blockedUntil = isActiveOrBlockedUntil instanceof Date || isActiveOrBlockedUntil === null
+        ? isActiveOrBlockedUntil
+        : null;
+    }
+
     return new User(
       id,
       Email.create(email),
       name,
-      role,
+      primaryRole,
+      [...permissions],
+      authorizationVersion,
       isActive,
       failedLoginAttempts,
       blockedUntil,
@@ -63,8 +103,16 @@ export class User {
     return this._name;
   }
 
-  get role(): UserRole {
-    return this._role;
+  get primaryRole(): UserRole {
+    return this._primaryRole;
+  }
+
+  get permissions(): Permission[] {
+    return [...this._permissions];
+  }
+
+  get authorizationVersion(): number {
+    return this._authorizationVersion;
   }
 
   get isActive(): boolean {
@@ -89,6 +137,13 @@ export class User {
 
   markInactive(): void {
     this._isActive = false;
+    this._authorizationVersion += 1;
+  }
+
+  assignRole(role: UserRole): void {
+    this._primaryRole = role;
+    this._permissions = permissionsForRole(role);
+    this._authorizationVersion += 1;
   }
 
   recordSuccessfulLogin(): void {
@@ -99,6 +154,11 @@ export class User {
   recordFailedLogin(at: Date, maxAttempts: number, lockDurationMs: number): void {
     if (this._blockedUntil !== null && at.getTime() < this._blockedUntil.getTime()) {
       return;
+    }
+
+    if (this._blockedUntil !== null && at.getTime() >= this._blockedUntil.getTime()) {
+      this._failedLoginAttempts = 0;
+      this._blockedUntil = null;
     }
 
     this._failedLoginAttempts += 1;

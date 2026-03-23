@@ -1,13 +1,7 @@
-export interface OAuthCallbackUserDto {
-  id: string;
-  email: string;
-  name: string;
-  createdAt: string;
-  isNewUser: boolean;
-}
+import type { AuthUserDto } from "./auth-response.dto";
 
 export interface OAuthCallbackResponseDto {
-  user: OAuthCallbackUserDto;
+  user: AuthUserDto;
   accessToken: string;
   expiresIn: string;
 }

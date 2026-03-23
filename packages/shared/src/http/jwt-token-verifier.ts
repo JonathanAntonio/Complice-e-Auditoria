@@ -6,7 +6,9 @@ import { logger } from "../logger";
 const jwtPayloadSchema = z.object({
   sub: z.string().min(1),
   email: z.string().optional(),
-  role: z.string().optional(),
+  primaryRole: z.string().optional(),
+  permissions: z.array(z.string()).optional(),
+  authzVersion: z.number().int().positive().optional(),
   exp: z.number().optional(),
   iat: z.number().optional(),
 });
@@ -44,7 +46,9 @@ export class JwtTokenVerifier implements ITokenVerifier {
       return {
         sub: data.sub,
         email: data.email,
-        role: data.role,
+        primaryRole: data.primaryRole,
+        permissions: data.permissions,
+        authzVersion: data.authzVersion,
       };
     } catch (err) {
       logger.debug({ err }, "JWT verify failed");

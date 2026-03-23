@@ -10,6 +10,7 @@ import { createContainer } from "../../container";
 import { createApp } from "../../app";
 import { createNoOpEventPublisher } from "./test-event-publisher";
 import type { IOAuthProvider, OAuthUserInfo } from "../../application/ports/oauth-provider.port";
+import { USER_ROLES, permissionsForRole } from "../../domain/types";
 
 const databaseUrl =
   process.env.IDENTITY_DATABASE_URL ??
@@ -151,6 +152,9 @@ describe("OAuth integration", () => {
       user: {
         email: "oauth-new@example.com",
         name: "OAuth New User",
+        primaryRole: USER_ROLES.VISUALIZADOR,
+        permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+        authzVersion: 1,
         isNewUser: true,
       },
       accessToken: expect.any(String),

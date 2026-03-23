@@ -8,6 +8,7 @@ import type { CreateUserDto } from "../dtos/create-user.dto";
 import type { UserResponseDto } from "../dtos/user-response.dto";
 import { UserAlreadyExistsError, InvalidEmailError } from "../errors";
 import { DEFAULT_USER_ROLE } from "../../domain/types";
+import { toUserResponseDto } from "../dtos/user-profile.mapper";
 
 export class CreateUserUseCase {
   constructor(
@@ -46,14 +47,6 @@ export class CreateUserUseCase {
       createdAt: user.createdAt.toISOString(),
     });
 
-    const result: UserResponseDto = {
-      id: user.id,
-      email: user.email.value,
-      name: user.name,
-      role: user.role,
-      isActive: user.isActive,
-      createdAt: user.createdAt.toISOString(),
-    };
-    return result;
+    return toUserResponseDto(user);
   }
 }

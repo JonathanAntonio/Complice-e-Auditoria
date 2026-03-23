@@ -1,0 +1,4 @@
+ALTER TABLE "users"
+ADD COLUMN "is_active" BOOLEAN NOT NULL DEFAULT true,
+ADD COLUMN "failed_login_attempts" INTEGER NOT NULL DEFAULT 0,
+ADD COLUMN "blocked_until" TIMESTAMP(3);

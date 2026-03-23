@@ -2,7 +2,7 @@ import { z } from "zod";
 import { emailSchema, nameSchema } from "./auth-common.schema";
 
 /**
- * Schema de validação para criação de usuário (admin).
+ * Schema de validação para criação de usuário (administrador).
  * Fonte única de verdade: tipo e runtime validation.
  */
 export const createUserSchema = z.object({

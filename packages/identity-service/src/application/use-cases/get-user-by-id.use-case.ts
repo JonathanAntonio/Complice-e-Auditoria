@@ -24,6 +24,8 @@ export class GetUserByIdUseCase {
       id: user.id,
       email: user.email.value,
       name: user.name,
+      role: user.role,
+      isActive: user.isActive,
       createdAt: user.createdAt.toISOString(),
     };
 

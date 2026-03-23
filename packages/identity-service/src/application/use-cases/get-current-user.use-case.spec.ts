@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GetCurrentUserUseCase } from "./get-current-user.use-case";
 import { User } from "../../domain/entities/user.entity";
 import type { IUserRepository } from "../ports/user-repository.port";
+import { USER_ROLES } from "../../domain/types";
 
 describe("GetCurrentUserUseCase", () => {
   let userRepository: IUserRepository;
@@ -9,6 +10,7 @@ describe("GetCurrentUserUseCase", () => {
   beforeEach(() => {
     userRepository = {
       save: vi.fn(),
+      saveUserAndOutbox: vi.fn(),
       findById: vi.fn(),
       findByEmail: vi.fn(),
     };
@@ -20,7 +22,7 @@ describe("GetCurrentUserUseCase", () => {
       "u@example.com",
       "Nome Completo",
       new Date("2025-01-15T12:00:00.000Z"),
-      "user"
+      USER_ROLES.VISUALIZADOR
     );
     vi.mocked(userRepository.findById).mockResolvedValue(user);
 
@@ -31,6 +33,8 @@ describe("GetCurrentUserUseCase", () => {
       id: "user-123",
       email: "u@example.com",
       name: "Nome Completo",
+      role: USER_ROLES.VISUALIZADOR,
+      isActive: true,
       createdAt: "2025-01-15T12:00:00.000Z",
     });
     expect(userRepository.findById).toHaveBeenCalledWith("user-123");

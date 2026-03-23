@@ -17,6 +17,7 @@ import {
 import { formatExpiresIn } from "./utils/format-expires-in";
 import { performOAuthRedirect, OAUTH_STATE_PREFIX } from "./utils/oauth-redirect";
 import { sendError, sendValidationError } from "@lframework/shared";
+import type { SecurityAuditContext } from "../../../application/security-audit";
 
 export class AuthController {
   constructor(
@@ -49,7 +50,7 @@ export class AuthController {
   login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const dto: LoginDto = req.body;
-      const result = await this.loginUseCase.execute(dto);
+      const result = await this.loginUseCase.execute(dto, this.buildAuditContext(req));
       const body: AuthResponseDto = {
         user: result.user,
         accessToken: result.accessToken,
@@ -60,6 +61,19 @@ export class AuthController {
       next(err);
     }
   };
+
+  private buildAuditContext(req: Request): SecurityAuditContext {
+    const forwardedFor = req.headers["x-forwarded-for"];
+    const forwardedIp = typeof forwardedFor === "string"
+      ? forwardedFor.split(",")[0]?.trim()
+      : undefined;
+    const ipAddress = forwardedIp || req.ip;
+    return {
+      ipAddress,
+      requestId: req.headers["x-request-id"]?.toString(),
+      userAgent: req.headers["user-agent"]?.toString(),
+    };
+  }
 
   me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
@@ -109,7 +123,11 @@ export class AuthController {
     providerName: string
   ): Promise<void> => {
     if (!provider) {
-      sendError(res, 503, providerName + " OAuth is not configured");
+      sendError(
+        res,
+        503,
+        providerName.charAt(0).toUpperCase() + providerName.slice(1) + " OAuth is not configured"
+      );
       return;
     }
     const code = Array.isArray(req.query.code) ? req.query.code[0] : req.query.code;
@@ -130,7 +148,12 @@ export class AuthController {
 
     try {
       const redirectUri = this.baseUrl + "/api/auth/" + providerName + "/callback";
-      const result = await this.oauthCallbackUseCase.execute(query.code, redirectUri, provider);
+      const result = await this.oauthCallbackUseCase.execute(
+        query.code,
+        redirectUri,
+        provider,
+        this.buildAuditContext(req)
+      );
       const body: OAuthCallbackResponseDto = {
         user: result.user,
         accessToken: result.accessToken,

@@ -2,13 +2,21 @@ import { randomUUID } from "crypto";
 import { User } from "../../domain/entities/user.entity";
 import { Email } from "../../domain/value-objects/email.vo";
 import { USER_CREATED_EVENT } from "@lframework/shared";
+import { AccountLockedError, InvalidCredentialsError, UserInactiveError } from "../errors";
 import type { IUserRepository } from "../ports/user-repository.port";
 import type { IOAuthAccountRepository } from "../ports/oauth-account-repository.port";
 import type { IUserOAuthRegistrationPersistence } from "../ports/user-oauth-registration-persistence.port";
 import type { IOAuthProvider } from "../ports/oauth-provider.port";
 import type { ITokenService } from "../ports/token-service.port";
 import type { IUserCreatedNotifier } from "../ports/user-created-notifier.port";
+import type { IOutboxRepository } from "../ports/outbox-repository.port";
 import type { OAuthCallbackResponseDto } from "../dtos/oauth-callback-response.dto";
+import {
+  createSecurityAuditEvent,
+  type SecurityAuditContext,
+  SECURITY_AUDIT_EVENTS,
+} from "../security-audit";
+import { logger } from "@lframework/shared";
 
 export type OAuthCallbackResultDto = Omit<OAuthCallbackResponseDto, "expiresIn">;
 
@@ -18,17 +26,49 @@ export class OAuthCallbackUseCase {
     private readonly oauthAccountRepository: IOAuthAccountRepository,
     private readonly userOAuthRegistrationPersistence: IUserOAuthRegistrationPersistence,
     private readonly tokenService: ITokenService,
-    private readonly userCreatedNotifier: IUserCreatedNotifier
+    private readonly userCreatedNotifier: IUserCreatedNotifier,
+    private readonly outboxRepository: IOutboxRepository
   ) {}
 
   async execute(
     code: string,
     redirectUri: string,
-    provider: IOAuthProvider
+    provider: IOAuthProvider,
+    auditContext: SecurityAuditContext = {}
   ): Promise<OAuthCallbackResultDto> {
-    const userInfo = await provider.getUserInfoFromCode(code, redirectUri);
+    const baseAuditPayload = {
+      authMethod: "oauth",
+      provider: provider.provider,
+      ipAddress: auditContext.ipAddress,
+      requestId: auditContext.requestId,
+      userAgent: auditContext.userAgent,
+    };
+
+    let userInfo;
+    try {
+      userInfo = await provider.getUserInfoFromCode(code, redirectUri);
+    } catch {
+      await this.appendAuditEventSafely(
+        SECURITY_AUDIT_EVENTS.LOGIN_FAILED,
+        {
+          ...baseAuditPayload,
+          reason: "oauth_provider_error",
+        },
+        "oauth_provider_error"
+      );
+      throw new InvalidCredentialsError("OAuth authentication failed");
+    }
+
     if (!userInfo) {
-      throw new Error("Failed to get user info from OAuth provider");
+      await this.appendAuditEventSafely(
+        SECURITY_AUDIT_EVENTS.LOGIN_FAILED,
+        {
+          ...baseAuditPayload,
+          reason: "oauth_userinfo_unavailable",
+        },
+        "oauth_userinfo_unavailable"
+      );
+      throw new InvalidCredentialsError("OAuth authentication failed");
     }
 
     const existingLink = await this.oauthAccountRepository.findByProviderAndProviderId(
@@ -38,22 +78,20 @@ export class OAuthCallbackUseCase {
 
     if (existingLink) {
       const user = await this.userRepository.findById(existingLink.userId);
-      if (!user) throw new Error("User not found");
-      const accessToken = this.tokenService.sign({
-        sub: user.id,
-        email: user.email.value,
-        role: user.role,
-      });
-      return {
-        user: {
-          id: user.id,
-          email: user.email.value,
-          name: user.name,
-          createdAt: user.createdAt.toISOString(),
-          isNewUser: false,
-        },
-        accessToken,
-      };
+      if (!user) {
+        await this.appendAuditEventSafely(
+          SECURITY_AUDIT_EVENTS.LOGIN_FAILED,
+          {
+            ...baseAuditPayload,
+            email: userInfo.email,
+            reason: "oauth_linked_user_missing",
+          },
+          "oauth_linked_user_missing"
+        );
+        throw new InvalidCredentialsError("OAuth authentication failed");
+      }
+      await this.assertUserCanAuthenticate(user, baseAuditPayload);
+      return await this.buildSuccessResult(user, false, baseAuditPayload);
     }
 
     const email = Email.create(userInfo.email);
@@ -86,8 +124,26 @@ export class OAuthCallbackUseCase {
         createdAt: user.createdAt.toISOString(),
       });
     } else {
+      await this.assertUserCanAuthenticate(user, baseAuditPayload);
       await this.oauthAccountRepository.save(user.id, provider.provider, userInfo.providerId);
     }
+
+    return await this.buildSuccessResult(user, isNewUser, baseAuditPayload);
+  }
+
+  private async buildSuccessResult(
+    user: User,
+    isNewUser: boolean,
+    baseAuditPayload: Record<string, unknown>
+  ): Promise<OAuthCallbackResultDto> {
+    await this.outboxRepository.append(
+      createSecurityAuditEvent(SECURITY_AUDIT_EVENTS.LOGIN_SUCCEEDED, {
+        ...baseAuditPayload,
+        userId: user.id,
+        role: user.role,
+        isNewUser,
+      })
+    );
 
     const accessToken = this.tokenService.sign({
       sub: user.id,
@@ -105,5 +161,50 @@ export class OAuthCallbackUseCase {
       },
       accessToken,
     };
+  }
+
+  private async assertUserCanAuthenticate(
+    user: User,
+    baseAuditPayload: Record<string, unknown>
+  ): Promise<void> {
+    if (!user.isActive) {
+      await this.appendAuditEventSafely(
+        SECURITY_AUDIT_EVENTS.LOGIN_FAILED,
+        {
+          ...baseAuditPayload,
+          userId: user.id,
+          email: user.email.value,
+          reason: "inactive_user",
+        },
+        "inactive_user"
+      );
+      throw new UserInactiveError("User is inactive");
+    }
+
+    const now = new Date();
+    if (user.isBlocked(now)) {
+      await this.outboxRepository.append(
+        createSecurityAuditEvent(SECURITY_AUDIT_EVENTS.ACCOUNT_LOCKED, {
+          ...baseAuditPayload,
+          userId: user.id,
+          email: user.email.value,
+          blockedUntil: user.blockedUntil?.toISOString(),
+          reason: "account_locked",
+        })
+      );
+      throw new AccountLockedError();
+    }
+  }
+
+  private async appendAuditEventSafely(
+    eventName: string,
+    payload: Record<string, unknown>,
+    reason: string
+  ): Promise<void> {
+    try {
+      await this.outboxRepository.append(createSecurityAuditEvent(eventName, payload));
+    } catch (err) {
+      logger.error({ err, eventName, reason }, "Failed to append OAuth audit event");
+    }
   }
 }

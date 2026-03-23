@@ -2,21 +2,25 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { UserController } from "./user.controller";
 import type { CreateUserUseCase } from "../../../application/use-cases/create-user.use-case";
 import type { GetUserByIdUseCase } from "../../../application/use-cases/get-user-by-id.use-case";
+import type { IOutboxRepository } from "../../../application/ports/outbox-repository.port";
 import type { Response } from "express";
 import type { NextFunction } from "express";
 import { mapApplicationErrorToHttp } from "./error-to-http.mapper";
 import { sendError } from "@lframework/shared";
 import { createMockAuthenticatedRequest } from "@lframework/shared/test";
+import { USER_ROLES } from "../../../domain/types";
 
 describe("UserController — cenários absurdos", () => {
   let createUserUseCase: CreateUserUseCase;
   let getUserByIdUseCase: GetUserByIdUseCase;
+  let outboxRepository: IOutboxRepository;
   let res: Partial<Response>;
   let next: NextFunction;
 
   beforeEach(() => {
     createUserUseCase = { execute: vi.fn() } as unknown as CreateUserUseCase;
     getUserByIdUseCase = { execute: vi.fn() } as unknown as GetUserByIdUseCase;
+    outboxRepository = { append: vi.fn() };
     res = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
@@ -29,11 +33,11 @@ describe("UserController — cenários absurdos", () => {
 
   describe("getById", () => {
     it("não explode quando req.params.id é undefined", async () => {
-      const controller = new UserController(createUserUseCase, getUserByIdUseCase);
+      const controller = new UserController(createUserUseCase, getUserByIdUseCase, outboxRepository);
       const req = createMockAuthenticatedRequest({
         params: { id: undefined as unknown as string },
         userId: "11111111-1111-1111-1111-111111111111",
-        userRole: "user",
+        userRole: USER_ROLES.VISUALIZADOR,
       });
       await controller.getById(req, res as Response, next);
       // Deve responder 400 (uuid inválido) em vez de quebrar
@@ -42,22 +46,22 @@ describe("UserController — cenários absurdos", () => {
     });
 
     it("não explode quando req.params é {} (id inexistente)", async () => {
-      const controller = new UserController(createUserUseCase, getUserByIdUseCase);
+      const controller = new UserController(createUserUseCase, getUserByIdUseCase, outboxRepository);
       const req = createMockAuthenticatedRequest({
         params: {},
         userId: "11111111-1111-1111-1111-111111111111",
-        userRole: "user",
+        userRole: USER_ROLES.VISUALIZADOR,
       });
       await controller.getById(req, res as Response, next);
       expect(res.status).toHaveBeenCalledWith(400);
     });
 
     it("não explode quando id parece UUID mas com lixo no final", async () => {
-      const controller = new UserController(createUserUseCase, getUserByIdUseCase);
+      const controller = new UserController(createUserUseCase, getUserByIdUseCase, outboxRepository);
       const req = createMockAuthenticatedRequest({
         params: { id: "11111111-1111-1111-1111-111111111111; DROP TABLE users;" },
         userId: "11111111-1111-1111-1111-111111111111",
-        userRole: "user",
+        userRole: USER_ROLES.VISUALIZADOR,
       });
       await controller.getById(req, res as Response, next);
       expect(res.status).toHaveBeenCalledWith(400);
@@ -68,16 +72,24 @@ describe("UserController — cenários absurdos", () => {
   describe("create", () => {
     it("não explode quando body é undefined", async () => {
       vi.mocked(createUserUseCase.execute).mockRejectedValue(new Error("body undefined"));
-      const controller = new UserController(createUserUseCase, getUserByIdUseCase);
-      const req = createMockAuthenticatedRequest({ body: undefined, userId: "admin-1", userRole: "admin" });
+      const controller = new UserController(createUserUseCase, getUserByIdUseCase, outboxRepository);
+      const req = createMockAuthenticatedRequest({
+        body: undefined,
+        userId: "admin-1",
+        userRole: USER_ROLES.ADMINISTRADOR,
+      });
       await controller.create(req, res as Response, next);
       expect(res.status).toHaveBeenCalledWith(500);
     });
 
     it("não explode quando body é null", async () => {
       vi.mocked(createUserUseCase.execute).mockRejectedValue(new Error("null"));
-      const controller = new UserController(createUserUseCase, getUserByIdUseCase);
-      const req = createMockAuthenticatedRequest({ body: null, userId: "admin-1", userRole: "admin" });
+      const controller = new UserController(createUserUseCase, getUserByIdUseCase, outboxRepository);
+      const req = createMockAuthenticatedRequest({
+        body: null,
+        userId: "admin-1",
+        userRole: USER_ROLES.ADMINISTRADOR,
+      });
       await controller.create(req, res as Response, next);
       expect(createUserUseCase.execute).toHaveBeenCalled();
     });

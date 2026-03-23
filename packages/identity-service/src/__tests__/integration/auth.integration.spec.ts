@@ -111,6 +111,8 @@ describe("Auth API integration", () => {
         user: {
           email: "alice@example.com",
           name: "Alice",
+          role: "visualizador",
+          isActive: true,
         },
         accessToken: expect.any(String),
         expiresIn: expect.any(String),
@@ -213,6 +215,8 @@ describe("Auth API integration", () => {
         user: {
           email: "login@example.com",
           name: "Login User",
+          role: "visualizador",
+          isActive: true,
         },
         accessToken: expect.any(String),
         expiresIn: expect.any(String),
@@ -240,6 +244,44 @@ describe("Auth API integration", () => {
         .expect(401);
 
       expect(res.body).toHaveProperty("error");
+    });
+
+    it("returns 423 after 5 invalid attempts and blocks subsequent login", async ({ skip }) => {
+      if (!servicesAvailable()) skip();
+      await request(app)
+        .post("/api/auth/register")
+        .send({
+          email: "locked@example.com",
+          name: "Locked User",
+          password: "CorrectPass123",
+        })
+        .expect(201);
+
+      for (let attempt = 1; attempt <= 4; attempt += 1) {
+        await request(app)
+          .post("/api/auth/login")
+          .send({
+            email: "locked@example.com",
+            password: "WrongPassword",
+          })
+          .expect(401);
+      }
+
+      await request(app)
+        .post("/api/auth/login")
+        .send({
+          email: "locked@example.com",
+          password: "WrongPassword",
+        })
+        .expect(423);
+
+      await request(app)
+        .post("/api/auth/login")
+        .send({
+          email: "locked@example.com",
+          password: "CorrectPass123",
+        })
+        .expect(423);
     });
 
     it("returns 401 for unknown email", async ({ skip }) => {
@@ -296,6 +338,8 @@ describe("Auth API integration", () => {
       expect(res.body).toMatchObject({
         email: "me@example.com",
         name: "Me User",
+        role: "visualizador",
+        isActive: true,
       });
       expect(res.body).toHaveProperty("id");
     });

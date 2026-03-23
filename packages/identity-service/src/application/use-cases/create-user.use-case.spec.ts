@@ -4,6 +4,7 @@ import { UserAlreadyExistsError, InvalidEmailError } from "../errors";
 import { User } from "../../domain/entities/user.entity";
 import type { IUserRepository } from "../ports/user-repository.port";
 import type { IUserCreatedNotifier } from "../ports/user-created-notifier.port";
+import { USER_ROLES } from "../../domain/types";
 
 describe("CreateUserUseCase", () => {
   let userRepository: IUserRepository;
@@ -30,6 +31,8 @@ describe("CreateUserUseCase", () => {
     expect(result).toMatchObject({
       email: "user@example.com",
       name: "João Silva",
+      role: USER_ROLES.VISUALIZADOR,
+      isActive: true,
     });
     expect(result.id).toBeDefined();
     expect(result.createdAt).toBeDefined();
@@ -44,7 +47,7 @@ describe("CreateUserUseCase", () => {
       "existing@example.com",
       "Existing",
       new Date(),
-      "user"
+      USER_ROLES.VISUALIZADOR
     );
     vi.mocked(userRepository.findByEmail).mockResolvedValue(existingUser);
 

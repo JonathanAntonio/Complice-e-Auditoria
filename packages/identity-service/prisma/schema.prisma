@@ -9,13 +9,16 @@ datasource db {
 }
 
 model UserModel {
-  id             String               @id @default(uuid())
-  email          String               @unique
-  name           String
-  role           String               @default("user")
-  createdAt      DateTime             @map("created_at")
-  authCredential AuthCredentialModel?
-  oauthAccounts  OAuthAccountModel[]
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  name                String
+  role                String               @default("visualizador")
+  isActive            Boolean              @default(true) @map("is_active")
+  failedLoginAttempts Int                  @default(0) @map("failed_login_attempts")
+  blockedUntil        DateTime?            @map("blocked_until")
+  createdAt           DateTime             @map("created_at")
+  authCredential      AuthCredentialModel?
+  oauthAccounts       OAuthAccountModel[]
 
   @@map("users")
 }

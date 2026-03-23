@@ -7,9 +7,11 @@ import { PrismaAuthCredentialRepository } from "./adapters/driven/persistence/pr
 import { PrismaUserRegistrationPersistence } from "./adapters/driven/persistence/prisma-user-registration.repository";
 import { PrismaUserOAuthRegistrationPersistence } from "./adapters/driven/persistence/prisma-user-oauth-registration.repository";
 import { PrismaOAuthAccountRepository } from "./adapters/driven/persistence/prisma-oauth-account.repository";
+import { PrismaOutboxRepository } from "./adapters/driven/persistence/prisma-outbox.repository";
 import { RabbitMqEventPublisherAdapter } from "./adapters/driven/messaging/rabbitmq-event-publisher.adapter";
 import { OutboxRelayAdapter } from "./adapters/driven/messaging/outbox-relay.adapter";
 import type { IEventPublisher } from "./application/ports/event-publisher.port";
+import type { IOutboxRepository } from "./application/ports/outbox-repository.port";
 import { UserCreatedNotifierAdapter } from "./adapters/driven/notifiers/user-created-notifier.adapter";
 import { JwtTokenService } from "./adapters/driven/auth/jwt-token.service";
 import { Argon2PasswordHasher } from "./adapters/driven/auth/argon2-password-hasher";
@@ -44,6 +46,8 @@ export interface ContainerConfig {
   baseUrl: string;
   googleOAuth?: { clientId: string; clientSecret: string };
   githubOAuth?: { clientId: string; clientSecret: string };
+  googleProviderOverride?: IOAuthProvider;
+  githubProviderOverride?: IOAuthProvider;
   /** When set, used instead of RabbitMQ (e.g. no-op in integration tests). */
   eventPublisherOverride?: TestEventPublisher;
   /** When set, used instead of Redis cache (e.g. no-op in integration tests). */
@@ -61,6 +65,7 @@ interface IdentityCradle {
   registrationPersistence: PrismaUserRegistrationPersistence;
   userOAuthRegistrationPersistence: PrismaUserOAuthRegistrationPersistence;
   oauthAccountRepository: PrismaOAuthAccountRepository;
+  outboxRepository: IOutboxRepository;
   eventPublisher: IEventPublisher & { connect?: () => Promise<void>; disconnect?: () => Promise<void> };
   tokenService: JwtTokenService;
   passwordHasher: Argon2PasswordHasher;
@@ -127,6 +132,9 @@ export function createContainer(config: ContainerConfig) {
       (cradle: IdentityCradle) =>
         new PrismaOAuthAccountRepository(cradle.prisma)
     ).singleton(),
+    outboxRepository: asFunction(
+      (cradle: IdentityCradle) => new PrismaOutboxRepository(cradle.prisma)
+    ).singleton(),
 
     eventPublisher: asFunction(
       ({ config }: { config: ContainerConfig }) =>
@@ -149,12 +157,14 @@ export function createContainer(config: ContainerConfig) {
 
     googleProvider: asFunction(
       ({ config }: { config: ContainerConfig }): IOAuthProvider | null =>
-        config.googleOAuth ? new GoogleOAuthProvider(config.googleOAuth) : null
+        config.googleProviderOverride ??
+        (config.googleOAuth ? new GoogleOAuthProvider(config.googleOAuth) : null)
     ).singleton(),
 
     githubProvider: asFunction(
       ({ config }: { config: ContainerConfig }): IOAuthProvider | null =>
-        config.githubOAuth ? new GitHubOAuthProvider(config.githubOAuth) : null
+        config.githubProviderOverride ??
+        (config.githubOAuth ? new GitHubOAuthProvider(config.githubOAuth) : null)
     ).singleton(),
 
     baseUrl: asFunction(({ config }: { config: ContainerConfig }) => config.baseUrl).singleton(),
@@ -193,6 +203,7 @@ export function createContainer(config: ContainerConfig) {
         new LoginUseCase(
           cradle.userRepository,
           cradle.authCredentialRepository,
+          cradle.outboxRepository,
           cradle.passwordHasher,
           cradle.tokenService
         )
@@ -210,13 +221,18 @@ export function createContainer(config: ContainerConfig) {
           cradle.oauthAccountRepository,
           cradle.userOAuthRegistrationPersistence,
           cradle.tokenService,
-          cradle.userCreatedNotifier
+          cradle.userCreatedNotifier,
+          cradle.outboxRepository
         )
     ).singleton(),
 
     userController: asFunction(
       (cradle: IdentityCradle) =>
-        new UserController(cradle.createUserUseCase, cradle.getUserByIdUseCase)
+        new UserController(
+          cradle.createUserUseCase,
+          cradle.getUserByIdUseCase,
+          cradle.outboxRepository
+        )
     ).singleton(),
 
     authController: asFunction(

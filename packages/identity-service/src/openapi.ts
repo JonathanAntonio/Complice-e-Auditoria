@@ -67,6 +67,10 @@ registry.registerPath({
       description: "Credenciais inválidas",
       content: { "application/json": { schema: ErrorSchema } },
     },
+    423: {
+      description: "Conta temporariamente bloqueada",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
   },
 });
 
@@ -129,7 +133,7 @@ registry.registerPath({
 registry.registerPath({
   method: "post",
   path: "/api/users",
-  summary: "Criar usuário (admin)",
+  summary: "Criar usuário (administrador)",
   tags: ["Users"],
   security: [{ bearerAuth: [] }],
   request: {
@@ -148,7 +152,7 @@ registry.registerPath({
       content: { "application/json": { schema: ErrorSchema } },
     },
     403: {
-      description: "Sem permissão (admin)",
+      description: "Sem permissão (administrador)",
       content: { "application/json": { schema: ErrorSchema } },
     },
     409: { description: "Email já existe", content: { "application/json": { schema: ErrorSchema } } },

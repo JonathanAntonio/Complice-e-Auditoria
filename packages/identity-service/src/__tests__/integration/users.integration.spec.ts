@@ -89,7 +89,7 @@ describe("Users API integration", () => {
       if (regAdmin.status !== 201) throw new Error("Admin register failed");
       await container.prisma.userModel.updateMany({
         where: { email: ADMIN_EMAIL },
-        data: { role: "admin" },
+        data: { role: "administrador" },
       });
       const adminLogin = await request(app)
         .post("/api/auth/login")
@@ -145,7 +145,7 @@ describe("Users API integration", () => {
       expect(res.body).toHaveProperty("error");
     });
 
-    it("returns 403 when user is not admin", async ({ skip }) => {
+    it("returns 403 when user is not administrador", async ({ skip }) => {
       if (!servicesAvailable() || !regularToken) skip();
       const res = await request(app)
         .post("/api/users")
@@ -155,7 +155,7 @@ describe("Users API integration", () => {
       expect(res.body).toHaveProperty("error", "Forbidden");
     });
 
-    it("returns 201 when admin creates a user", async ({ skip }) => {
+    it("returns 201 when administrador creates a user", async ({ skip }) => {
       if (!servicesAvailable() || !adminToken) skip();
       const res = await request(app)
         .post("/api/users")
@@ -166,12 +166,14 @@ describe("Users API integration", () => {
       expect(res.body).toMatchObject({
         email: "created@example.com",
         name: "Created User",
+        role: "visualizador",
+        isActive: true,
       });
       expect(res.body).toHaveProperty("id");
       expect(res.body).toHaveProperty("createdAt");
     });
 
-    it("returns 409 when admin creates user with existing email", async ({
+    it("returns 409 when administrador creates user with existing email", async ({
       skip,
     }) => {
       if (!servicesAvailable() || !adminToken) skip();
@@ -281,7 +283,7 @@ describe("Users API integration", () => {
       expect(res.body).toHaveProperty("error", "Forbidden");
     });
 
-    it("returns 200 with user when admin requests any user id", async ({
+    it("returns 200 with user when administrador requests any user id", async ({
       skip,
     }) => {
       if (!servicesAvailable() || !seedUsersCreated || !adminToken) skip();

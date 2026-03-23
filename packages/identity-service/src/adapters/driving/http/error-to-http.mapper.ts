@@ -1,9 +1,11 @@
 import { createErrorToHttpMapper } from "@lframework/shared";
 import {
+  AccountLockedError,
   UserAlreadyExistsError,
   InvalidCredentialsError,
   InvalidEmailError,
   PasswordValidationError,
+  UserInactiveError,
 } from "../../../application/errors";
 
 /**
@@ -13,6 +15,8 @@ import {
 export const mapApplicationErrorToHttp = createErrorToHttpMapper([
   [UserAlreadyExistsError, 409],
   [InvalidCredentialsError, 401],
+  [AccountLockedError, 423],
+  [UserInactiveError, 403],
   [InvalidEmailError, 400],
   [PasswordValidationError, 400],
 ]);

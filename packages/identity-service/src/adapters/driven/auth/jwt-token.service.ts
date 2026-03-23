@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 import type { ITokenService, TokenPayload } from "../../../application/ports/token-service.port";
 import { logger } from "@lframework/shared";
+import { DEFAULT_USER_ROLE } from "../../../domain/types";
 
 /** Schema para validar o payload do JWT após decode (exp/iat vindos do jsonwebtoken). */
 const jwtPayloadSchema = z.object({
@@ -26,7 +27,7 @@ export class JwtTokenService implements ITokenService {
   sign(payload: Omit<TokenPayload, "iat" | "exp">): string {
     const { sub, email, role } = payload;
     return jwt.sign(
-      { sub, email, role: role ?? "user" },
+      { sub, email, role: role ?? DEFAULT_USER_ROLE },
       this.config.secret,
       { expiresIn: this.config.expiresInSeconds, algorithm: "HS256" }
     );
@@ -46,7 +47,7 @@ export class JwtTokenService implements ITokenService {
       return {
         sub: data.sub,
         email: data.email ?? "",
-        role: data.role ?? "user",
+        role: data.role ?? DEFAULT_USER_ROLE,
         iat: data.iat,
         exp: data.exp,
       };

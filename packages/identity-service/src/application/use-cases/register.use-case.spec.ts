@@ -7,6 +7,7 @@ import type { IUserRegistrationPersistence } from "../ports/user-registration-pe
 import type { IPasswordHasher } from "../ports/password-hasher.port";
 import type { ITokenService } from "../ports/token-service.port";
 import type { IUserCreatedNotifier } from "../ports/user-created-notifier.port";
+import { USER_ROLES } from "../../domain/types";
 
 describe("RegisterUseCase", () => {
   let userRepository: IUserRepository;
@@ -18,6 +19,7 @@ describe("RegisterUseCase", () => {
   beforeEach(() => {
     userRepository = {
       save: vi.fn(),
+      saveUserAndOutbox: vi.fn(),
       findById: vi.fn(),
       findByEmail: vi.fn().mockResolvedValue(null),
     };
@@ -56,6 +58,8 @@ describe("RegisterUseCase", () => {
     expect(result.user).toMatchObject({
       email: "novo@example.com",
       name: "Novo User",
+      role: USER_ROLES.VISUALIZADOR,
+      isActive: true,
     });
     expect(result.user.id).toBeDefined();
     expect(result.user.createdAt).toBeDefined();
@@ -99,7 +103,7 @@ describe("RegisterUseCase", () => {
       "existente@example.com",
       "Existente",
       new Date(),
-      "user"
+      USER_ROLES.VISUALIZADOR
     );
     vi.mocked(userRepository.findByEmail).mockResolvedValue(existing);
 

@@ -170,6 +170,27 @@ describe("AuthController", () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({ error: "Invalid email" });
     });
+
+    it("deve usar req.ip quando x-forwarded-for vier vazio", async () => {
+      vi.mocked(loginUseCase.execute).mockResolvedValue(mockAuthResult);
+      const controller = createController();
+      const req = createMockRequest({
+        body: { email: "u@example.com", password: "Pass123!" },
+        headers: { "x-forwarded-for": " , 10.0.0.1", "x-request-id": "req-1", "user-agent": "vitest" },
+        ip: "127.0.0.1",
+      });
+
+      await controller.login(req, res, next);
+
+      expect(loginUseCase.execute).toHaveBeenCalledWith(
+        { email: "u@example.com", password: "Pass123!" },
+        {
+          ipAddress: "127.0.0.1",
+          requestId: "req-1",
+          userAgent: "vitest",
+        }
+      );
+    });
   });
 
   describe("me", () => {
@@ -261,7 +282,7 @@ describe("AuthController", () => {
       await controller.googleCallback(req, res, next);
 
       expect(res.status).toHaveBeenCalledWith(503);
-      expect(res.json).toHaveBeenCalledWith({ error: "google OAuth is not configured" });
+      expect(res.json).toHaveBeenCalledWith({ error: "Google OAuth is not configured" });
     });
 
     it("deve retornar 400 (validação) quando query inválida (state/code faltando)", async () => {
@@ -352,7 +373,12 @@ describe("AuthController", () => {
       expect(oauthCallbackUseCase.execute).toHaveBeenCalledWith(
         validCode,
         "https://api.example.com/api/auth/google/callback",
-        mockProvider
+        mockProvider,
+        {
+          ipAddress: undefined,
+          requestId: undefined,
+          userAgent: undefined,
+        }
       );
       expect(res.json).toHaveBeenCalledWith({
         user: expect.objectContaining({ id: mockUser.id, email: mockUser.email, name: mockUser.name }),

@@ -1,15 +1,21 @@
 import { randomUUID } from "crypto";
-import { Prisma } from "@prisma/client";
 import { PrismaClient } from "../../../../generated/prisma-client";
 import { User } from "../../../domain/entities/user.entity";
 import type { IUserRepository } from "../../../application/ports/user-repository.port";
 import type { OutboxEvent } from "../../../application/ports/outbox-writer.port";
 import { UserAlreadyExistsError } from "../../../application/errors";
+import { USER_ROLE_VALUES, type UserRole } from "../../../domain/types";
 
 function isPrismaP2002(err: unknown): boolean {
-  return (
-    err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002"
-  );
+  return typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002";
+}
+
+function toDomainUserRole(role: string): UserRole {
+  if (USER_ROLE_VALUES.includes(role as UserRole)) {
+    return role as UserRole;
+  }
+
+  throw new Error(`Invalid user role from database: ${role}`);
 }
 
 /**
@@ -27,12 +33,18 @@ export class PrismaUserRepository implements IUserRepository {
           email: user.email.value,
           name: user.name,
           role: user.role,
+          isActive: user.isActive,
+          failedLoginAttempts: user.failedLoginAttempts,
+          blockedUntil: user.blockedUntil,
           createdAt: user.createdAt,
         },
         update: {
           email: user.email.value,
           name: user.name,
           role: user.role,
+          isActive: user.isActive,
+          failedLoginAttempts: user.failedLoginAttempts,
+          blockedUntil: user.blockedUntil,
         },
       });
     } catch (err) {
@@ -53,12 +65,18 @@ export class PrismaUserRepository implements IUserRepository {
             email: user.email.value,
             name: user.name,
             role: user.role,
+            isActive: user.isActive,
+            failedLoginAttempts: user.failedLoginAttempts,
+            blockedUntil: user.blockedUntil,
             createdAt: user.createdAt,
           },
           update: {
             email: user.email.value,
             name: user.name,
             role: user.role,
+            isActive: user.isActive,
+            failedLoginAttempts: user.failedLoginAttempts,
+            blockedUntil: user.blockedUntil,
           },
         }),
         this.prisma.outboxModel.create({
@@ -83,7 +101,16 @@ export class PrismaUserRepository implements IUserRepository {
       where: { id },
     });
     if (!row) return null;
-    return User.reconstitute(row.id, row.email, row.name, row.createdAt, row.role);
+    return User.reconstitute(
+      row.id,
+      row.email,
+      row.name,
+      row.createdAt,
+      toDomainUserRole(row.role),
+      row.isActive,
+      row.failedLoginAttempts,
+      row.blockedUntil
+    );
   }
 
   async findByEmail(email: string): Promise<User | null> {
@@ -91,6 +118,15 @@ export class PrismaUserRepository implements IUserRepository {
       where: { email },
     });
     if (!row) return null;
-    return User.reconstitute(row.id, row.email, row.name, row.createdAt, row.role);
+    return User.reconstitute(
+      row.id,
+      row.email,
+      row.name,
+      row.createdAt,
+      toDomainUserRole(row.role),
+      row.isActive,
+      row.failedLoginAttempts,
+      row.blockedUntil
+    );
   }
 }

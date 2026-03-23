@@ -13,6 +13,7 @@ import {
   UserAlreadyExistsError,
   InvalidEmailError,
 } from "../errors";
+import { DEFAULT_USER_ROLE } from "../../domain/types";
 
 export interface RegisterResultDto {
   user: AuthUserDto;
@@ -49,7 +50,7 @@ export class RegisterUseCase {
     }
 
     const id = randomUUID();
-    const user = User.create(id, email, dto.name);
+    const user = User.create(id, email, dto.name, DEFAULT_USER_ROLE);
     const passwordHash = await this.passwordHasher.hash(dto.password);
 
     await this.registrationPersistence.saveUserAndCredential(user, passwordHash, {
@@ -72,7 +73,7 @@ export class RegisterUseCase {
     const accessToken = this.tokenService.sign({
       sub: user.id,
       email: user.email.value,
-      role: "user",
+      role: user.role,
     });
 
     return {
@@ -80,6 +81,8 @@ export class RegisterUseCase {
         id: user.id,
         email: user.email.value,
         name: user.name,
+        role: user.role,
+        isActive: user.isActive,
         createdAt: user.createdAt.toISOString(),
       },
       accessToken,

@@ -3,6 +3,7 @@ import { GetUserByIdUseCase } from "./get-user-by-id.use-case";
 import { User } from "../../domain/entities/user.entity";
 import type { IUserRepository } from "../ports/user-repository.port";
 import type { ICacheService } from "@lframework/shared";
+import { USER_ROLES } from "../../domain/types";
 
 describe("GetUserByIdUseCase", () => {
   let userRepository: IUserRepository;
@@ -11,6 +12,7 @@ describe("GetUserByIdUseCase", () => {
   beforeEach(() => {
     userRepository = {
       save: vi.fn(),
+      saveUserAndOutbox: vi.fn(),
       findById: vi.fn(),
       findByEmail: vi.fn(),
     };
@@ -27,7 +29,7 @@ describe("GetUserByIdUseCase", () => {
       "u@example.com",
       "Nome",
       new Date("2025-01-01T00:00:00.000Z"),
-      "user"
+      USER_ROLES.VISUALIZADOR
     );
     vi.mocked(userRepository.findById).mockResolvedValue(user);
 
@@ -38,6 +40,8 @@ describe("GetUserByIdUseCase", () => {
       id: "user-123",
       email: "u@example.com",
       name: "Nome",
+      role: USER_ROLES.VISUALIZADOR,
+      isActive: true,
       createdAt: "2025-01-01T00:00:00.000Z",
     });
     expect(cache.get).toHaveBeenCalledWith("user:user-123", expect.anything());
@@ -60,6 +64,8 @@ describe("GetUserByIdUseCase", () => {
       id: "cached-1",
       email: "c@example.com",
       name: "Cached",
+      role: USER_ROLES.VISUALIZADOR,
+      isActive: true,
       createdAt: "2025-01-01T00:00:00.000Z",
     };
     vi.mocked(cache.get).mockResolvedValue(cached);

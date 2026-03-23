@@ -36,3 +36,19 @@ export class PasswordValidationError extends AppError {
     Object.setPrototypeOf(this, PasswordValidationError.prototype);
   }
 }
+
+export class AccountLockedError extends AppError {
+  override name = "AccountLockedError";
+  constructor(message = "Account is temporarily locked due to failed login attempts") {
+    super(message);
+    Object.setPrototypeOf(this, AccountLockedError.prototype);
+  }
+}
+
+export class UserInactiveError extends AppError {
+  override name = "UserInactiveError";
+  constructor(message = "User is inactive") {
+    super(message);
+    Object.setPrototypeOf(this, UserInactiveError.prototype);
+  }
+}

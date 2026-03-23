@@ -11,12 +11,15 @@ import { validateRegister, validateLogin } from "./auth.validation";
  * revogação antecipada seria necessário um mecanismo adicional (ex.: blacklist).
  */
 
+const skipRateLimit = process.env.NODE_ENV === "test";
+
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 min
   max: 20, // login + register combined per IP
   message: { error: "Too many attempts, try again later" },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => skipRateLimit,
 });
 
 const oauthRateLimiter = rateLimit({
@@ -25,6 +28,7 @@ const oauthRateLimiter = rateLimit({
   message: { error: "Too many OAuth attempts, try again later" },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: () => skipRateLimit,
 });
 
 export function createAuthRoutes(

@@ -7,6 +7,7 @@ import type { IUserCreatedNotifier } from "../ports/user-created-notifier.port";
 import type { CreateUserDto } from "../dtos/create-user.dto";
 import type { UserResponseDto } from "../dtos/user-response.dto";
 import { UserAlreadyExistsError, InvalidEmailError } from "../errors";
+import { DEFAULT_USER_ROLE } from "../../domain/types";
 
 export class CreateUserUseCase {
   constructor(
@@ -27,7 +28,7 @@ export class CreateUserUseCase {
     }
 
     const id = randomUUID();
-    const user = User.create(id, email, dto.name);
+    const user = User.create(id, email, dto.name, DEFAULT_USER_ROLE);
     await this.userRepository.saveUserAndOutbox(user, {
       eventName: USER_CREATED_EVENT,
       payload: {
@@ -49,6 +50,8 @@ export class CreateUserUseCase {
       id: user.id,
       email: user.email.value,
       name: user.name,
+      role: user.role,
+      isActive: user.isActive,
       createdAt: user.createdAt.toISOString(),
     };
     return result;

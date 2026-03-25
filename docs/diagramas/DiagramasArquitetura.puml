@@ -1,0 +1,65 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam componentStyle rectangle
+
+title Diagrama de Arquitetura (alto nível) — Complice-e-Auditoria\nFonte: Autoria própria (2026)
+
+actor "Usuários\n(Admin, Compliance,\nAuditores, Gestores)" as USERS
+actor "Sistemas Externos\n(ERP/CRM)" as EXT
+
+component "Front-end\n(Web App)" as FE
+
+package "Camada de Serviços (Microsserviços)" as SVC {
+  component "API Auth" as AUTH
+  component "Integration Service" as INT
+  component "Audit Service" as AUD
+  component "Compliance Engine" as CE
+  component "Risk Analysis Service" as RISK
+  component "Reporting Service" as REP
+  component "Notification Service" as NOTIF
+}
+
+queue "RabbitMQ\n(Event Bus)" as RMQ
+database "PostgreSQL\n(dados críticos)" as PG
+database "MongoDB\n(auditoria imutável)" as MONGO
+component "Redis\n(cache)" as REDIS
+
+' Acesso de usuários
+USERS --> FE
+FE --> AUTH : login/JWT
+FE --> CE : gestão/consulta de regras\n+ violações
+FE --> REP : relatórios/exportação
+FE --> AUD : consulta de auditoria
+FE --> RISK : KPIs de risco
+
+' Integração com sistemas externos
+EXT --> INT : eventos (API/Webhook)
+INT --> EXT : webhooks/retornos (opcional)
+
+' Mensageria (event-driven)
+INT --> RMQ : publica eventos
+RMQ --> AUD : entrega eventos
+RMQ --> CE : entrega eventos
+CE --> RMQ : publica violações
+RMQ --> NOTIF : entrega alertas
+
+' Persistência e cache
+AUTH --> PG
+CE --> PG
+RISK --> PG
+REP --> PG
+INT --> PG : configurações
+
+AUD --> MONGO : grava eventos\nimutáveis
+
+CE --> REDIS : regras/config
+REP --> REDIS : cache (opcional)
+
+note bottom
+  Visão baseada nas seções 3.3.3 e 5.1 do DDE:\n  microsserviços orientados a eventos via RabbitMQ,\n  PostgreSQL para dados estruturados, MongoDB para auditoria,\n  Redis para cache e Integration Service na borda com sistemas externos.
+end note
+
+@enduml
+

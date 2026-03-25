@@ -1,0 +1,119 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+
+title Mapeamento Objeto-Relacional (ORM) — PostgreSQL\nFonte: Autoria própria (2026)
+
+legend right
+  **Estereótipos**
+  <<Entity>> = classe mapeada para tabela
+  <<Id>> = chave primária
+  <<FK>> = chave estrangeira (relacionamento)
+  <<JoinTable>> = tabela de associação N:N
+end legend
+
+package "Domínio / Entidades (ex.: JPA/Hibernate)" as domain {
+
+  class Usuario <<Entity>> {
+    + id : UUID <<Id>>
+    + nome : String
+    + email : String {unique}
+    + senhaHash : String
+    + status : StatusUsuario
+    + criadoEm : Instant
+    + atualizadoEm : Instant
+    --
+    + papel : Papel <<FK>>
+    + area : AreaOrganizacional <<FK>>
+  }
+
+  class Papel <<Entity>> {
+    + id : UUID <<Id>>
+    + nome : String
+    + descricao : String?
+    --
+    + permissoes : Set<Permissao>
+    + usuarios : List<Usuario>
+  }
+
+  class Permissao <<Entity>> {
+    + id : UUID <<Id>>
+    + modulo : String
+    + acao : String
+    --
+    + papeis : Set<Papel>
+  }
+
+  class AreaOrganizacional <<Entity>> {
+    + id : UUID <<Id>>
+    + nome : String
+    --
+    + pai : AreaOrganizacional?
+    + filhas : List<AreaOrganizacional>
+    + usuarios : List<Usuario>
+  }
+
+  class RegraCompliance <<Entity>> {
+    + id : UUID <<Id>>
+    + nome : String
+    + descricao : String?
+    + criterio : String
+    + severidade : Severidade
+    + status : StatusRegra
+    + vigenciaInicio : LocalDate
+    + vigenciaFim : LocalDate?
+    + versao : int
+    + criadoPor : UUID
+    + criadoEm : Instant
+    --
+    + violacoes : List<Violacao>
+  }
+
+  class Violacao <<Entity>> {
+    + id : UUID <<Id>>
+    + eventoId : String
+    + severidade : Severidade
+    + status : StatusViolacao
+    + criadaEm : Instant
+    + resolvidaEm : Instant?
+    + justificativa : String?
+    --
+    + regra : RegraCompliance <<FK>>
+  }
+
+  class ConfiguracaoIntegracao <<Entity>> {
+    + id : UUID <<Id>>
+    + sistemaOrigem : String
+    + tipoAuth : String
+    + endpoint : String
+    + ativo : boolean
+  }
+
+  ' Relacionamentos (objetos)
+  Papel "1" <-- "0..*" Usuario : @ManyToOne\n@ForeignKey(papel_id)
+  AreaOrganizacional "1" <-- "0..*" Usuario : @ManyToOne\n@ForeignKey(area_id)
+
+  AreaOrganizacional "0..1" <-- "0..*" AreaOrganizacional : pai\n@SelfReference(pai_id)
+
+  RegraCompliance "1" <-- "0..*" Violacao : @ManyToOne\n@ForeignKey(regra_id)
+
+  Papel "0..*" -- "0..*" Permissao : @ManyToMany
+
+  class PapelPermissao <<JoinTable>> {
+    + papel_id : UUID <<FK>>
+    + permissao_id : UUID <<FK>>
+  }
+
+  Papel "1" -- "0..*" PapelPermissao
+  Permissao "1" -- "0..*" PapelPermissao
+}
+
+note bottom
+  Este diagrama é conceitual (ORM) e segue a seção 3.4 do DDE.\n
+  O Audit Service persiste em MongoDB (documentos), portanto não entra no ORM relacional.
+end note
+
+@enduml
+

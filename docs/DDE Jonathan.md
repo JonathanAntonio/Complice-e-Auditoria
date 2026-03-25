@@ -281,31 +281,27 @@ Os requisitos do sistema são classificados em três níveis de prioridade:
 
 ## 1.11 STAKEHOLDERS ENVOLVIDOS  {#1.11-stakeholders-envolvidos}
 
-| Stakeholder | Papel | Interesse no Sistema |
-|-------------|-------|----------------------|
-| **Jonathan Brito** | Autor / Desenvolvedor | Concepção, desenvolvimento e documentação do sistema. |
-| **Profº Dennys Cavalcanti Carvalho** | Professor orientador | Orientação pedagógica e técnica do projeto. |
-| **Diretoria / Executivos** | Usuário estratégico | Visualização de KPIs e dashboards executivos. |
-| **Compliance Officer** | Usuário principal | Gestão de regras, violações e conformidade. |
-| **Departamento Jurídico** | Usuário consultivo | Relatórios regulatórios e histórico de eventos. |
-| **Auditor Interno** | Usuário operacional | Trilhas de auditoria e registros de ações. |
-| **Auditor Externo** | Usuário consultivo | Acesso controlado a logs e relatórios dentro do escopo definido. |
-| **Administrador do Sistema** | Usuário técnico | Gestão de usuários, perfis e configurações. |
-| **Time de TI / DevOps** | Equipe técnica | Infraestrutura, deploy e monitoramento (quando aplicável). |
-| **Sistemas Externos (ERPs, CRMs)** | Integração | Envio e recebimento de eventos via API/Webhook. | 
+* **Jonathan Brito** — Autor e desenvolvedor: concepção, desenvolvimento e documentação do sistema.
+* **Profº Dennys Cavalcanti Carvalho** — Professor orientador: orientação pedagógica e técnica do projeto.
+* **Diretoria / Executivos** — Usuário estratégico: visualização de KPIs e dashboards executivos.
+* **Compliance Officer** — Usuário principal: gestão de regras, violações e conformidade.
+* **Departamento Jurídico** — Usuário consultivo: relatórios regulatórios e histórico de eventos.
+* **Auditor Interno** — Usuário operacional: trilhas de auditoria e registros de ações.
+* **Auditor Externo** — Usuário consultivo: acesso controlado a logs e relatórios dentro do escopo definido.
+* **Administrador do Sistema** — Usuário técnico: gestão de usuários, perfis e configurações.
+* **Time de TI / DevOps** — Equipe técnica: infraestrutura, deploy e monitoramento (quando aplicável).
+* **Sistemas Externos (ERPs, CRMs)** — Integração: envio e recebimento de eventos via API/Webhook.
 
 ## 1.12 RISCOS INICIAIS  {#1.12-riscos-iniciais}
 
-| ID | Risco | Probabilidade | Impacto | Mitigação |
-|----|-------|---------------|---------|-----------|
-| R01 | Integrações com ERPs legados que não suportam Webhooks | Alta | Alto | Desenvolver adaptadores e polling como fallback. |
-| R02 | Volume elevado de eventos sobrecarregando o Audit Service | Média | Alto | Escalonamento horizontal e filas com backpressure. |
-| R03 | Complexidade na configuração de regras de compliance | Média | Médio | Interface amigável e suporte a templates de regras. |
-| R04 | Vazamento de dados sensíveis nos logs | Baixa | Crítico | Criptografia de campos sensíveis e controle rigoroso de acesso. |
-| R05 | Dificuldade de adoção pelos usuários finais | Média | Médio | Treinamento e UX intuitivo no dashboard. |
-| R06 | Falha na mensageria (RabbitMQ) causando perda de eventos | Baixa | Alto | Dead-letter queues, retries e persistência de mensagens. |
-| R07 | Prazo curto da disciplina para entregar todos os microsserviços | Média | Alto | Priorização MoSCoW, MVP com serviços críticos primeiro. |
-| R08 | Falta de familiaridade com stack (microsserviços, RabbitMQ, MongoDB) | Média | Médio | Estudo prévio, documentação e protótipos incrementais. |
+* **R01 — Integrações com ERPs legados que não suportam Webhooks** (probabilidade alta, impacto alto). Mitigação: desenvolver adaptadores e polling como fallback.
+* **R02 — Volume elevado de eventos sobrecarregando o Audit Service** (probabilidade média, impacto alto). Mitigação: escalonamento horizontal e filas com backpressure.
+* **R03 — Complexidade na configuração de regras de compliance** (probabilidade média, impacto médio). Mitigação: interface amigável e suporte a templates de regras.
+* **R04 — Vazamento de dados sensíveis nos logs** (probabilidade baixa, impacto crítico). Mitigação: criptografia de campos sensíveis e controle rigoroso de acesso.
+* **R05 — Dificuldade de adoção pelos usuários finais** (probabilidade média, impacto médio). Mitigação: treinamento e UX intuitivo no dashboard.
+* **R06 — Falha na mensageria (RabbitMQ) causando perda de eventos** (probabilidade baixa, impacto alto). Mitigação: dead-letter queues, retries e persistência de mensagens.
+* **R07 — Prazo curto da disciplina para entregar todos os microsserviços** (probabilidade média, impacto alto). Mitigação: priorização MoSCoW, MVP com serviços críticos primeiro.
+* **R08 — Falta de familiaridade com stack (microsserviços, RabbitMQ, MongoDB)** (probabilidade média, impacto médio). Mitigação: estudo prévio, documentação e protótipos incrementais.
 
 # **2 DOCUMENTO DE ESPECIFICAÇÃO DE REQUISITOS (ERS)** {#2-documento-de-especificação-de-requisitos-(ers)}
 

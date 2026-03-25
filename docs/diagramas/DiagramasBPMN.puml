@@ -1,0 +1,104 @@
+@startuml
+title BPMN (visão de processo) — Registro e validação de evento\nFonte: Autoria própria (2026)
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor White
+  BorderColor Black
+}
+
+|#LightYellow|Sistema externo (ERP/CRM)|
+start
+:Enviar evento\n(API ou Webhook);
+
+|#LightBlue|Integration Service|
+:Autenticar integração;
+:Validar payload e idempotência;
+:Publicar mensagem no RabbitMQ;
+
+|#LightGreen|Audit Service|
+:Consumir evento da fila;
+:Gravar documento imutável\nno MongoDB (auditoria);
+
+|#LightCoral|Compliance Engine|
+:Avaliar regras ativas\nsobre o evento;
+
+if (Violação detectada?) then (sim)
+  :Registrar violação\n(status Aberta) no PostgreSQL;
+  |#LightGray|Notification Service|
+  :Enviar alertas\n(e-mail / webhook);
+else (não)
+endif
+
+stop
+
+@enduml
+
+@startuml
+title BPMN (visão de processo) — Análise de violação\nFonte: Autoria própria (2026)
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor White
+  BorderColor Black
+}
+
+start
+:Violação criada\n(status Aberta);
+
+|#LightBlue|Compliance Officer / Gestor|
+:Mover para Em Análise;
+
+if (Decisão da análise?) then (resolver)
+  :Registrar resolução;
+  :Status Resolvida;
+  stop
+elseif (dispensar) then (sim)
+  |#LightCoral|Compliance Officer|
+  :Informar justificativa obrigatória\n(RN-11);
+  :Registrar dispensa;
+  :Status Dispensada;
+  stop
+else (continuar)
+  :Atualizar informações\nda análise;
+endif
+
+stop
+
+@enduml
+
+@startuml
+title BPMN (visão de processo) — Recuperação de senha\nFonte: Autoria própria (2026)
+skinparam shadowing false
+skinparam activity {
+  BackgroundColor White
+  BorderColor Black
+}
+
+|#LightYellow|Usuário|
+start
+:Solicitar recuperação de senha\n(informar e-mail);
+
+|#LightBlue|API Auth|
+:Localizar usuário pelo e-mail;
+if (E-mail cadastrado?) then (sim)
+  :Gerar link de uso único\ncom expiração (ex.: 30 min);
+  :Enviar e-mail com link;
+else (não)
+  :Responder de forma segura\nsem revelar existência\n(anti-enumeração);
+  stop
+endif
+
+|#LightYellow|Usuário|
+:Acessar link do e-mail;
+
+|#LightBlue|API Auth|
+if (Link válido e não expirado?) then (sim)
+  :Permitir definição\nde nova senha;
+  :Invalidar link após uso;
+  :Registrar evento\nem auditoria;
+else (não)
+  :Negar redefinição\n(link inválido/expirado);
+endif
+
+stop
+
+@enduml

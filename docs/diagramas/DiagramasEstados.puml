@@ -1,0 +1,95 @@
+@startuml
+skinparam shadowing false
+skinparam state {
+  BackgroundColor White
+  BorderColor Black
+}
+
+title Diagrama de estados (1/3) — Violação\nFonte: Autoria própria (2026)
+
+state Aberta
+state Resolvida
+state Dispensada
+state "Em Análise" as EmAnalise
+
+[*] --> Aberta : Evento viola regra ativa\nRN-10 / RN-35
+
+Aberta --> EmAnalise : Compliance Officer ou Gestor\ninicia análise
+
+EmAnalise --> Resolvida : Encerramento com tratamento
+
+EmAnalise --> Dispensada : Dispensa com justificativa obrigatória
+
+note right of Dispensada
+  Somente Compliance Officer pode dispensar (RN-11).
+  Justificativa obrigatória e auditada.
+end note
+
+Aberta --> Resolvida : Resolução direta\nconforme política
+
+Resolvida --> [*]
+Dispensada --> [*]
+
+note bottom of Aberta
+  Estados: Aberta, Em Análise, Resolvida, Dispensada.
+  Alinhado à seção 3.2.2 do DDE.
+end note
+
+@enduml
+
+@startuml
+skinparam shadowing false
+skinparam state {
+  BackgroundColor White
+  BorderColor Black
+}
+
+title Diagrama de estados (2/3) — Regra de compliance\nFonte: Autoria própria (2026)
+
+state Rascunho
+state Ativa
+state Inativa
+
+[*] --> Rascunho : Criação da regra\nCompliance Officer
+
+Rascunho --> Rascunho : Edição\nsem vigência pública
+
+Rascunho --> Ativa : Ativação\nentra em vigência
+
+Ativa --> Inativa : Desativação\nnão aplica mais
+
+Inativa --> Ativa : Reativação\nse permitido
+
+note right of Ativa
+  Regra inativa não é aplicada (RN-09).
+  Edição de regra ativa pode gerar nova versão (RF-10).
+end note
+
+Rascunho --> [*] : Cancelamento ou exclusão lógica\nse aplicável
+
+@enduml
+
+@startuml
+skinparam shadowing false
+skinparam state {
+  BackgroundColor White
+  BorderColor Black
+}
+
+title Diagrama de estados (3/3) — Usuário\nFonte: Autoria própria (2026)
+
+state Ativo
+state Inativo
+
+[*] --> Ativo : Cadastro aprovado ou\ncriação pelo Administrador
+
+Ativo --> Inativo : Inativação ou exclusão lógica\nRN-17
+
+Inativo --> Ativo : Reativação\nAdministrador
+
+note right of Inativo
+  Exclusão é lógica: preserva histórico
+  para auditoria; login bloqueado (RN-17).
+end note
+
+@enduml

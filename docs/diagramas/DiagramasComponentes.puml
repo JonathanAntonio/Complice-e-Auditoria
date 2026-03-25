@@ -1,0 +1,69 @@
+@startuml
+left to right direction
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+title Diagrama de Componentes — Complice-e-Auditoria\nFonte: Autoria própria (2026)
+
+actor "Usuários\n(corporativo)" as USERS
+component "Front-end\n(Web App)" as FE
+
+package "Microsserviços" as MS {
+  component "API Auth\n(Autenticação)" as AUTH
+  component "Audit Service\n(Logs imutáveis)" as AUD
+  component "Compliance Engine\n(Regras)" as CE
+  component "Risk Analysis Service\n(Risco)" as RISK
+  component "Reporting Service\n(Relatórios)" as REP
+  component "Integration Service\n(API/Webhook)" as INT
+  component "Notification Service\n(Alertas)" as NOTIF
+}
+
+queue "RabbitMQ" as RMQ
+database "PostgreSQL" as PG
+database "MongoDB" as MONGO
+component "Redis\n(Cache)" as REDIS
+
+actor "Sistemas Externos\n(ERP/CRM)" as EXT
+
+' Interações principais
+USERS --> FE
+FE --> AUTH : login/JWT
+FE --> CE : regras/validações
+FE --> REP : relatórios/exportação
+FE --> AUD : consulta de auditoria
+FE --> RISK : indicadores de risco
+FE --> NOTIF : preferências/consulta (quando aplicável)
+FE --> INT : configurações de integração (quando aplicável)
+
+' Persistência
+AUTH --> PG : usuários/perfis
+CE --> PG : regras/violações
+RISK --> PG : leituras/estatísticas (quando aplicável)
+REP --> PG : consultas
+INT --> PG : configurações integração
+
+AUD --> MONGO : eventos de auditoria (imutável)
+
+' Cache
+CE --> REDIS : regras/config estáveis
+REP --> REDIS : parâmetros/consultas (opcional)
+
+' Mensageria
+INT --> RMQ : publica eventos
+RMQ --> AUD : entrega eventos
+RMQ --> CE : entrega eventos
+CE --> RMQ : publica violações
+RMQ --> NOTIF : entrega alertas
+
+' Integrações externas
+EXT --> INT : envia eventos
+INT --> EXT : webhooks/retornos (opcional)
+
+note bottom
+  Componentes e dependências baseados na seção 3.3.2 do DDE.
+  Setas representam dependência/integração principal (HTTP/filas/persistência/cache).
+end note
+
+@enduml
+

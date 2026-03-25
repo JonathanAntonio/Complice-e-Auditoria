@@ -1,0 +1,91 @@
+@startuml
+skinparam responseMessageBelowArrow true
+autonumber
+
+title Diagrama de sequência (1/3) — Registro de evento e auditoria\nFonte: Autoria própria (2026)
+
+actor "Sistema externo\n(ERP/CRM)" as Ext
+participant "Integration\nService" as INT
+queue "RabbitMQ\n(filas)" as RMQ
+participant "Audit\nService" as AUD
+database "MongoDB\n(EventoAuditoria)" as MONGO
+participant "Compliance\nEngine" as CE
+database "PostgreSQL\n(dados)" as PG
+participant "Notification\nService" as NOTIF
+
+Ext -> INT : Envia evento (API/Webhook,\nauth + idempotency key)
+activate INT
+INT -> INT : Valida payload e autenticação
+INT -> RMQ : Publica mensagem do evento
+deactivate INT
+
+RMQ -> AUD : Consome mensagem
+activate AUD
+AUD -> MONGO : Grava documento imutável\nde auditoria
+MONGO --> AUD : confirmação
+deactivate AUD
+
+RMQ -> CE : Consome para avaliação\nde regras (ou evento encadeado)
+activate CE
+CE -> CE : Avalia regras ativas\nsobre o evento
+
+alt Regra violada
+  CE -> PG : Persiste **Violacao**\n(status Aberta)
+  CE -> RMQ : Publica evento de violação
+  RMQ -> NOTIF : Consome alerta
+  activate NOTIF
+  NOTIF -> NOTIF : Envia e-mail / webhook
+  deactivate NOTIF
+else Sem violação
+  CE -> CE : Nenhuma violação gerada
+end
+deactivate CE
+
+note bottom
+  Fluxo da seção 3.2.1 do DDE:\nIntegration → RabbitMQ → Audit (grava) → Compliance Engine → violação (se aplicável) → Notification.
+end note
+
+newpage
+
+title Diagrama de sequência (2/3) — Login\nFonte: Autoria própria (2026)
+
+actor Usuário as U
+participant "API Auth\n(microsserviço)" as AUTH
+database "PostgreSQL\n(Usuario)" as PG2
+database "MongoDB\n(auditoria)" as MONGO2
+
+U -> AUTH : POST /login (credenciais)
+activate AUTH
+AUTH -> PG2 : Busca usuário por e-mail
+PG2 --> AUTH : registro (hash, status, papel)
+AUTH -> AUTH : Valida senha e status ativo
+AUTH -> AUTH : Emite JWT (expiração configurável)
+AUTH -> MONGO2 : Registra evento de auditoria\n(login bem-sucedido)
+AUTH --> U : JWT + metadados
+deactivate AUTH
+
+newpage
+
+title Diagrama de sequência (3/3) — Gestão de regra de compliance\nFonte: Autoria própria (2026)
+
+actor "Compliance\nOfficer" as CO
+participant "API\n(Regras)" as API
+participant "Compliance Engine\n/ domínio de regras" as CE2
+database "PostgreSQL\n(RegraCompliance)" as PG3
+database "MongoDB\n(auditoria)" as MONGO3
+
+CO -> API : Cria/edita regra (JWT)
+activate API
+API -> API : Autoriza papel Compliance Officer
+API -> CE2 : Aplica versionamento\n(nova versão se regra ativa)
+CE2 -> PG3 : Persiste **RegraCompliance**\n(versão, vigência, status)
+PG3 --> CE2 : OK
+CE2 -> MONGO3 : Registra alteração\nem auditoria
+API --> CO : Resposta (regra versionada)
+deactivate API
+
+note right of CE2
+  Edição de regra ativa gera nova versão;\nhistórico preservado (RF-10).
+end note
+
+@enduml

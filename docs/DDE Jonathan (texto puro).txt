@@ -1,0 +1,865 @@
+AUTARQUIA DE ENSINO SUPERIOR DE ARCOVERDE
+CENTRO DE ENSINO SUPERIOR DE ARCOVERDE
+CURSO SUPERIOR EM ANÁLISE E DESENVOLVIMENTO DE SISTEMAS
+
+COMPLICE E AUDITORIA
+
+
+Relatório Técnico
+
+JONATHAN BRITO
+
+ARCOVERDE - PE
+2026
+JONATHAN BRITO
+
+COMPLICE E AUDITORIA
+
+Relatório Técnico apresentado como requisito parcial para a disciplina de Projeto de Desenvolvimento de Sistemas Web / Projeto de Desenvolvimento de Sistema Corporativo, do curso superior em Análise em Desenvolvimento de Sistemas, sob orientação do Profº Dennys Cavalcanti Carvalho.
+
+ARCOVERDE - PE
+2026
+HISTÓRICO DE REVISÃO
+
+Data | Versão | Descrição
+05/02/2026 | 1.0 | Elaboração dos primeiros conteúdos para implementação no documento.
+
+SUMÁRIO
+
+1 DOCUMENTO DE DEFINIÇÃO DE ESCOPO (DDE)	6
+
+1.1. INTRODUÇÃO	6
+
+1.2. VISÃO GERAL DO DOCUMENTO	6
+
+1.3. IDENTIFICAÇÃO DO PROJETO	6
+
+1.4. OBJETIVOS DO PROJETO	6
+
+1.5. JUSTIFICATIVA	7
+
+1.6. IDENTIFICAÇÃO DOS REQUISITOS	7
+
+1.6.1. Prioridades dos Requisitos	7
+
+1.7. ESCOPO DO PRODUTO E ENTREGÁVEIS	8
+
+1.7.1. Funcionalidades Previstas	8
+
+1.7.2. Entregáveis	8
+
+1.8. PREMISSAS E RESTRIÇÕES	8
+
+1.8.1. Premissas	8
+
+1.8.2. Restrições	8
+
+1.9. CRITÉRIOS DE ACEITAÇÃO DO PROJETO	9
+
+1.10. EXCLUSÕES DO ESCOPO	9
+
+1.11. STAKEHOLDERS ENVOLVIDOS	9
+
+1.12. RISCOS INICIAIS	9
+
+2 DOCUMENTO DE ESPECIFICAÇÃO DE REQUISITOS (ERS)	11
+
+2.1. REQUISITOS FUNCIONAIS	11
+
+2.2. REQUISITOS NÃO FUNCIONAIS	11
+
+2.3. REGRAS DE NEGÓCIO	11
+
+3 DOCUMENTO DE ESPECIFICAÇÃO DE MODELAGEM (DEM)	13
+
+3.1 MODELAGEM DE DADOS	13
+
+3.1.1 Entidade-Relacionamento	13
+
+3.1.2 Dicionário de Dados	13
+
+3.2 MODELAGEM COMPORTAMENTAL	13
+
+3.2.1 Diagrama de Sequência	13
+
+3.2.2 Diagrama de Estados	13
+
+3.3. MODELAGEM ESTRUTURAL	13
+
+3.3.1 Diagrama de Caso de Uso	13
+
+3.3.2 Diagrama de Componentes	13
+
+3.3.3 Diagrama de Arquitetura	13
+
+3.4 MAPEAMENTO OBJETO-RELACIONAL (ORM)	13
+
+3.5 BPMN (BUSINESS PROCESS MODEL AND NOTATION)	13
+
+4 DOCUMENTO DE ESPECIFICAÇÃO DE INTERFACES (DEI)	14
+
+4.1. WIREFRAMES	14
+
+4.2. MOCKUPS	14
+
+4.3. FLUXO DE NAVEGAÇÃO	14
+
+5 DOCUMENTAÇÃO TÉCNICA	15
+
+5.1. ARQUITETURA DO SISTEMA	15
+
+5.1.1. Segmentação da Arquitetura	15
+
+5.2. TECNOLOGIAS UTILIZADAS	15
+
+5.2.1 Frontend	15
+
+5.2.2. Backend	15
+
+5.2.3. Banco de Dados	15
+
+5.2.4. Ferramentas de Apoio	15
+
+5.2.5. Padrões Adotados	15
+
+5.2.6. Boas Práticas e Convenções	16
+
+5.2.7. Requisitos de Infraestrutura	17
+
+5.2.8. APIs e Integrações	17
+
+5.2.9. Caracterização da API	17
+
+5.3. REPOSITÓRIO E CÓDIGO-FONTE	17
+
+6. MANUAL DO USUÁRIO	18
+
+7. REFERÊNCIAS	20
+
+8. APÊNDICE	21
+
+
+1 DOCUMENTO DE DEFINIÇÃO DE ESCOPO (DDE)
+
+
+1.1 INTRODUÇÃO O Sistema Corporativo de Compliance e Auditoria é uma plataforma voltada ao setor corporativo, em especial a empresas de médio e grande porte que precisam de rastreamento detalhado de ações internas, evidência de conformidade regulatória e redução de riscos operacionais e de fraude. O software se destina a áreas como diretoria, compliance, jurídico e auditoria (interna e externa), oferecendo centralização de auditoria de eventos, monitoramento de conformidade, análise de risco e relatórios regulatórios em uma única solução.
+
+
+A ideia central é unificar, em uma única plataforma, a auditoria de eventos, o monitoramento de conformidade (incluindo LGPD, ISO, SOX e normativos internos), a análise e pontuação de risco e a geração de relatórios regulatórios, com alto nível de segurança, rastreabilidade e escalabilidade. Assim, o sistema busca atender empresas com forte exigência de compliance e auditoria, reduzindo a falta de rastreabilidade, as auditorias manuais e demoradas e os riscos de não conformidade e fraude.
+
+
+1.2 VISÃO GERAL DO DOCUMENTO
+
+Este documento apresenta o escopo detalhado do Sistema Corporativo de Compliance e Auditoria, uma plataforma corporativa destinada a empresas de médio e grande porte que necessitam de rastreamento de ações internas, comprovação de conformidade regulatória e redução de riscos operacionais e de fraude. Ao longo do documento são descritos os objetivos do sistema, o público-alvo (diretoria, compliance, jurídico e auditores internos e externos), a arquitetura de alto nível, os requisitos funcionais e não funcionais, as regras de negócio e os aspectos de segurança, integração e infraestrutura que compõem o projeto.
+
+
+1.3 IDENTIFICAÇÃO DO PROJETO
+
+Nome do Projeto: Complice e Auditoria
+Autor: Jonathan Brito
+
+
+1.4 OBJETIVOS DO PROJETO  Objetivo Geral: Desenvolver um sistema corporativo de compliance e auditoria para centralizar o rastreamento de eventos, o monitoramento de conformidade regulatória e a análise de risco em empresas de médio e grande porte, atendendo diretoria, área de compliance, jurídico e auditores internos e externos.
+
+Objetivos Específicos:
+
+- Levantar e documentar os requisitos funcionais e não funcionais do sistema, alinhados a normas como LGPD, ISO e SOX.
+- Projetar a arquitetura do sistema em microsserviços orientada a eventos, com uso de mensageria (RabbitMQ) e integração com sistemas legados.
+- Implementar o Audit Service para registro imutável de eventos em banco não relacional, garantindo rastreabilidade e trilha de auditoria.
+- Implementar o Compliance Engine com motor de regras configurável para validação de eventos e geração automática de violações.
+- Implementar o Risk Analysis Service para cálculo e atualização de pontuação de risco por usuário, área e processo.
+- Implementar o Reporting Service para geração de relatórios regulatórios e operacionais e suporte a dashboards com KPIs.
+- Implementar o Integration Service para recebimento e envio de eventos via API e webhooks com ERPs e sistemas externos.
+- Implementar o Notification Service para envio de alertas (e-mail, webhook) em caso de violações e eventos críticos.
+- Definir e aplicar controle de acesso baseado em papéis (RBAC) e autenticação segura (JWT ou OAuth2).
+- Garantir segurança, criptografia de dados sensíveis e conformidade com LGPD nas operações do sistema.
+- Validar a solução por meio de testes unitários, de integração e de carga nos serviços críticos.
+
+1.5 JUSTIFICATIVA
+
+Empresas de médio e grande porte sofrem com falta de rastreabilidade, dificuldade em comprovar conformidade (LGPD, ISO, SOX) e exposição a fraudes. No Brasil, 63% das empresas registraram ao menos uma fraude nos últimos 12 meses (Grant Thornton, 2024), e a ACFE (2024) estima que organizações percam cerca de 5% da receita anual com fraude ocupacional. Auditorias manuais consomem tempo e equipe, e a maturidade de compliance no país ainda é moderada (KPMG, 2024). Continuar assim aumenta custo operacional, risco reputacional e dificuldade em comprovar conformidade.
+
+O sistema centraliza auditoria de eventos (registro imutável), regras de conformidade, análise de risco e relatórios em uma única plataforma integrada a ERPs. A automatização reduz trabalho manual e dá visibilidade contínua, diminuindo a “oportunidade” de fraude (Grant Thornton, 2024) e permitindo resposta rápida a reguladores. Vale a pena desenvolver porque concentra evidências de conformidade, acelera auditorias e reduz dependência de processos manuais e fragmentados.
+
+1.6 IDENTIFICAÇÃO DOS REQUISITOS
+
+Por convenção, os requisitos são referenciados pelo nome da subseção onde estão descritos, seguido do seu identificador, conforme o esquema abaixo:
+
+- O requisito funcional [Cadastro de Usuários.RF-01] está localizado na subseção “Requisitos Funcionais”, dentro do bloco identificado como [RF-01].
+
+- O requisito não funcional [Disponibilidade.NF-04] encontra-se na seção “Requisitos Não Funcionais de Confiabilidade”, no bloco identificado como [NF-04].
+
+1.6.1 Prioridades dos Requisitos
+
+Os requisitos do sistema são classificados em três níveis de prioridade:
+
+- Essencial: indispensável para o funcionamento do sistema. Sem ele, o sistema não opera. Deve ser obrigatoriamente implementado.
+
+- Importante: afeta a qualidade do funcionamento. O sistema pode ser utilizado sem esse requisito, mas de forma insatisfatória. Sua implementação é recomendada.
+
+- Desejável: não interfere nas funcionalidades básicas. O sistema funciona bem sem ele. Pode ser incluído em versões futuras, caso não haja tempo para implementá-lo na versão atual.
+
+1.7 ESCOPO DO PRODUTO E ENTREGÁVEIS
+
+1.7.1 Funcionalidades Previstas
+
+- Gestão de Usuários: Cadastro, edição e exclusão lógica de usuários; controle de perfis e permissões (RBAC); autenticação segura (JWT ou OAuth2); recuperação de senha; controle de sessão com expiração configurável.
+- Controle de Acesso: Autorização por papéis e por módulo; logs de acesso (login, logout, tentativas inválidas).
+- Auditoria e Rastreamento: Registro imutável de ações dos usuários no Audit Service; histórico de alterações por entidade; versionamento de dados críticos; persistência em banco não relacional.
+- Compliance Engine: Motor de regras de compliance configurável; validação de eventos conforme normativos; geração automática de violações e pendências.
+- Análise de Risco: Cálculo e atualização de pontuação de risco por usuário, área e processo (Risk Analysis Service).
+- Dashboard e KPIs: Visualização de métricas estratégicas e operacionais; filtros por período, área e nível de risco; atualização dinâmica dos indicadores; exportação de relatórios (PDF, CSV).
+- Reporting Service: Geração de relatórios regulatórios e operacionais; suporte a dashboards com KPIs.
+- Integration Service: Recebimento e envio de eventos via API e webhooks com ERPs e sistemas externos; validação e idempotência.
+- Notification Service: Envio de alertas (e-mail, webhook) em caso de violações e eventos críticos; reprocessamento e dead-letter para falhas.
+
+1.7.2 Entregáveis
+
+- Código-fonte do projeto no repositório (GitHub), incluindo front-end, back-end e configurações de infraestrutura (Docker, quando aplicável).
+- Documento de Definição de Escopo (DDE) e Documento de Especificação de Requisitos (ERS).
+- Documentação de arquitetura e modelagem (DEM), incluindo diagramas de alto nível.
+- Documentação de interfaces (DEI), com wireframes e fluxo de navegação quando disponíveis.
+- Documentação técnica (arquitetura, tecnologias, padrões, estrutura do repositório).
+- Manual do Usuário com passo a passo e glossário de mensagens.
+- Referências e Apêndice com materiais complementares.
+
+1.8 PREMISSAS E RESTRIÇÕES
+
+1.8.1 Premissas
+
+- Os usuários (diretoria, compliance, jurídico, auditores) terão acesso à internet e dispositivos compatíveis para acessar a plataforma web.
+- Os sistemas externos (ERPs, CRMs) possuem capacidade de enviar eventos via API REST ou Webhook.
+- A equipe terá acesso a ambientes de desenvolvimento, homologação e produção, com Docker e ferramentas de orquestração disponíveis quando necessário.
+- O sistema será acessado prioritariamente via navegador web (front-end desacoplado).
+- Haverá interesse das áreas de compliance e auditoria em utilizar uma plataforma centralizada para rastreamento e conformidade.
+- Os normativos (LGPD, ISO, SOX e internos) são conhecidos e passíveis de modelagem em regras no Compliance Engine.
+
+1.8.2 Restrições
+
+- O projeto deve ser concluído dentro do prazo da disciplina.
+- O sistema será inicialmente apenas web (sem aplicativo nativo mobile).
+- O sistema deve estar em conformidade com a LGPD; os logs de auditoria devem ser imutáveis; integrações externas devem exigir autenticação (API Key, OAuth2 ou similar).
+- O banco não relacional utilizado para logs deve garantir alta disponibilidade e replicação quando em produção.
+- Tecnologias alinhadas à arquitetura definida: front-end desacoplado (ex.: React), back-end em microsserviços (ex.: Java/Spring Boot ou stack definida), PostgreSQL, MongoDB, RabbitMQ e Redis conforme documentação de arquitetura.
+
+1.9 CRITÉRIOS DE ACEITAÇÃO DO PROJETO
+
+- Todos os eventos críticos devem ser registrados no Audit Service em menos de 2 segundos após ocorrerem.
+- O sistema deve suportar pelo menos 500 usuários simultâneos sem degradação significativa de performance (conforme requisitos não funcionais).
+- O dashboard deve exibir KPIs atualizados com defasagem máxima de 60 segundos em relação aos eventos processados.
+- Nenhum log de auditoria deve ser alterado ou excluído após gravação (imutabilidade).
+- Toda violação de compliance deve gerar alerta automático ao responsável em menos de 5 minutos (para severidade crítica).
+- Tempo de resposta P95 das APIs críticas inferior a 500 ms para operações síncronas.
+- Cobertura mínima de testes (unitários e de integração) nos serviços críticos, conforme definição da equipe.
+- Interface funcional para os fluxos principais: login, gestão de usuários, visualização de dashboard, gestão de regras de compliance e consulta a logs de auditoria.
+- Documentação técnica e Manual do Usuário entregues e revisados.
+
+1.10 EXCLUSÕES DO ESCOPO
+
+- Não haverá aplicativo mobile nativo nesta versão; o acesso será exclusivamente via navegador web.
+- Integração com gateways de pagamento ou cartões de crédito está fora do escopo.
+- Machine Learning para detecção de padrões suspeitos está previsto como evolução futura (Could Have), não obrigatório na versão inicial.
+- Assinatura digital de eventos críticos e aprovação dupla para dispensar violações críticas podem ser implementadas em fases posteriores, conforme priorização.
+- O sistema não substitui ERPs ou CRMs; apenas recebe eventos e envia alertas/relatórios, sem gestão transacional de negócio nesses sistemas.
+
+1.11 STAKEHOLDERS ENVOLVIDOS
+
+- Jonathan Brito — Autor e desenvolvedor: concepção, desenvolvimento e documentação do sistema.
+- Profº Dennys Cavalcanti Carvalho — Professor orientador: orientação pedagógica e técnica do projeto.
+- Diretoria / Executivos — Usuário estratégico: visualização de KPIs e dashboards executivos.
+- Compliance Officer — Usuário principal: gestão de regras, violações e conformidade.
+- Departamento Jurídico — Usuário consultivo: relatórios regulatórios e histórico de eventos.
+- Auditor Interno — Usuário operacional: trilhas de auditoria e registros de ações.
+- Auditor Externo — Usuário consultivo: acesso controlado a logs e relatórios dentro do escopo definido.
+- Administrador do Sistema — Usuário técnico: gestão de usuários, perfis e configurações.
+- Time de TI / DevOps — Equipe técnica: infraestrutura, deploy e monitoramento (quando aplicável).
+- Sistemas Externos (ERPs, CRMs) — Integração: envio e recebimento de eventos via API/Webhook.
+
+1.12 RISCOS INICIAIS
+
+- R01 — Integrações com ERPs legados que não suportam Webhooks (probabilidade alta, impacto alto). Mitigação: desenvolver adaptadores e polling como fallback.
+- R02 — Volume elevado de eventos sobrecarregando o Audit Service (probabilidade média, impacto alto). Mitigação: escalonamento horizontal e filas com backpressure.
+- R03 — Complexidade na configuração de regras de compliance (probabilidade média, impacto médio). Mitigação: interface amigável e suporte a templates de regras.
+- R04 — Vazamento de dados sensíveis nos logs (probabilidade baixa, impacto crítico). Mitigação: criptografia de campos sensíveis e controle rigoroso de acesso.
+- R05 — Dificuldade de adoção pelos usuários finais (probabilidade média, impacto médio). Mitigação: treinamento e UX intuitivo no dashboard.
+- R06 — Falha na mensageria (RabbitMQ) causando perda de eventos (probabilidade baixa, impacto alto). Mitigação: dead-letter queues, retries e persistência de mensagens.
+- R07 — Prazo curto da disciplina para entregar todos os microsserviços (probabilidade média, impacto alto). Mitigação: priorização MoSCoW, MVP com serviços críticos primeiro.
+- R08 — Falta de familiaridade com stack (microsserviços, RabbitMQ, MongoDB) (probabilidade média, impacto médio). Mitigação: estudo prévio, documentação e protótipos incrementais.
+
+2 DOCUMENTO DE ESPECIFICAÇÃO DE REQUISITOS (ERS)
+
+2.1 REQUISITOS FUNCIONAIS
+
+Requisitos funcionais são as funções que usuários e clientes esperam que o software ofereça. Eles estão diretamente ligados às funcionalidades que o sistema deve fornecer. Segundo Ian Sommerville, requisitos funcionais definem as funcionalidades específicas que um sistema de software deve realizar para atender às necessidades dos usuários e alcançar os objetivos do projeto.
+
+[RF-01] Cadastro, edição e exclusão de usuários:
+O sistema deve permitir o cadastro de novos usuários com dados obrigatórios (nome completo, e-mail corporativo único, papel, área organizacional e status), bem como a edição desses dados e a exclusão lógica (inativação) do usuário.
+		Atores: Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: Ao cadastrar, o sistema exige os campos obrigatórios; valida unicidade do e-mail corporativo; cria o usuário com status inicial definido; ao editar, persiste as alterações; ao excluir, o usuário é inativado (não removido) e o evento é registrado no Audit Service.
+
+[RF-02] Controle de perfis e permissões (RBAC):
+O sistema deve implementar controle de acesso baseado em papéis (Administrador, Compliance Officer, Auditor Interno, Auditor Externo, Gestor e Visualizador), com permissões configuradas por módulo do sistema.
+		Atores: Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: Para cada papel, o sistema permite definir permissões por módulo; um usuário com papel sem permissão recebe bloqueio de acesso (ex.: 403 ou mensagem de acesso negado); tentativas de acesso negadas são registradas em auditoria.
+
+[RF-03] Autenticação segura (JWT ou OAuth2):
+O sistema deve autenticar usuários utilizando JWT ou OAuth2, emitindo tokens com expiração configurável e validando tokens em cada requisição protegida.
+		Atores: Todos os usuários autenticáveis (Administrador, Compliance Officer, Auditor Interno, Auditor Externo, Gestor, Visualizador).
+Prioridade: Essencial
+Critério de aceitação: Com credenciais válidas, o sistema autentica e retorna token com tempo de expiração configurado; com credenciais inválidas, nega o acesso; endpoints protegidos rejeitam token ausente, inválido ou expirado; login e tentativas inválidas são registradas no log de auditoria.
+
+[RF-04] Recuperação de senha:
+O sistema deve permitir recuperação de senha por canal seguro, enviando e-mail com link de uso único e expiração de 30 minutos para redefinição.
+		Atores: Todos os usuários.
+Prioridade: Essencial
+Critério de aceitação: Ao solicitar recuperação, o sistema envia link de redefinição para o e-mail cadastrado; o link é de uso único e expira em 30 minutos; ao usar link válido, o usuário define nova senha; uso de link expirado ou já utilizado é recusado; eventos são registrados no Audit Service.
+
+[RF-05] Controle de sessão:
+O sistema deve controlar sessões/autenticação com expiração configurável e oferecer suporte para invalidação de sessões ativas (ex.: logout forçado).
+		Atores: Usuários autenticados; Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: Sessões expiram conforme configuração; após expiração/invalidação, requisições protegidas falham e exigem novo login; o Administrador consegue invalidar sessões ativas de um usuário; logout e invalidações são registrados em auditoria.
+
+[RF-06] Autorização por papéis e módulos:
+O sistema deve restringir acesso aos módulos (usuários, regras, logs, dashboard, relatórios, violações, configurações e integrações) de acordo com o papel do usuário e as permissões definidas.
+		Atores: Todos os usuários; Administrador do Sistema (definição de permissões).
+Prioridade: Essencial
+Critério de aceitação: Um usuário só visualiza/aciona funcionalidades de módulos permitidos; acesso a módulos não permitidos é bloqueado; alterações de permissão refletem imediatamente ou no próximo login, conforme definido; eventos de bloqueio e mudanças de permissão são auditados.
+
+[RF-07] Logs de acesso:
+O sistema deve registrar eventos de login, logout e tentativas inválidas (falhas de autenticação) no log de auditoria.
+		Atores: Todos os usuários; Audit Service.
+Prioridade: Essencial
+Critério de aceitação: A cada login bem-sucedido, logout e tentativa inválida, o sistema registra um evento com timestamp UTC, usuário/identificador, origem (IP) e resultado (sucesso/falha); registros são consultáveis por usuários autorizados.
+
+[RF-08] Registro imutável de ações (Audit Service):
+O sistema deve registrar todo evento relevante no Audit Service de forma imutável, contendo ID, timestamp UTC, ator, ação, entidade afetada, valores anterior/novo (quando aplicável) e IP de origem.
+		Atores: Audit Service; Administrador do Sistema; Compliance Officer; Auditor Interno/Externo (consulta conforme permissão).
+Prioridade: Essencial
+Critério de aceitação: Toda ação relevante (criar/editar/inativar usuários, alterar permissões, criar/editar regras, mudança de status de violação, exportações etc.) gera registro imutável com os campos mínimos; registros não podem ser alterados/removidos por usuários comuns; acesso aos registros respeita RBAC.
+
+[RF-09] Histórico de alterações por entidade:
+O sistema deve disponibilizar histórico de alterações por entidade de negócio (ex.: usuário, regra, violação), acessível a usuários autorizados, com ordenação cronológica.
+		Atores: Administrador do Sistema; Compliance Officer; Auditores (conforme permissão).
+Prioridade: Essencial
+Critério de aceitação: Para uma entidade selecionada, o sistema exibe lista cronológica de alterações, incluindo data/hora (UTC), ator, campos alterados e valores anterior/novo quando aplicável; somente papéis autorizados conseguem acessar o histórico.
+
+[RF-10] Versionamento de dados críticos:
+O sistema deve versionar dados críticos de compliance, mantendo histórico de versões; ao editar uma regra ativa, o sistema deve gerar uma nova versão e preservar a versão anterior para auditoria.
+		Atores: Compliance Officer; Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: Ao editar regra ativa, o sistema não sobrescreve a versão vigente: cria nova versão com identificador e data de vigência; a versão anterior permanece disponível para consulta; o histórico de versões mostra qual versão estava ativa em cada período.
+
+[RF-11] Dashboard com KPIs:
+O sistema deve disponibilizar dashboard com KPIs de conformidade, incluindo: índice de conformidade, violações por período, risco por área, tempo de resolução e auditorias pendentes.
+		Atores: Compliance Officer; Gestor; Visualizador; Auditor Interno/Externo (conforme permissão).
+Prioridade: Essencial
+Critério de aceitação: O dashboard exibe os KPIs listados com valores atualizados a partir dos eventos registrados; usuários não autorizados não conseguem acessar o dashboard; acesso e visualização seguem RBAC.
+
+[RF-12] Filtros por período, área e nível de risco:
+O sistema deve permitir filtros no dashboard e nos relatórios por período, área organizacional, tipo de evento, nível de risco e status de violação.
+		Atores: Usuários autorizados (Compliance Officer, Gestor, Auditores, Visualizador conforme permissão).
+Prioridade: Essencial
+Critério de aceitação: Ao aplicar filtros, o sistema atualiza KPIs/listagens/relatórios de acordo com os critérios selecionados; filtros podem ser combinados; a consulta respeita o escopo de acesso do papel do usuário.
+
+[RF-13] Exportação de relatórios (PDF, CSV):
+O sistema deve permitir exportação de relatórios em PDF e CSV, incluindo rodapé com data de geração, usuário solicitante e período/escopo aplicado, e registrar a exportação em auditoria.
+		Atores: Usuários autorizados (Compliance Officer, Gestor, Auditores conforme permissão).
+Prioridade: Importante
+Critério de aceitação: Ao solicitar exportação, o sistema gera arquivo PDF/CSV; o relatório contém rodapé com data/hora, usuário e filtros/período; o evento de exportação é registrado no Audit Service com IP e metadados do relatório.
+
+[RF-14] Atualização dinâmica dos KPIs:
+O sistema deve atualizar KPIs com defasagem máxima de 60 segundos em relação aos eventos processados (ex.: novas violações, mudanças de status, novos eventos integrados).
+		Atores: Usuários do dashboard; serviços de backend (Compliance Engine/Risk Analysis/Audit Service).
+Prioridade: Importante
+Critério de aceitação: Ao ocorrer evento relevante, os KPIs refletem a mudança em até 60 segundos; em caso de indisponibilidade temporária, o sistema informa estado de atualização (ex.: “atualizando”/“dados desatualizados”) e registra falhas de processamento conforme política do projeto.
+
+[RF-15] Motor de regras de compliance configurável:
+O sistema deve possuir um motor de regras de compliance configurável, permitindo cadastro e manutenção de regras com: nome, descrição, critério de disparo, severidade, status (ativa/inativa) e vigência.
+		Atores: Compliance Officer; Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: O usuário autorizado cria/edita regras informando os campos obrigatórios; o sistema valida consistência (ex.: vigência válida, severidade definida, critério de disparo informado); regras podem ser ativadas/inativadas; ações são registradas no Audit Service.
+
+[RF-16] Geração de violações e pendências:
+Quando um evento violar uma regra ativa, o sistema deve gerar uma violação com status (Aberta, Em Análise, Resolvida, Dispensada) e notificar responsáveis conforme configuração.
+		Atores: Compliance Engine; Compliance Officer; Gestor; Notification Service.
+Prioridade: Essencial
+Critério de aceitação: Dado um evento que atende ao critério de disparo de uma regra ativa, o sistema cria uma violação com status inicial definido; permite transição de status controlada; notifica responsáveis; todos os passos (geração, transições e notificações) são auditados.
+
+[RF-17] Cálculo de pontuação de risco:
+O sistema deve calcular pontuação de risco por evento/usuário/área, classificando em níveis (Baixo, Médio, Alto, Crítico) e realizando recálculo automático quando novos eventos/violações ocorrerem.
+		Atores: Risk Analysis Service; Compliance Officer; Gestor.
+Prioridade: Importante
+Critério de aceitação: Para um conjunto de eventos, o sistema calcula e exibe pontuação/nível de risco; ao entrar novo evento/alterar status de violação, o risco é recalculado automaticamente; resultados podem ser filtrados por período e área; execuções e mudanças relevantes são auditadas.
+
+[RF-18] Integração bidirecional (API/Webhook):
+O sistema deve permitir integração bidirecional com ERPs/CRMs por API e/ou Webhook, garantindo autenticação, validação de payload e idempotência no processamento de eventos.
+		Atores: Sistemas Externos (ERPs/CRMs); Integration Service; Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: O sistema recebe eventos autenticados e valida o formato; eventos duplicados (mesmo identificador/idempotency key) não geram processamento duplicado; o sistema também pode enviar eventos/notificações via webhook/API quando configurado; falhas e reprocessamentos são registrados.
+
+[RF-19] Alertas automáticos (e-mail, webhook):
+O sistema deve enviar alertas automáticos (e-mail e/ou webhook) para violações e eventos críticos, com suporte a reprocessamento e fila de dead-letter para mensagens não entregues/processadas.
+		Atores: Notification Service; Compliance Officer; Gestor; Sistemas Externos (quando webhook).
+Prioridade: Importante
+Critério de aceitação: Ao ocorrer violação/evento crítico, o sistema envia alerta aos destinatários configurados; em falhas transitórias, realiza tentativas de reenvio conforme política; mensagens que excedem tentativas vão para dead-letter; o histórico de envios/falhas é rastreável e auditável.
+
+[RF-20] Machine Learning para padrões suspeitos:
+O sistema deve prever, como evolução futura, um recurso de detecção de padrões suspeitos com base em eventos e histórico, para apoiar a identificação proativa de comportamentos anômalos.
+		Atores: Compliance Officer; Auditor Interno; Time de TI/DevOps (implantação/monitoramento do recurso).
+Prioridade: Desejável
+Critério de aceitação: Quando implementado, o sistema permite habilitar/desabilitar a detecção; gera alertas explicando o motivo (score/indicadores); permite revisão/feedback do usuário; resultados e ações ficam registrados em auditoria.
+
+2.2 REQUISITOS NÃO FUNCIONAIS
+
+Os requisitos não funcionais representam atributos de qualidade que um software deve possuir, como desempenho, segurança, usabilidade e confiabilidade, e restrições técnicas do ambiente operacional.
+
+[NF-01] Desempenho – tempo de carregamento:
+O sistema deve garantir que o carregamento da página inicial não exceda 3 segundos em rede banda larga, considerando o fluxo padrão de autenticação/entrada.
+		Atores: Usuários finais; Time de TI/DevOps.
+Prioridade: Importante
+Critério de aceitação: Em testes com ferramenta de auditoria (Lighthouse, GTmetrix ou equivalente) e rede “banda larga”, o carregamento inicial fica em até 3 segundos; o resultado do teste (métrica e data) é registrável como evidência.
+
+[NF-02] Segurança – criptografia:
+O sistema deve criptografar dados sensíveis em trânsito e em repouso, utilizando HTTPS/TLS para comunicação e criptografia de campos críticos no banco de dados quando aplicável.
+		Atores: Time de TI/DevOps; Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: Todo tráfego externo utiliza HTTPS/TLS; conexões sem TLS são bloqueadas ou redirecionadas conforme política; dados sensíveis persistidos são armazenados de forma protegida (ex.: hashes de senha e/ou criptografia de campos definidos como sensíveis); evidências incluem configuração e validação de conexão segura.
+
+[NF-03] Segurança – OWASP:
+O sistema deve estar protegido contra as principais vulnerabilidades do OWASP Top 10, incluindo (mas não limitado a) SQL Injection e XSS, por meio de validação de entrada, sanitização/escaping e controles de segurança na API e no front-end.
+		Atores: Time de Desenvolvimento; Time de TI/DevOps.
+Prioridade: Essencial
+Critério de aceitação: Testes de segurança (SAST/DAST ou checklist) não identificam falhas críticas relacionadas a Injection e XSS nos fluxos principais; entradas maliciosas conhecidas são rejeitadas/neutralizadas; erros não expõem dados sensíveis; evidências incluem relatório de varredura ou roteiro de testes executado.
+
+[NF-04] Confiabilidade – backup:
+O sistema deve realizar backup automatizado dos dados, com retenção mínima de 30 dias, garantindo possibilidade de restauração em caso de falha.
+		Atores: Time de TI/DevOps.
+Prioridade: Essencial
+Critério de aceitação: Existe rotina automatizada de backup com retenção \(\ge\) 30 dias; é possível restaurar um backup em ambiente de validação e verificar consistência (ex.: acesso a dados essenciais e integridade mínima); logs/relatórios de execução do backup ficam disponíveis para auditoria técnica.
+
+[NF-05] Conformidade – LGPD:
+O sistema deve atender a princípios aplicáveis da LGPD, incluindo política de retenção, controle de acesso a dados pessoais e mecanismos de consentimento quando o caso de uso exigir.
+		Atores: Compliance Officer; Departamento Jurídico; Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: O sistema aplica RBAC para acesso a dados pessoais; registra acesso e alterações relevantes em auditoria; possui política de retenção documentada e aplicável (ex.: logs/auditoria e dados de usuário); quando consentimento for necessário, o sistema registra a concessão/recusa com data/hora e versão do termo.
+
+[NF-06] Performance – tempo de resposta:
+O sistema deve garantir tempo de resposta P95 inferior a 500 ms para APIs críticas em operações síncronas, sob carga compatível com o cenário do projeto.
+		Atores: Usuários finais; Time de TI/DevOps; Time de Desenvolvimento.
+Prioridade: Essencial
+Critério de aceitação: Em teste de carga (ex.: k6/JMeter ou equivalente) para endpoints críticos definidos, o percentil 95 das respostas é < 500 ms, com taxa de erro dentro do aceitável do projeto; relatórios do teste são gerados como evidência.
+
+[NF-07] Performance – cache:
+O sistema deve utilizar cache (ex.: Redis) para regras ativas, configurações e parâmetros estáveis, reduzindo latência e carga em banco/serviços.
+		Atores: Time de Desenvolvimento; Time de TI/DevOps.
+Prioridade: Importante
+Critério de aceitação: Regras/configurações elegíveis são servidas a partir do cache; há política de expiração/invalidação (ex.: TTL e/ou invalidação em mudanças); métricas/logs demonstram redução de chamadas repetidas ao banco/serviço para o mesmo recurso.
+
+[NF-08] Performance – processamento assíncrono:
+O sistema deve processar relatórios e análises complexas de forma assíncrona por meio de filas (RabbitMQ), evitando bloquear requisições síncronas do usuário.
+		Atores: Usuários autorizados; Reporting Service; RabbitMQ; Time de TI/DevOps.
+Prioridade: Importante
+Critério de aceitação: Ao solicitar relatório/análise pesada, o sistema enfileira o trabalho e retorna confirmação (ex.: “processando”); o processamento ocorre em background e o resultado fica disponível posteriormente; falhas de processamento são tratadas com retry e registro de erro conforme política do projeto.
+
+[NF-09] Escalabilidade:
+O sistema deve suportar escalabilidade horizontal dos microsserviços, com múltiplas instâncias e balanceamento de carga, sem perda de funcionalidades essenciais.
+		Atores: Time de TI/DevOps.
+Prioridade: Importante
+Critério de aceitação: É possível executar múltiplas instâncias de um serviço atrás de balanceamento; o sistema continua operando corretamente (ex.: autenticação/consumo de filas/consulta) quando uma instância é desligada; evidência inclui teste controlado de scale-out/scale-in.
+
+[NF-10] Disponibilidade:
+O sistema deve atender SLA mínimo de 99,5% para o Audit Service e o Compliance Engine, com health checks por serviço para monitoramento e automação de recuperação quando aplicável.
+		Atores: Time de TI/DevOps.
+Prioridade: Importante
+Critério de aceitação: Cada serviço expõe health check (liveness/readiness ou equivalente); existe monitoramento registrando disponibilidade; a meta de 99,5% é mensurável por período definido (ex.: mensal) por meio de métricas/relatórios; incidentes ficam rastreáveis.
+
+[NF-11] Interoperabilidade:
+O sistema deve expor APIs RESTful padronizadas, com comunicação em JSON e versionamento de API para suportar evolução sem quebra de integrações.
+		Atores: Sistemas Externos (ERPs/CRMs); Time de Desenvolvimento; Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: Endpoints seguem padrão REST (verbos/códigos HTTP adequados) e trocam dados em JSON; existe versionamento (ex.: `/v1/`) ou estratégia equivalente documentada; mudanças incompatíveis são introduzidas apenas em nova versão; documentação mínima de contrato (ex.: OpenAPI/Swagger ou descrição formal) está disponível.
+
+2.3 REGRAS DE NEGÓCIO
+
+As regras de negócio definem os limites, comportamentos e restrições que regem o funcionamento da aplicação, garantindo conformidade com os objetivos organizacionais e legais.
+
+[RN-01] Acesso condicionado à autenticação:
+Todo acesso ao sistema deve exigir autenticação prévia.
+		Atores: Todos os usuários; Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: Rotas/funcionalidades protegidas não são acessíveis sem autenticação; ao tentar acessar sem sessão/token válido, o sistema bloqueia o acesso (ex.: 401/403) e registra tentativa conforme política de auditoria.
+
+[RN-02] Padrão de autenticação e expiração de tokens:
+A autenticação deve ocorrer via JWT ou OAuth2, com tokens possuindo expiração configurável.
+		Atores: Todos os usuários; Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: O token emitido contém validade conforme configuração; tokens expirados são rejeitados; parâmetros de expiração podem ser definidos/ajustados por configuração do sistema.
+
+[RN-03] Bloqueio por tentativas inválidas consecutivas:
+Após 5 tentativas de login inválidas consecutivas, a conta deve ser bloqueada por no mínimo 15 minutos, com registro do evento em auditoria.
+		Atores: Usuários; Administrador do Sistema; Audit Service.
+Prioridade: Essencial
+Critério de aceitação: Na 5ª falha consecutiva, o sistema bloqueia a autenticação da conta por \(\ge\) 15 minutos; durante o bloqueio, mesmo credenciais corretas são negadas; o bloqueio e as tentativas são registrados no log de auditoria.
+
+[RN-04] Associação obrigatória a perfil e permissão negada por padrão:
+Todo usuário deve estar associado a pelo menos um perfil; o acesso é determinado pelo papel e deve ser negado por padrão quando não concedido.
+		Atores: Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: Não é possível manter usuário ativo sem perfil associado; permissões não atribuídas resultam em acesso negado; mudanças de perfil/permissão têm efeito conforme política do sistema e são auditadas.
+
+[RN-05] Administração exclusiva de usuários e papéis:
+Somente o Administrador do Sistema pode criar, editar, desativar usuários e alterar papéis.
+		Atores: Administrador do Sistema; Demais usuários.
+Prioridade: Essencial
+Critério de aceitação: Usuários sem papel de Administrador não conseguem executar operações de gestão de usuários/papéis (bloqueio com mensagem apropriada); tentativas negadas e mudanças autorizadas são registradas em auditoria.
+
+[RN-06] Gestão exclusiva de regras de compliance:
+Somente o Compliance Officer pode criar, editar e desativar regras de compliance.
+		Atores: Compliance Officer; Demais usuários.
+Prioridade: Essencial
+Critério de aceitação: Apenas usuários com papel Compliance Officer conseguem criar/editar/desativar regras; demais papéis recebem acesso negado; ações e tentativas são registradas no Audit Service.
+
+[RN-07] Imutabilidade dos logs de auditoria:
+Os logs de auditoria são imutáveis: nenhum processo pode alterar ou excluir registros após a gravação.
+		Atores: Audit Service; Time de TI/DevOps.
+Prioridade: Essencial
+Critério de aceitação: Não existem operações de atualização/remoção expostas para registros de auditoria; tentativas administrativas de alteração/exclusão não são permitidas; controles técnicos e trilha de auditoria preservam a integridade dos registros.
+
+[RN-08] Campos mínimos obrigatórios do registro de auditoria:
+Cada registro de auditoria deve conter: ID do evento, timestamp UTC, ID do usuário/sistema, ação, entidade, valor anterior/novo (quando aplicável) e IP.
+		Atores: Audit Service; Serviços do sistema que registram eventos.
+Prioridade: Essencial
+Critério de aceitação: Todo evento de auditoria persistido possui os campos mínimos definidos; registros com campos obrigatórios ausentes não são aceitos; validação é verificável por consulta aos eventos armazenados.
+
+[RN-09] Vigência e ativação de regras:
+Uma regra de compliance só entra em vigor após ser ativada; regras inativas não são aplicadas.
+		Atores: Compliance Officer; Compliance Engine.
+Prioridade: Essencial
+Critério de aceitação: Eventos só disparam validações/violações quando a regra está ativa e dentro da vigência; ao desativar a regra, novos eventos não geram violações associadas a ela; ativação/desativação é auditada.
+
+[RN-10] Status inicial de violação:
+Evento que viola regra deve gerar violação com status inicial “Aberta”.
+		Atores: Compliance Engine; Notification Service; Compliance Officer.
+Prioridade: Essencial
+Critério de aceitação: Ao detectar violação de regra ativa, o sistema cria registro de violação com status “Aberta” e data/hora; criação é auditada e pode disparar notificação conforme configuração.
+
+[RN-11] Dispensa de violação com justificativa obrigatória:
+Somente o Compliance Officer pode dispensar violação, sendo obrigatória a justificativa.
+		Atores: Compliance Officer; Demais usuários.
+Prioridade: Essencial
+Critério de aceitação: Somente Compliance Officer consegue alterar status para “Dispensada”; o sistema exige justificativa não vazia; tentativa sem justificativa é rejeitada; ação e justificativa ficam registradas em auditoria.
+
+[RN-12] Faixas de classificação de risco:
+A pontuação de risco deve ser calculada para usuário, área e processo, com níveis: Baixo (0–24), Médio (25–49), Alto (50–74), Crítico (75–100).
+		Atores: Risk Analysis Service; Compliance Officer; Gestor.
+Prioridade: Importante
+Critério de aceitação: Para uma pontuação calculada, o sistema atribui o nível corretamente conforme as faixas; pontuações fora de 0–100 são recusadas/normalizadas conforme regra de cálculo definida; resultados são exibidos em relatórios/dashboard quando aplicável.
+
+[RN-13] Prazo máximo de notificação para violações críticas:
+Notificações de violações críticas devem chegar ao Compliance Officer e ao gestor em no máximo 5 minutos.
+		Atores: Notification Service; Compliance Officer; Gestor.
+Prioridade: Essencial
+Critério de aceitação: Para violação marcada como crítica, o sistema registra horário de geração e horário de entrega; a diferença é \(\le\) 5 minutos em condições normais de operação; falhas e reprocessamentos são registrados conforme política.
+
+[RN-14] Autenticação obrigatória em integrações externas:
+Toda integração externa deve ser autenticada (API Key, OAuth2 ou equivalente).
+		Atores: Sistemas Externos (ERPs/CRMs); Integration Service; Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: Chamadas sem credenciais válidas são rejeitadas; credenciais inválidas/expiradas não são aceitas; tentativas de acesso indevido são registradas para auditoria e monitoramento.
+
+[RN-15] Idempotência no processamento de eventos:
+O processamento de eventos deve ser idempotente: o mesmo evento recebido mais de uma vez não pode gerar duplicatas.
+		Atores: Integration Service; Compliance Engine; Audit Service.
+Prioridade: Essencial
+Critério de aceitação: Ao reenviar o mesmo evento (mesmo identificador/chave de idempotência), o sistema não cria registros duplicados de evento/violação; o resultado do reenvio é consistente (ex.: “já processado”); ocorrências são rastreáveis em logs/auditoria.
+
+[RN-16] Retenção mínima de logs de auditoria:
+Os logs de auditoria devem ser retidos por no mínimo 5 anos.
+		Atores: Time de TI/DevOps; Audit Service; Departamento Jurídico.
+Prioridade: Essencial
+Critério de aceitação: A política de retenção garante armazenamento por \(\ge\) 5 anos; mecanismos de expurgo (se existirem) respeitam o prazo; evidências podem ser obtidas por configuração/documentação e amostragem de registros antigos.
+
+[RN-17] Exclusão lógica de usuários:
+A exclusão de usuários deve ser lógica (inativação); não é permitida remoção permanente para preservar histórico.
+		Atores: Administrador do Sistema.
+Prioridade: Essencial
+Critério de aceitação: A operação de “excluir usuário” altera o status para inativo; o usuário não consegue autenticar; dados históricos relacionados permanecem íntegros; o evento é auditado.
+
+[RN-18] Não exposição de erros técnicos ao usuário final:
+O sistema não deve expor mensagens de erro técnicas (stack traces, SQL) ao usuário final; deve exibir mensagens genéricas e registrar detalhes apenas internamente.
+		Atores: Usuários finais; Time de Desenvolvimento; Time de TI/DevOps.
+Prioridade: Essencial
+Critério de aceitação: Em falhas, a interface/API retorna mensagens apropriadas sem detalhes sensíveis; logs internos contêm informação técnica suficiente para diagnóstico; testes de erro comuns não exibem stack trace/SQL para o usuário.
+
+
+3 DOCUMENTO DE ESPECIFICAÇÃO DE MODELAGEM (DEM)
+
+3.1 MODELAGEM DE DADOS
+
+3.1.1 Entidade-Relacionamento
+
+O modelo de dados do sistema utiliza dois contextos de persistência:
+
+- Banco relacional (PostgreSQL): entidades estruturadas e críticas — Usuário (id, nome, e-mail, senha_hash, papel_id, area_id, status, criado_em, atualizado_em); Perfil/Papel (id, nome, descricao); Permissao (id, modulo, acao); RegraCompliance (id, nome, descricao, criterio, severidade, status, vigencia_inicio, vigencia_fim, versao, criado_por, criado_em); AreaOrganizacional (id, nome, pai_id); Violacao (id, evento_id, regra_id, severidade, status, criada_em, resolvida_em, justificativa); ConfiguracaoIntegracao (id, sistema_origem, tipo_auth, endpoint, ativo). Relacionamentos: Usuário N:1 Perfil, Usuário N:1 AreaOrganizacional; Perfil N:N Permissao; RegraCompliance 1:N Violacao; Violacao N:1 Evento (referência).
+
+- Banco não relacional (MongoDB): documentos imutáveis de auditoria — EventoAuditoria (id, timestamp_utc, usuario_id ou sistema_origem, acao, entidade, entidade_id, valor_anterior, valor_novo, ip_origem, metadados). Sem alteração ou exclusão após gravação.
+
+O diagrama ER completo deve ser elaborado na ferramenta de modelagem (ex.: draw.io, PlantUML ou BR Modelo) e inserido neste documento ou no Apêndice, com legenda "Fonte: Autoria própria (2026)".
+
+3.1.2 Dicionário de Dados
+
+O dicionário de dados deve listar, para cada entidade do modelo relacional e para os documentos de auditoria, os atributos com: nome, tipo, tamanho, obrigatoriedade, descrição e regras de validação. Exemplos: Usuario.email — VARCHAR(255), único, obrigatório, e-mail corporativo; RegraCompliance.severidade — ENUM('Baixo','Médio','Alto','Crítico'); EventoAuditoria.timestamp_utc — DATETIME, obrigatório, sempre em UTC. O dicionário completo pode ser incluído no Apêndice.
+
+3.2 MODELAGEM COMPORTAMENTAL
+
+3.2.1 Diagrama de Sequência
+
+Os diagramas de sequência devem representar os fluxos principais do sistema, por exemplo: (1) Registro de evento de auditoria: Ator/Sistema → Integration Service → RabbitMQ → Audit Service (grava) → Compliance Engine (valida regras) → geração de violação (se aplicável) → Notification Service; (2) Login: Usuário → API Auth → validação → emissão JWT → registro em auditoria; (3) Gestão de regra de compliance: Compliance Officer → API → versionamento da regra → auditoria. Cada diagrama deve ser produzido em ferramenta (PlantUML, draw.io) e inserido no documento ou Apêndice.
+
+3.2.2 Diagrama de Estados
+
+Recomenda-se diagrama de estados para: Violação — estados Aberta → Em Análise → Resolvida ou Dispensada; RegraCompliance — Rascunho → Ativa → Inativa; Usuario — Ativo ↔ Inativo. Transições devem refletir as regras de negócio (ex.: apenas Compliance Officer pode dispensar violação). Inserir figura com legenda "Fonte: Autoria própria (2026)".
+
+3.3 MODELAGEM ESTRUTURAL
+
+3.3.1 Diagrama de Caso de Uso
+
+Atores: Administrador, Compliance Officer, Auditor Interno, Auditor Externo, Gestor, Visualizador, Sistema Externo (ERP/CRM). Casos de uso principais: Login / Recuperar senha; Gerenciar usuários e perfis; Gerenciar regras de compliance; Consultar logs de auditoria; Visualizar dashboard e KPIs; Exportar relatórios; Gerenciar violações; Configurar integrações; Receber evento (sistema externo). Incluir diagrama na ferramenta escolhida.
+
+3.3.2 Diagrama de Componentes
+
+Componentes: Front-end (aplicação web); API Gateway / Backend for Front-end (se houver); Audit Service, Compliance Engine, Risk Analysis Service, Reporting Service, Integration Service, Notification Service; PostgreSQL, MongoDB, Redis, RabbitMQ. Mostrar dependências entre componentes e com infraestrutura.
+
+3.3.3 Diagrama de Arquitetura
+
+Diagrama de arquitetura de alto nível: usuários → front-end → APIs dos microsserviços; microsserviços comunicando-se via RabbitMQ; persistência PostgreSQL (dados críticos) e MongoDB (logs imutáveis); Redis (cache); sistemas externos ↔ Integration Service. Referência na seção 5.1.
+
+3.4 MAPEAMENTO OBJETO-RELACIONAL (ORM)
+
+O mapeamento objeto-relacional aplica-se às entidades do PostgreSQL. Deve ser documentado conforme a tecnologia escolhida (ex.: JPA/Hibernate no Java/Spring Boot): entidades anotadas (@Entity, @Table, @Column), relacionamentos (@OneToMany, @ManyToOne, @ManyToMany), índices e constraints. O Audit Service persiste em MongoDB; o mapeamento para documentos (ODM ou equivalente) deve ser descrito separadamente. Trechos de código representativos podem constar no Apêndice.
+
+3.5 BPMN (BUSINESS PROCESS MODEL AND NOTATION)
+
+Processos de negócio que podem ser modelados em BPMN: Processo de registro e validação de evento (recebimento → validação → gravação em auditoria → aplicação de regras → geração de violação/notificação); Processo de análise de violação (abertura → análise → resolução ou dispensa com justificativa); Processo de recuperação de senha. Inserir diagramas BPMN com legenda "Fonte: Autoria própria (2026)" quando elaborados.
+
+
+4 DOCUMENTO DE ESPECIFICAÇÃO DE INTERFACES (DEI)
+
+4.1 WIREFRAMES
+
+Os wireframes devem representar as telas principais do sistema: Login; Dashboard (KPIs, filtros por período/área/risco); Listagem e formulário de usuários (cadastro/edição com perfil e área); Listagem e formulário de regras de compliance; Consulta a logs de auditoria (filtros e detalhe do evento); Listagem de violações (status, severidade, ações); Configurações de integração; Relatórios e exportação. Incluir legendas "Figura X – [Título]. Fonte: Autoria própria (2026)" e inserir no documento ou Apêndice.
+
+4.2 MOCKUPS
+
+Os mockups refinam os wireframes com identidade visual (cores, tipografia, componentes de UI), mantendo consistência com o público corporativo (diretoria, compliance, auditores). Destacar: dashboard com gráficos e indicadores; tabelas com ordenação e filtros; mensagens de erro/sucesso padronizadas; área de navegação por módulos conforme perfil do usuário.
+
+4.3 FLUXO DE NAVEGAÇÃO
+
+Descrever o fluxo de navegação após login: Menu principal por módulos (Dashboard, Usuários, Regras de Compliance, Auditoria, Violações, Relatórios, Configurações/Integrações), com itens visíveis conforme perfil (RBAC). Fluxos típicos: Dashboard → filtrar período → exportar relatório; Regras de Compliance → nova regra → ativar; Violações → abrir violação → Em Análise → Resolver ou Dispensar. Diagrama de fluxo (ou mapa de navegação) deve ser incluído com legenda "Fonte: Autoria própria (2026)".
+
+5 DOCUMENTAÇÃO TÉCNICA
+
+5.1 ARQUITETURA DO SISTEMA
+
+O sistema adota arquitetura de microsserviços orientada a eventos. A macroestrutura contempla: (1) Front-end desacoplado (aplicação web) consumindo APIs REST; (2) Microsserviços independentes — Audit Service, Compliance Engine, Risk Analysis Service, Reporting Service, Integration Service, Notification Service — cada um com responsabilidade única; (3) Comunicação assíncrona via RabbitMQ como barramento de mensagens; (4) Persistência dual: PostgreSQL para dados estruturados e críticos (usuários, perfis, regras, violações, configurações) e MongoDB para logs de auditoria imutáveis; (5) Redis para cache de regras e parâmetros; (6) Integration Service na borda para receber e enviar eventos com sistemas externos (ERPs, CRMs). O Diagrama de Arquitetura referido na seção 3.3.3 ilustra essa visão de alto nível.
+
+5.1.1 Segmentação da Arquitetura
+
+Cada microsserviço deve seguir uma segmentação em camadas (ou estilo hexagonal): API/Controller (entrada HTTP, validação de entrada, DTOs); Aplicação/Serviço (orquestração, regras de aplicação); Domínio (entidades, regras de negócio puras); Infraestrutura (repositórios, mensageria, clientes externos). A comunicação entre serviços é preferencialmente assíncrona via filas; eventos publicados no RabbitMQ são consumidos pelos serviços interessados. O front-end consome apenas APIs REST expostas pelos microsserviços (ou por um API Gateway, se implementado).
+
+5.2 TECNOLOGIAS UTILIZADAS
+
+5.2.1 Frontend
+
+Linguagens e frameworks a serem utilizados: HTML5, CSS3, JavaScript (ou TypeScript); framework React (ou equivalente) para interface reativa; bibliotecas de estilo/componentes conforme escolha do desenvolvedor (ex.: Material-UI, Chakra UI, Tailwind CSS). Versões devem ser documentadas no repositório (package.json). O front-end consome apenas APIs REST do back-end em JSON.
+
+5.2.2 Backend
+
+Back-end em microsserviços; linguagem e framework a serem definidos (ex.: Java com Spring Boot para cada serviço, ou Node.js, .NET Core, etc.). Uso de bibliotecas para JWT/OAuth2, validação, serialização JSON e clientes HTTP e de mensageria (AMQP para RabbitMQ). Versões documentadas no repositório (pom.xml, package.json ou equivalente).
+
+5.2.3 Banco de Dados
+
+- PostgreSQL: SGBD relacional para usuários, perfis, regras de compliance, áreas organizacionais, violações, configurações de integração. ORM/ODM conforme stack (ex.: JPA/Hibernate no Java).
+- MongoDB: banco não relacional para logs imutáveis de auditoria (eventos); alta performance de escrita e leitura; ODM ou driver nativo conforme linguagem.
+- Redis: cache para regras ativas, configurações e parâmetros estáveis, reduzindo carga no PostgreSQL.
+
+5.2.4 Ferramentas de Apoio
+
+Docker para containerização dos serviços e dependências (PostgreSQL, MongoDB, RabbitMQ, Redis); Git para controle de versão; Postman ou Insomnia para testes de API; Lighthouse ou GTmetrix para métricas de desempenho do front-end; ferramentas de IA e editores (ex.: Cursor, VS Code) conforme uso pela equipe. CI/CD (ex.: GitHub Actions) para testes e deploy quando aplicável.
+
+5.2.5 Padrões Adotados
+
+- Repository: abstração de persistência; domínio não acessa diretamente o banco.
+- Dependency Injection: injeção de repositórios e serviços via framework (ex.: Spring) para facilitar testes e troca de implementações.
+- DTO (Data Transfer Object): troca de dados entre API e serviços sem expor entidades.
+- Producer/Consumer (mensageria): publicação e consumo de eventos no RabbitMQ para desacoplamento.
+- Circuit Breaker / Retry: para integrações externas e consumo de filas (retries e dead-letter).
+- Factory (quando aplicável) para construção de regras ou eventos a partir de payloads externos.
+
+5.2.6 Boas Práticas e Convenções
+
+- SOLID: Domínio independente de infraestrutura (DIP); interfaces para repositórios e clientes externos; responsabilidade única por serviço e por classe (SRP).
+- Clean Code: Nomes significativos para funções e variáveis; funções pequenas e com responsabilidade única; código autodocumentado, evitando comentários óbvios.
+- DTOs: Comunicação entre camadas via DTOs; entidades do banco não expostas na API.
+- Tratamento de erros: Try-catch global ou por camada; retorno de mensagens amigáveis ao usuário; stack traces e detalhes apenas em logs internos (RN-105).
+- Versionamento: Tags no Git (ex.: v1.0.0) e mensagens de commit claras (ex.: convenção Conventional Commits).
+- Padrão de resposta de API: Respostas REST padronizadas (ex.: { "data": ..., "error": null, "message": "..." } em sucesso; error preenchido em falha).
+- Segurança: Variáveis de ambiente (.env) para chaves, senhas e URLs; criptografia de dados sensíveis em repouso e HTTPS em trânsito; sem exposição de dados sensíveis em logs.
+
+5.2.7 Requisitos de Infraestrutura
+
+- Produção/execução: SO moderno (Linux recomendado); memória RAM mínima conforme stack (ex.: 2 GB para um conjunto reduzido de serviços em Docker); acesso a redes para PostgreSQL, MongoDB, RabbitMQ e Redis (ou containers locais).
+- Desenvolvimento: IDE ou editor; Docker e Docker Compose para subir dependências; Node.js ou JDK conforme front-end/back-end; Git.
+
+5.2.8 APIs e Integrações
+
+O sistema recebe eventos de ERPs e CRMs via API REST ou Webhook (Integration Service); envia alertas e relatórios para sistemas externos via webhook ou API quando configurado. Serviço de e-mail (SMTP ou provedor) é utilizado pelo Notification Service para envio de alertas e recuperação de senha. Todas as integrações devem ser autenticadas (API Key, OAuth2 ou equivalente) e ter logs de chamadas e tratamento de falhas (retry, timeout, dead-letter).
+
+5.2.9 Caracterização da API
+
+O projeto expõe APIs REST: recursos nomeados (ex.: /usuarios, /regras, /eventos, /violacoes), verbos HTTP (GET, POST, PUT, PATCH, DELETE) conforme semântica, e códigos de status adequados (200, 201, 400, 401, 403, 404, 500). Formato de troca de dados: JSON. Versionamento de API recomendado (ex.: prefixo /v1/) para evolução sem quebra de integrações.
+
+5.3 REPOSITÓRIO E CÓDIGO-FONTE
+
+- Link do repositório: o código-fonte deve ser disponibilizado em repositório Git (ex.: GitHub/GitLab), com URL informado aqui (ex.: https://github.com/[usuario]/Complice-e-Auditoria).
+
+- Estrutura de pastas (visão esperada / atual):
+
+Complice-e-Auditoria/
+├── docs/                    # Documentação do projeto
+│   ├── DDE Jonathan.md      # Este documento
+│   ├── AnaliseRequisitos.md
+│   ├── VisaoGeralProjeto.md
+│   ├── RequisitosCorp.md
+│   ├── IdeiaInicial.md
+│   └── RegrasDeNegocio.md
+├── frontend/                 # Aplicação web (React ou equivalente)
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── services/        # Chamadas à API
+│   │   └── ...
+│   └── package.json
+├── backend/                  # Microsserviços (ou um por pasta: audit-service, compliance-engine, etc.)
+│   ├── audit-service/
+│   ├── compliance-engine/
+│   ├── ...
+│   └── integration-service/
+├── docker-compose.yml       # Serviços de infraestrutura (PostgreSQL, MongoDB, RabbitMQ, Redis)
+└── README.md
+
+- Conteúdo das pastas: docs — toda a documentação (DDE, ERS, DEM, requisitos, regras de negócio). frontend — interface do usuário; lógica de apresentação e chamadas à API. backend — cada subpasta corresponde a um microsserviço; dentro delas, procurar por pacotes/camadas de controller, service, domain e repository (ou equivalente). Testes unitários e de integração geralmente ficam junto ao módulo (ex.: Test ou pasta tests). Configurações de ambiente em arquivos .env.example (sem segredos) e uso de variáveis de ambiente em execução.
+
+6 MANUAL DO USUÁRIO
+
+O Manual do Usuário é voltado a quem vai usar o Sistema de Compliance e Auditoria no dia a dia (diretoria, compliance, auditores, gestores), com linguagem simples e passo a passo. Evite termos técnicos como "API" ou "endpoint"; use "sistema", "página" ou "tela".
+
+Requisitos para acessar o sistema
+
+- Navegador: use Chrome, Edge ou Firefox atualizado (acesso via web).
+- Resolução de tela: mínima recomendada 1366x768; ideal 1920x1080.
+- Credenciais de teste: o avaliador ou administrador deve fornecer um usuário e senha de teste (ex.: usuário padrão para Compliance Officer ou Visualizador). Não utilizar credenciais reais de produção em ambiente de teste.
+
+Estrutura sugerida (fluxos de tarefas)
+
+Organize o manual por tarefas, não só por telas. Use prints de tela com setas, círculos ou numeração (1, 2, 3) indicando onde clicar. Texto curto e direto.
+
+- Como fazer login: 1. Acesse o endereço do sistema no navegador. 2. Digite seu e-mail e senha. 3. Clique no botão "Entrar". Se aparecer "Credenciais inválidas", verifique o e-mail e a senha ou use "Esqueci minha senha".
+- Como visualizar o dashboard: Após o login, a tela inicial mostra os indicadores (KPIs). Use os filtros (período, área, nível de risco) e clique em "Aplicar" para atualizar os dados.
+- Como cadastrar um usuário (somente Administrador): 1. No menu, acesse "Usuários". 2. Clique em "Novo usuário". 3. Preencha os campos obrigatórios (nome, e-mail, perfil, área). 4. Clique em "Salvar". O sistema enviará um e-mail para o usuário definir a senha.
+- Como criar uma regra de compliance (somente Compliance Officer): 1. Acesse "Regras de Compliance". 2. Clique em "Nova regra". 3. Preencha nome, descrição, critério de disparo e severidade. 4. Salve e ative a regra para que passe a valer.
+- Como consultar logs de auditoria: 1. Acesse "Auditoria" ou "Logs". 2. Use os filtros (data, usuário, ação, entidade). 3. Clique em um registro para ver detalhes (quem, quando, o que alterou).
+- Como tratar uma violação: 1. Acesse "Violações". 2. Abra a violação desejada. 3. Altere o status para "Em Análise" e, ao final, para "Resolvida" ou "Dispensada" (Dispensada exige justificativa e só é permitida para Compliance Officer).
+
+Glossário de mensagens e alertas
+
+Mensagem ou situação | Significado
+"Credenciais inválidas" | E-mail ou senha incorretos. Verifique ou use "Esqueci minha senha".
+"Conta bloqueada temporariamente" | Muitas tentativas de login erradas. Aguarde o tempo indicado (ex.: 15 minutos).
+"E-mail já cadastrado" | Já existe um usuário com esse e-mail. Use outro ou edite o existente.
+"Acesso negado" ou "Sem permissão" | Seu perfil não permite essa ação. Contate o administrador.
+"Registro salvo com sucesso" | A operação foi concluída.
+"Preencha os campos obrigatórios" | Há campos marcados com  que não foram preenchidos.
+
+FAQ e resolução de problemas
+
+- Esqueci minha senha. Use o link "Esqueci minha senha" na tela de login; informe seu e-mail e siga as instruções enviadas por e-mail (link válido por tempo limitado).
+- O botão "Salvar" não habilita. Verifique se todos os campos obrigatórios (marcados com ) estão preenchidos e se não há mensagem de erro em vermelho na tela.
+- Não consigo acessar um módulo. Seu perfil pode não ter permissão para aquele módulo. Consulte o administrador do sistema.
+- O dashboard não atualiza. Verifique os filtros (período, área) e clique em "Aplicar" ou atualize a página. Em sistema em tempo real, a atualização pode levar até 1 minuto.
+- Mensagem de "sessão expirada". Faça login novamente; a sessão expira após um tempo de inatividade por segurança.
+
+Destaque de botões: Sempre que citar um botão, use negrito ou aspas, por exemplo: "Clique em Confirmar".
+
+7. REFERÊNCIAS
+
+Documentos do projeto (repositório Complice-e-Auditoria):
+
+- AnaliseRequisitos.md — Análise de requisitos, stakeholders, casos de uso, restrições e riscos. Repositório do projeto. Acesso em: 13 mar. 2026.
+
+- IdeiaInicial.md — Concepção inicial da plataforma de compliance e auditoria. Repositório do projeto. Acesso em: 13 mar. 2026.
+
+- RegrasDeNegocio.md — Regras de negócio (RN-001 a RN-105) por domínio. Repositório do projeto. Acesso em: 13 mar. 2026.
+
+- RequisitosCorp.md — Requisitos para sistema corporativo (funcionais, não funcionais, arquitetura, mensageria). Repositório do projeto. Acesso em: 13 mar. 2026.
+
+- VisaoGeralProjeto.md — Visão geral, arquitetura de microsserviços, fluxo, banco de dados e infraestrutura. Repositório do projeto. Acesso em: 13 mar. 2026.
+
+Literatura e documentação técnica:
+
+- MARTIN, Robert C. Código limpo: habilidades práticas do software Agile. Rio de Janeiro: Alta Books, 2011.
+
+- SOMMERVILLE, Ian. Engenharia de software. 10. ed. São Paulo: Pearson, 2018.
+
+- OWASP. OWASP Top Ten. 2021. Disponível em: https://owasp.org/www-project-top-ten/. Acesso em: 13 mar. 2026.
+
+- RABBITMQ. RabbitMQ documentation. 2024. Disponível em: https://www.rabbitmq.com/documentation.html. Acesso em: 13 mar. 2026.
+
+- THE MONGODB DOCUMENTATION. MongoDB Manual. 2024. Disponível em: https://www.mongodb.com/docs/. Acesso em: 13 mar. 2026.
+
+- POSTGRESQL. PostgreSQL documentation. 2024. Disponível em: https://www.postgresql.org/docs/. Acesso em: 13 mar. 2026.
+
+- Brasil. Lei nº 13.709, de 14 de agosto de 2018. Lei Geral de Proteção de Dados Pessoais (LGPD). Disponível em: http://www.planalto.gov.br/ccivil_03/_ato2015-2018/2018/lei/l13709.htm. Acesso em: 13 mar. 2026.
+
+8. APÊNDICE
+
+Inclua nesta seção todos os materiais complementares produzidos por si. É obrigatória a inclusão de todo o código fonte do projeto na linguagem desenvolvida, scripts de criação, manipulação de base de dados, logs para comprovação dos testes, scripts de marcação de texto referente a ferramentas diversas como LaTeX, PlantUML, etc.
+Utilize fonte monospaçada tamanho 10 para blocos de código.
+
+O Apêndice é o local onde o aluno coloca materiais que ele mesmo produziu, mas que são demasiado extensos ou detalhados para figurar no meio dos capítulos principais, pois poderiam interromper a fluidez da leitura.
+
+Diferente do Anexo (que é material de terceiros), o Apêndice é autoria do próprio aluno.
+
+Orientações Gerais
+
+📘 Guia Rápido de Formatação ABNT (Relatório Técnico)
+
+Olá, pessoal. Para a entrega do nosso Relatório Técnico, sigam estas diretrizes de formatação baseadas nas normas NBR 14724 e NBR 6023. Um bom desenvolvedor também entrega uma documentação impecável!
+
+1. Configuração da Página e Texto
+
+- Fonte: Arial ou Times New Roman (escolha uma e use no documento todo).
+- Tamanho: 12 para o texto geral e 10 para citações longas, notas de rodapé, legendas de imagens/tabelas e números de página.
+- Espaçamento: 1,5 no corpo do texto e Simples para citações longas (> 3 linhas), legendas e referências.
+- Margens: Superior e Esquerda: 3 cm | Inferior e Direita: 2 cm.
+- Parágrafos: Recuo de 1,25 cm na primeira linha.
+- Alinhamento: Justificado (exceto nas Referências, que ficam à esquerda).
+
+2. Hierarquia de Títulos (Sumário)
+
+Mantenham o padrão de destaque para facilitar a leitura do seu sumário:
+
+1. 1 SEÇÃO PRIMÁRIA (MAIÚSCULAS E NEGRITO)
+2. 1.1 SEÇÃO SECUNDÁRIA (MAIÚSCULAS SEM NEGRITO)
+3. 1.1.1 Seção terciária (Minúsculas e Negrito - apenas a 1ª letra maiúscula)
+4. 1.1.1.1 Seção quaternária (Minúsculas sem negrito)
+
+3. Elementos Gráficos (Diagramas e Prints)
+
+Como nosso relatório tem muita modelagem (UML, BPMN, DER), toda imagem deve ter:
+
+- Topo: "Figura X – Título da Imagem" (Tamanho 10, Centralizado).
+- Base: "Fonte: Autoria própria (2026)" ou "Fonte: Adaptado de [Autor] (2026)" (Tamanho 10, Centralizado).

@@ -1,0 +1,75 @@
+@startuml
+left to right direction
+skinparam shadowing false
+
+title Diagrama de Caso de Uso — Complice-e-Auditoria\nFonte: Autoria própria (2026)
+
+actor Administrador as ADM
+actor "Compliance Officer" as CO
+actor "Auditor Interno" as AI
+actor "Auditor Externo" as AE
+actor Gestor as G
+actor Visualizador as V
+actor "Sistema Externo\n(ERP/CRM)" as EXT
+
+' usecase "..." evita ambiguidade com diagrama de componentes e com parênteses no texto
+usecase "Login" as UC_Login
+usecase "Recuperar senha" as UC_Rec
+usecase "Gerenciar usuários e perfis" as UC_Usuarios
+usecase "Gerenciar regras de compliance" as UC_Regras
+usecase "Consultar logs de auditoria" as UC_Logs
+usecase "Visualizar dashboard e KPIs" as UC_Dash
+usecase "Exportar relatórios" as UC_Export
+usecase "Gerenciar violações" as UC_Viol
+usecase "Configurar integrações" as UC_Integ
+usecase "Receber evento [sistema externo]" as UC_ReceberEvento
+
+ADM --> UC_Login
+CO  --> UC_Login
+AI  --> UC_Login
+AE  --> UC_Login
+G   --> UC_Login
+V   --> UC_Login
+
+ADM --> UC_Rec
+CO  --> UC_Rec
+AI  --> UC_Rec
+AE  --> UC_Rec
+G   --> UC_Rec
+V   --> UC_Rec
+
+ADM --> UC_Usuarios
+ADM --> UC_Integ
+ADM --> UC_Logs
+
+CO --> UC_Regras
+CO --> UC_Viol
+CO --> UC_Logs
+CO --> UC_Dash
+CO --> UC_Export
+
+AI --> UC_Logs
+AI --> UC_Dash
+AI --> UC_Export
+AI --> UC_Viol
+
+AE --> UC_Logs
+AE --> UC_Export
+AE --> UC_Dash
+
+G --> UC_Dash
+G --> UC_Viol
+G --> UC_Export
+
+V --> UC_Dash
+V --> UC_Export
+
+EXT --> UC_ReceberEvento
+ADM --> UC_ReceberEvento : habilitar/configurar
+
+note bottom
+  Casos de uso e atores baseados na seção 3.3.1 do DDE.
+  Permissões detalhadas: RBAC (RF-02/RF-06 e RNs).
+end note
+
+@enduml

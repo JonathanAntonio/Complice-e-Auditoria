@@ -1,0 +1,141 @@
+@startuml
+title Dicionário de Dados — Complice-e-Auditoria
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+left to right direction
+
+legend right
+  **Legenda (obrigatoriedade)**
+  S = obrigatório | N = opcional
+  PK = chave primária | FK = chave estrangeira | UK = único
+  Fonte: Autoria própria (2026)
+end legend
+
+package "PostgreSQL — modelo relacional" as pg {
+
+  class Usuario <<tabela>> {
+    + id : UUID <<PK, S>>
+    + nome : VARCHAR(255) <<S>>
+    + email : VARCHAR(255) <<UK, S>>
+    + senha_hash : VARCHAR(255) <<S>>
+    + papel_id : UUID <<FK, S>>
+    + area_id : UUID <<FK, S>>
+    + status : VARCHAR(32) <<S>>
+    + criado_em : TIMESTAMP WITH TIME ZONE <<S>>
+    + atualizado_em : TIMESTAMP WITH TIME ZONE <<S>>
+    --
+    **Validação / regras**
+    email: formato e-mail corporativo; único no sistema
+    status: ex. Ativo, Inativo (exclusão lógica)
+  }
+
+  class "Perfil/Papel" as PerfilPapel <<tabela>> {
+    + id : UUID <<PK, S>>
+    + nome : VARCHAR(100) <<S>>
+    + descricao : TEXT <<N>>
+    --
+    nome: identificador do papel (RBAC)
+  }
+
+  class Permissao <<tabela>> {
+    + id : UUID <<PK, S>>
+    + modulo : VARCHAR(100) <<S>>
+    + acao : VARCHAR(100) <<S>>
+    --
+    modulo+acao: define permissão por módulo
+  }
+
+  class PapelPermissao <<tabela>> {
+    + papel_id : UUID <<FK, PK, S>>
+    + permissao_id : UUID <<FK, PK, S>>
+    --
+    associação N:N entre Perfil e Permissão
+  }
+
+  class AreaOrganizacional <<tabela>> {
+    + id : UUID <<PK, S>>
+    + nome : VARCHAR(255) <<S>>
+    + pai_id : UUID <<FK, N>>
+    --
+    hierarquia: área raiz com pai_id nulo
+  }
+
+  class RegraCompliance <<tabela>> {
+    + id : UUID <<PK, S>>
+    + nome : VARCHAR(255) <<S>>
+    + descricao : TEXT <<N>>
+    + criterio : TEXT <<S>>
+    + severidade : ENUM <<S>>
+    + status : VARCHAR(32) <<S>>
+    + vigencia_inicio : DATE <<S>>
+    + vigencia_fim : DATE <<N>>
+    + versao : INTEGER <<S>>
+    + criado_por : UUID <<FK, S>>
+    + criado_em : TIMESTAMP WITH TIME ZONE <<S>>
+    --
+    severidade: ENUM('Baixo','Médio','Alto','Crítico')
+    status: ex. Rascunho, Ativa, Inativa
+    versão: incrementa em alteração de regra ativa (auditoria)
+  }
+
+  class Violacao <<tabela>> {
+    + id : UUID <<PK, S>>
+    + evento_id : VARCHAR(255) <<S>>
+    + regra_id : UUID <<FK, S>>
+    + severidade : ENUM <<S>>
+    + status : VARCHAR(32) <<S>>
+    + criada_em : TIMESTAMP WITH TIME ZONE <<S>>
+    + resolvida_em : TIMESTAMP WITH TIME ZONE <<N>>
+    + justificativa : TEXT <<N>>
+    --
+    evento_id: referência ao evento que originou a violação
+    status: Aberta, Em Análise, Resolvida, Dispensada
+    justificativa: obrigatória ao dispensar (RN)
+  }
+
+  class ConfiguracaoIntegracao <<tabela>> {
+    + id : UUID <<PK, S>>
+    + sistema_origem : VARCHAR(255) <<S>>
+    + tipo_auth : VARCHAR(64) <<S>>
+    + endpoint : VARCHAR(512) <<S>>
+    + ativo : BOOLEAN <<S>>
+    --
+    tipo_auth: API Key, OAuth2, etc.
+  }
+
+  PerfilPapel "1" -- "*" Usuario : papel
+  AreaOrganizacional "1" -- "*" Usuario : área
+  AreaOrganizacional "0..1" -- "*" AreaOrganizacional : pai
+  PerfilPapel "1" -- "*" PapelPermissao
+  Permissao "1" -- "*" PapelPermissao
+  RegraCompliance "1" -- "*" Violacao : gera
+}
+
+package "MongoDB — auditoria (documentos)" as mongo {
+
+  class EventoAuditoria <<coleção>> {
+    + _id : ObjectId <<PK, S>>
+    + timestamp_utc : ISODate <<S>>
+    + usuario_id : UUID <<N>>
+    + sistema_origem : VARCHAR <<N>>
+    + acao : VARCHAR <<S>>
+    + entidade : VARCHAR <<S>>
+    + entidade_id : VARCHAR <<N>>
+    + valor_anterior : Document <<N>>
+    + valor_novo : Document <<N>>
+    + ip_origem : VARCHAR <<N>>
+    + metadados : Document <<N>>
+    --
+    usuario_id **ou** sistema_origem (quem originou)
+    timestamp_utc: sempre UTC
+    documentos imutáveis após gravação
+  }
+}
+
+note bottom of EventoAuditoria
+  Retenção mínima conforme política (ex.: 5 anos — RN-16).
+end note
+
+@enduml

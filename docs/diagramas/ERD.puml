@@ -1,0 +1,121 @@
+@startuml
+title Diagrama Entidade-Relacionamento (ER) — Complice-e-Auditoria
+
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+
+' Entidades (PostgreSQL)
+entity "Usuario" as usuario {
+  *id : UUID
+  --
+  nome : VARCHAR
+  email : VARCHAR <<UNIQUE>>
+  senha_hash : VARCHAR
+  status : VARCHAR
+  criado_em : TIMESTAMP
+  atualizado_em : TIMESTAMP
+  --
+  papel_id : UUID <<FK>>
+  area_id : UUID <<FK>>
+}
+
+entity "Perfil/Papel" as papel {
+  *id : UUID
+  --
+  nome : VARCHAR
+  descricao : TEXT
+}
+
+entity "Permissao" as permissao {
+  *id : UUID
+  --
+  modulo : VARCHAR
+  acao : VARCHAR
+}
+
+entity "AreaOrganizacional" as area {
+  *id : UUID
+  --
+  nome : VARCHAR
+  pai_id : UUID <<FK>>
+}
+
+entity "RegraCompliance" as regra {
+  *id : UUID
+  --
+  nome : VARCHAR
+  descricao : TEXT
+  criterio : TEXT
+  severidade : VARCHAR
+  status : VARCHAR
+  vigencia_inicio : DATE
+  vigencia_fim : DATE
+  versao : INTEGER
+  criado_por : UUID
+  criado_em : TIMESTAMP
+}
+
+entity "Violacao" as violacao {
+  *id : UUID
+  --
+  evento_id : VARCHAR
+  severidade : VARCHAR
+  status : VARCHAR
+  criada_em : TIMESTAMP
+  resolvida_em : TIMESTAMP
+  justificativa : TEXT
+  --
+  regra_id : UUID <<FK>>
+}
+
+entity "ConfiguracaoIntegracao" as integracao {
+  *id : UUID
+  --
+  sistema_origem : VARCHAR
+  tipo_auth : VARCHAR
+  endpoint : VARCHAR
+  ativo : BOOLEAN
+}
+
+' Relações (PostgreSQL)
+papel ||--o{ usuario : "1:N"
+area  ||--o{ usuario : "1:N"
+
+' Papel <-> Permissao (N:N) — tabela de associação implícita
+papel }o--o{ permissao : "N:N"
+
+' Hierarquia de áreas (auto-relacionamento)
+area ||--o{ area : "pai"
+
+regra ||--o{ violacao : "1:N"
+
+note bottom of violacao
+  "evento_id" referencia o evento (origem externa/interna).
+end note
+
+note bottom of papel
+  "Perfil/Papel" representa o papel do usuário (RBAC).
+end note
+
+' Documentos (MongoDB) — fora do ER relacional, mas incluído
+entity "EventoAuditoria (MongoDB)" as auditoria {
+  *id : UUID
+  --
+  timestamp_utc : DATETIME
+  usuario_id/sistema_origem : VARCHAR
+  acao : VARCHAR
+  entidade : VARCHAR
+  entidade_id : VARCHAR
+  valor_anterior : JSON
+  valor_novo : JSON
+  ip_origem : VARCHAR
+  metadados : JSON
+}
+
+note right of auditoria
+  Persistência não relacional (documentos imutáveis).
+end note
+
+@enduml
+

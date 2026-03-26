@@ -8,6 +8,7 @@ import type { AuthUserDto } from "../dtos/auth-response.dto";
 import { AccountLockedError, InvalidCredentialsError, UserInactiveError } from "../errors";
 import {
   createSecurityAuditEvent,
+  type SecurityAuditEventName,
   type SecurityAuditContext,
   SECURITY_AUDIT_EVENTS,
 } from "../security-audit";
@@ -40,19 +41,14 @@ export class LoginUseCase {
     };
     const user = await this.userRepository.findByEmail(dto.email);
     if (!user) {
-      try {
-        await this.outboxRepository.append(
-          createSecurityAuditEvent(SECURITY_AUDIT_EVENTS.LOGIN_FAILED, {
-            ...baseAuditPayload,
-            reason: "invalid_credentials",
-          })
-        );
-      } catch (err) {
-        logger.error(
-          { err, requestId: auditContext.requestId },
-          "Failed to append login failed audit event"
-        );
-      }
+      await this.appendAuditEventSafely(
+        SECURITY_AUDIT_EVENTS.LOGIN_FAILED,
+        {
+          ...baseAuditPayload,
+          reason: "invalid_credentials",
+        },
+        auditContext.requestId
+      );
       throw new InvalidCredentialsError("Invalid email or password");
     }
 
@@ -141,7 +137,7 @@ export class LoginUseCase {
   }
 
   private async appendAuditEventSafely(
-    eventName: string,
+    eventName: SecurityAuditEventName,
     payload: Record<string, unknown>,
     requestId?: string
   ): Promise<void> {

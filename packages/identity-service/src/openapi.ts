@@ -12,6 +12,7 @@ import {
   assignUserRoleSchema,
   assignUserRolesSchema,
 } from "./application/dtos/assign-user-role.dto";
+import { updateUserSecuritySchema } from "./application/dtos/update-user-security.dto";
 
 extendZodWithOpenApi(z);
 
@@ -29,6 +30,7 @@ const AuthResponseSchema = z
 const CreateUserBodySchema = createUserSchema.openapi("CreateUserBody");
 const AssignUserRoleBodySchema = assignUserRoleSchema.openapi("AssignUserRoleBody");
 const AssignUserRolesBodySchema = assignUserRolesSchema.openapi("AssignUserRolesBody");
+const UpdateUserSecurityBodySchema = updateUserSecuritySchema.openapi("UpdateUserSecurityBody");
 const OAuthQuerySchema = z.object({ code: z.string(), state: z.string() });
 
 const registry = new OpenAPIRegistry();
@@ -97,6 +99,21 @@ registry.registerPath({
     },
     404: {
       description: "Usuário não encontrado",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/api/auth/logout",
+  summary: "Logout (auditoria)",
+  tags: ["Auth"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    204: { description: "Logout registrado" },
+    401: {
+      description: "Não autenticado",
       content: { "application/json": { schema: ErrorSchema } },
     },
   },
@@ -210,6 +227,71 @@ registry.registerPath({
     400: {
       description: "Validação",
       content: { "application/json": { schema: ErrorSchema } },
+    },
+    401: {
+      description: "Não autenticado",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    403: {
+      description: "Sem permissão",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    404: {
+      description: "Usuário não encontrado",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/api/users/{id}/security",
+  summary: "Atualizar status de segurança do usuário",
+  tags: ["Users"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+    body: {
+      content: { "application/json": { schema: UpdateUserSecurityBodySchema } },
+    },
+  },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: UserResponseSchema } },
+    },
+    400: {
+      description: "Validação",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    401: {
+      description: "Não autenticado",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    403: {
+      description: "Sem permissão",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    404: {
+      description: "Usuário não encontrado",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/api/users/{id}",
+  summary: "Desativar usuário",
+  tags: ["Users"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().uuid() }),
+  },
+  responses: {
+    200: {
+      description: "OK",
+      content: { "application/json": { schema: UserResponseSchema } },
     },
     401: {
       description: "Não autenticado",

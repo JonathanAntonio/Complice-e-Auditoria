@@ -247,7 +247,30 @@ export class User {
   }
 
   markInactive(): void {
-    this._isActive = false;
+    this.setActive(false);
+  }
+
+  setActive(isActive: boolean): void {
+    if (this._isActive === isActive) {
+      return;
+    }
+    this._isActive = isActive;
+    this._authorizationVersion += 1;
+  }
+
+  setBlockedUntil(blockedUntil: Date | null): void {
+    const nextTime = blockedUntil?.getTime() ?? null;
+    const currentTime = this._blockedUntil?.getTime() ?? null;
+    if (nextTime === currentTime) {
+      return;
+    }
+
+    this._blockedUntil = blockedUntil ? new Date(blockedUntil.getTime()) : null;
+    if (this._blockedUntil === null) {
+      this._failedLoginAttempts = 0;
+    } else if (this._failedLoginAttempts <= 0) {
+      this._failedLoginAttempts = 1;
+    }
     this._authorizationVersion += 1;
   }
 
@@ -278,6 +301,7 @@ export class User {
     this._failedLoginAttempts += 1;
     if (this._failedLoginAttempts >= maxAttempts) {
       this._blockedUntil = new Date(at.getTime() + lockDurationMs);
+      this._authorizationVersion += 1;
     }
   }
 

@@ -5,6 +5,7 @@ import {
   validateAssignUserRole,
   validateAssignUserRoles,
   validateCreateUser,
+  validateUpdateUserSecurity,
 } from "./user.validation";
 
 export function createUserRoutes(
@@ -12,7 +13,9 @@ export function createUserRoutes(
   authMiddleware: (req: Request, res: Response, next: NextFunction) => void,
   requireUsersCreate: (req: Request, res: Response, next: NextFunction) => Promise<void>,
   requireUsersRead: (req: Request, res: Response, next: NextFunction) => Promise<void>,
-  requireRolesAssign: (req: Request, res: Response, next: NextFunction) => Promise<void>
+  requireRolesAssign: (req: Request, res: Response, next: NextFunction) => Promise<void>,
+  requireUsersUpdate: (req: Request, res: Response, next: NextFunction) => Promise<void>,
+  requireUsersDeactivate: (req: Request, res: Response, next: NextFunction) => Promise<void>
 ): Router {
   const router = Router();
   router.post(
@@ -41,6 +44,19 @@ export function createUserRoutes(
     validateAssignUserRoles,
     asyncHandler(requireRolesAssign),
     asyncHandler(controller.assignRoles.bind(controller))
+  );
+  router.patch(
+    "/users/:id/security",
+    authMiddleware,
+    validateUpdateUserSecurity,
+    asyncHandler(requireUsersUpdate),
+    asyncHandler(controller.updateSecurity.bind(controller))
+  );
+  router.delete(
+    "/users/:id",
+    authMiddleware,
+    asyncHandler(requireUsersDeactivate),
+    asyncHandler(controller.deactivate.bind(controller))
   );
   return router;
 }

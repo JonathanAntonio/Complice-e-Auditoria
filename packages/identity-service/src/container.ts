@@ -25,6 +25,9 @@ import { RegisterUseCase } from "./application/use-cases/register.use-case";
 import { LoginUseCase } from "./application/use-cases/login.use-case";
 import { GetCurrentUserUseCase } from "./application/use-cases/get-current-user.use-case";
 import { OAuthCallbackUseCase } from "./application/use-cases/oauth-callback.use-case";
+import { LogoutUseCase } from "./application/use-cases/logout.use-case";
+import { UpdateUserSecurityUseCase } from "./application/use-cases/update-user-security.use-case";
+import { DeactivateUserUseCase } from "./application/use-cases/deactivate-user.use-case";
 import { UserController } from "./adapters/driving/http/user.controller";
 import { AuthController } from "./adapters/driving/http/auth.controller";
 import { createAuthMiddleware } from "@lframework/shared";
@@ -86,13 +89,18 @@ interface IdentityCradle {
   loginUseCase: LoginUseCase;
   getCurrentUserUseCase: GetCurrentUserUseCase;
   oauthCallbackUseCase: OAuthCallbackUseCase;
+  logoutUseCase: LogoutUseCase;
   assignUserRolesUseCase: AssignUserRolesUseCase;
+  updateUserSecurityUseCase: UpdateUserSecurityUseCase;
+  deactivateUserUseCase: DeactivateUserUseCase;
   userController: UserController;
   authController: AuthController;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
   requireUsersCreate: ReturnType<typeof requirePermissionWithAudit>;
   requireUsersRead: ReturnType<typeof requireSelfOrPermissionWithAudit>;
   requireRolesAssign: ReturnType<typeof requirePermissionWithAudit>;
+  requireUsersUpdate: ReturnType<typeof requirePermissionWithAudit>;
+  requireUsersDeactivate: ReturnType<typeof requirePermissionWithAudit>;
   userRoutes: ReturnType<typeof createUserRoutes>;
   authRoutes: ReturnType<typeof createAuthRoutes>;
   outboxRelay: OutboxRelayAdapter;
@@ -229,6 +237,16 @@ export function createContainer(config: ContainerConfig) {
         new AssignUserRolesUseCase(cradle.userRepository)
     ).singleton(),
 
+    updateUserSecurityUseCase: asFunction(
+      (cradle: IdentityCradle) =>
+        new UpdateUserSecurityUseCase(cradle.userRepository)
+    ).singleton(),
+
+    deactivateUserUseCase: asFunction(
+      (cradle: IdentityCradle) =>
+        new DeactivateUserUseCase(cradle.userRepository)
+    ).singleton(),
+
     oauthCallbackUseCase: asFunction(
       (cradle: IdentityCradle) =>
         new OAuthCallbackUseCase(
@@ -241,12 +259,19 @@ export function createContainer(config: ContainerConfig) {
         )
     ).singleton(),
 
+    logoutUseCase: asFunction(
+      (cradle: IdentityCradle) =>
+        new LogoutUseCase(cradle.outboxRepository)
+    ).singleton(),
+
     userController: asFunction(
       (cradle: IdentityCradle) =>
         new UserController(
           cradle.createUserUseCase,
           cradle.getUserByIdUseCase,
-          cradle.assignUserRolesUseCase
+          cradle.assignUserRolesUseCase,
+          cradle.updateUserSecurityUseCase,
+          cradle.deactivateUserUseCase
         )
     ).singleton(),
 
@@ -261,7 +286,8 @@ export function createContainer(config: ContainerConfig) {
           cradle.githubProvider,
           cradle.baseUrl,
           cradle.cache,
-          cradle.jwtExpiresInSeconds
+          cradle.jwtExpiresInSeconds,
+          cradle.logoutUseCase
         )
     ).singleton(),
 
@@ -294,6 +320,24 @@ export function createContainer(config: ContainerConfig) {
         )
     ).singleton(),
 
+    requireUsersUpdate: asFunction(
+      ({ outboxRepository }: { outboxRepository: IOutboxRepository }) =>
+        requirePermissionWithAudit(
+          outboxRepository,
+          PERMISSIONS.USERS_UPDATE,
+          "PATCH /api/users/:id/security"
+        )
+    ).singleton(),
+
+    requireUsersDeactivate: asFunction(
+      ({ outboxRepository }: { outboxRepository: IOutboxRepository }) =>
+        requirePermissionWithAudit(
+          outboxRepository,
+          PERMISSIONS.USERS_DEACTIVATE,
+          "DELETE /api/users/:id"
+        )
+    ).singleton(),
+
     userRoutes: asFunction(
       ({
         userController,
@@ -301,18 +345,24 @@ export function createContainer(config: ContainerConfig) {
         requireUsersCreate,
         requireUsersRead,
         requireRolesAssign,
+        requireUsersUpdate,
+        requireUsersDeactivate,
       }: {
         userController: UserController;
         authMiddleware: ReturnType<typeof createAuthMiddleware>;
         requireUsersCreate: ReturnType<typeof requirePermissionWithAudit>;
         requireUsersRead: ReturnType<typeof requireSelfOrPermissionWithAudit>;
         requireRolesAssign: ReturnType<typeof requirePermissionWithAudit>;
+        requireUsersUpdate: ReturnType<typeof requirePermissionWithAudit>;
+        requireUsersDeactivate: ReturnType<typeof requirePermissionWithAudit>;
       }) => createUserRoutes(
         userController,
         authMiddleware,
         requireUsersCreate,
         requireUsersRead,
-        requireRolesAssign
+        requireRolesAssign,
+        requireUsersUpdate,
+        requireUsersDeactivate
       )
     ).singleton(),
 

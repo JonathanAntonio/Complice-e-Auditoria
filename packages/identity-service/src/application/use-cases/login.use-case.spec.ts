@@ -134,9 +134,10 @@ describe("LoginUseCase", () => {
     expect(logger.error).toHaveBeenCalledWith(
       expect.objectContaining({
         err: expect.any(Error),
+        eventName: "identity.auth.login_failed",
         requestId: undefined,
       }),
-      "Failed to append login failed audit event"
+      "Failed to append login audit event"
     );
   });
 

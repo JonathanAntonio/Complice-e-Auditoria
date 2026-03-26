@@ -3,11 +3,17 @@ import { z } from "zod";
 import { CreateUserUseCase } from "../../../application/use-cases/create-user.use-case";
 import { GetUserByIdUseCase } from "../../../application/use-cases/get-user-by-id.use-case";
 import { AssignUserRolesUseCase } from "../../../application/use-cases/assign-user-role.use-case";
+import type { UpdateUserSecurityUseCase } from "../../../application/use-cases/update-user-security.use-case";
+import type { DeactivateUserUseCase } from "../../../application/use-cases/deactivate-user.use-case";
 import type { CreateUserDto } from "../../../application/dtos/create-user.dto";
 import {
   assignUserRoleSchema,
   assignUserRolesSchema,
 } from "../../../application/dtos/assign-user-role.dto";
+import {
+  toUpdateUserSecurityDto,
+  updateUserSecuritySchema,
+} from "../../../application/dtos/update-user-security.dto";
 import type { AuthenticatedRequest } from "@lframework/shared";
 import { sendError } from "@lframework/shared";
 import { PERMISSIONS } from "../../../domain/types";
@@ -22,7 +28,9 @@ export class UserController {
   constructor(
     private readonly createUserUseCase: CreateUserUseCase,
     private readonly getUserByIdUseCase: GetUserByIdUseCase,
-    private readonly assignUserRolesUseCase: AssignUserRolesUseCase
+    private readonly assignUserRolesUseCase: AssignUserRolesUseCase,
+    private readonly updateUserSecurityUseCase?: UpdateUserSecurityUseCase,
+    private readonly deactivateUserUseCase?: DeactivateUserUseCase
   ) {}
 
   create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -152,4 +160,99 @@ export class UserController {
       next(err);
     }
   };
+
+  updateSecurity = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      if (!authReq.userId) {
+        sendError(res, 403, "Forbidden");
+        return;
+      }
+      if (!this.updateUserSecurityUseCase) {
+        sendError(res, 503, "User security update is not available");
+        return;
+      }
+      const userPermissions = Array.isArray(authReq.userPermissions) ? authReq.userPermissions : [];
+      if (!userPermissions.includes(PERMISSIONS.USERS_UPDATE)) {
+        sendError(res, 403, "Forbidden");
+        return;
+      }
+
+      const parsed = uuidParamSchema.safeParse(authReq.params.id);
+      if (!parsed.success) {
+        sendError(res, 400, "Invalid user id format");
+        return;
+      }
+
+      const bodyParsed = updateUserSecuritySchema.safeParse(authReq.body);
+      if (!bodyParsed.success) {
+        sendError(res, 400, "Invalid request body");
+        return;
+      }
+
+      const user = await this.updateUserSecurityUseCase.execute(
+        parsed.data,
+        toUpdateUserSecurityDto(bodyParsed.data),
+        authReq.userId,
+        this.buildAuditContext(req)
+      );
+      if (!user) {
+        sendError(res, 404, "User not found");
+        return;
+      }
+      res.status(200).json(user);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  deactivate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      if (!authReq.userId) {
+        sendError(res, 403, "Forbidden");
+        return;
+      }
+      if (!this.deactivateUserUseCase) {
+        sendError(res, 503, "User deactivation is not available");
+        return;
+      }
+      const userPermissions = Array.isArray(authReq.userPermissions) ? authReq.userPermissions : [];
+      if (!userPermissions.includes(PERMISSIONS.USERS_DEACTIVATE)) {
+        sendError(res, 403, "Forbidden");
+        return;
+      }
+
+      const parsed = uuidParamSchema.safeParse(authReq.params.id);
+      if (!parsed.success) {
+        sendError(res, 400, "Invalid user id format");
+        return;
+      }
+
+      const user = await this.deactivateUserUseCase.execute(
+        parsed.data,
+        authReq.userId,
+        this.buildAuditContext(req)
+      );
+      if (!user) {
+        sendError(res, 404, "User not found");
+        return;
+      }
+      res.status(200).json(user);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  private buildAuditContext(req: Request): { ipAddress?: string; requestId?: string; userAgent?: string } {
+    const forwardedFor = req.headers["x-forwarded-for"];
+    const forwardedIp = typeof forwardedFor === "string"
+      ? forwardedFor.split(",")[0]?.trim()
+      : undefined;
+    return {
+      ipAddress: forwardedIp || req.ip,
+      requestId: req.headers["x-request-id"]?.toString(),
+      userAgent: req.headers["user-agent"]?.toString(),
+    };
+  }
 }

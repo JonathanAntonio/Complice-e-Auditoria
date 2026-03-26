@@ -4,6 +4,7 @@ import type { RegisterUseCase } from "../../../application/use-cases/register.us
 import type { LoginUseCase } from "../../../application/use-cases/login.use-case";
 import type { GetCurrentUserUseCase } from "../../../application/use-cases/get-current-user.use-case";
 import type { OAuthCallbackUseCase } from "../../../application/use-cases/oauth-callback.use-case";
+import type { LogoutUseCase } from "../../../application/use-cases/logout.use-case";
 import type { IOAuthProvider } from "../../../application/ports/oauth-provider.port";
 import type { ICacheService } from "@lframework/shared";
 import type { RegisterDto } from "../../../application/dtos/register.dto";
@@ -29,7 +30,8 @@ export class AuthController {
     private readonly githubProvider: IOAuthProvider | null,
     private readonly baseUrl: string,
     private readonly cache: ICacheService,
-    private readonly jwtExpiresInSeconds: number
+    private readonly jwtExpiresInSeconds: number,
+    private readonly logoutUseCase?: LogoutUseCase
   ) {}
 
   register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -84,6 +86,25 @@ export class AuthController {
         return;
       }
       res.json(user);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  logout = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      if (!authReq.userId) {
+        sendError(res, 401, "Unauthorized");
+        return;
+      }
+      if (!this.logoutUseCase) {
+        sendError(res, 503, "Logout is not available");
+        return;
+      }
+
+      await this.logoutUseCase.execute(authReq.userId, this.buildAuditContext(req));
+      res.status(204).send();
     } catch (err) {
       next(err);
     }

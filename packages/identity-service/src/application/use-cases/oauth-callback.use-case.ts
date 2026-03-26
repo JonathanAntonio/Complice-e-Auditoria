@@ -13,6 +13,7 @@ import type { IOutboxRepository } from "../ports/outbox-repository.port";
 import type { OAuthCallbackResponseDto } from "../dtos/oauth-callback-response.dto";
 import {
   createSecurityAuditEvent,
+  type SecurityAuditEventName,
   type SecurityAuditContext,
   SECURITY_AUDIT_EVENTS,
 } from "../security-audit";
@@ -48,7 +49,11 @@ export class OAuthCallbackUseCase {
     let userInfo;
     try {
       userInfo = await provider.getUserInfoFromCode(code, redirectUri);
-    } catch {
+    } catch (err) {
+      logger.error(
+        { err, provider: provider.provider, requestId: auditContext.requestId },
+        "OAuth provider user info retrieval failed"
+      );
       await this.appendAuditEventSafely(
         SECURITY_AUDIT_EVENTS.LOGIN_FAILED,
         {
@@ -202,7 +207,7 @@ export class OAuthCallbackUseCase {
   }
 
   private async appendAuditEventSafely(
-    eventName: string,
+    eventName: SecurityAuditEventName,
     payload: Record<string, unknown>,
     reason: string
   ): Promise<void> {

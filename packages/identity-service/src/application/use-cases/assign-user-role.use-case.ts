@@ -1,7 +1,7 @@
 import type { IUserRepository } from "../ports/user-repository.port";
 import type { AssignUserRolesDto } from "../dtos/assign-user-role.dto";
 import type { UserResponseDto } from "../dtos/user-response.dto";
-import { createSecurityAuditEvent } from "../security-audit";
+import { createSecurityAuditEvent, SECURITY_AUDIT_EVENTS } from "../security-audit";
 import { toUserResponseDto } from "../dtos/user-profile.mapper";
 import { AuthorizationError } from "../errors";
 import { PERMISSIONS } from "../../domain/types";
@@ -31,7 +31,7 @@ export class AssignUserRolesUseCase {
     user.assignRoles(dto.primaryRole, dto.roles);
     await this.userRepository.saveUserAndOutbox(
       user,
-      createSecurityAuditEvent("identity.auth.role_changed", {
+      createSecurityAuditEvent(SECURITY_AUDIT_EVENTS.ROLE_CHANGED, {
         actorUserId,
         targetUserId: user.id,
         previousRole,

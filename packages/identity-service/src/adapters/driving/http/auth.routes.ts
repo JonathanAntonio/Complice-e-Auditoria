@@ -5,10 +5,8 @@ import { AuthController } from "./auth.controller";
 import { validateRegister, validateLogin } from "./auth.validation";
 
 /**
- * Logout: não há endpoint de logout no servidor. O logout é feito no cliente
- * descartando o token (remover do storage/localStorage e não enviar mais o
- * header Authorization). Tokens JWT permanecem válidos até o exp; para
- * revogação antecipada seria necessário um mecanismo adicional (ex.: blacklist).
+ * Logout registra evento de auditoria no servidor.
+ * A invalidação antecipada de JWT ainda depende de mecanismo adicional (ex.: blacklist).
  */
 
 const skipRateLimit = process.env.NODE_ENV === "test";
@@ -39,6 +37,7 @@ export function createAuthRoutes(
 
   router.post("/auth/register", authRateLimiter, validateRegister, asyncHandler(controller.register.bind(controller)));
   router.post("/auth/login", authRateLimiter, validateLogin, asyncHandler(controller.login.bind(controller)));
+  router.post("/auth/logout", authMiddleware, asyncHandler(controller.logout.bind(controller)));
   router.get("/auth/me", authMiddleware, asyncHandler(controller.me.bind(controller)));
 
   router.get("/auth/google", oauthRateLimiter, asyncHandler(controller.googleRedirect.bind(controller)));

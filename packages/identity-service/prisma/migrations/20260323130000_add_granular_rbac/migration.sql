@@ -108,4 +108,20 @@ ALTER TABLE "role_permissions" ADD CONSTRAINT "role_permissions_permission_id_fk
 ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_role_id_fkey" FOREIGN KEY ("role_id") REFERENCES "roles"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- Prevent deletion of built-in/system roles.
+CREATE OR REPLACE FUNCTION prevent_system_role_deletion()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF OLD."is_system" = true THEN
+        RAISE EXCEPTION 'Cannot delete system role: %', OLD."code";
+    END IF;
+    RETURN OLD;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER protect_system_roles
+BEFORE DELETE ON "roles"
+FOR EACH ROW
+EXECUTE FUNCTION prevent_system_role_deletion();

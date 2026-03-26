@@ -1,7 +1,11 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { asyncHandler } from "@lframework/shared";
 import { UserController } from "./user.controller";
-import { validateAssignUserRole, validateCreateUser } from "./user.validation";
+import {
+  validateAssignUserRole,
+  validateAssignUserRoles,
+  validateCreateUser,
+} from "./user.validation";
 
 export function createUserRoutes(
   controller: UserController,
@@ -13,8 +17,8 @@ export function createUserRoutes(
   const router = Router();
   router.post(
     "/users",
-    validateCreateUser,
     authMiddleware,
+    validateCreateUser,
     asyncHandler(requireUsersCreate),
     asyncHandler(controller.create.bind(controller))
   );
@@ -26,10 +30,17 @@ export function createUserRoutes(
   );
   router.put(
     "/users/:id/role",
-    validateAssignUserRole,
     authMiddleware,
+    validateAssignUserRole,
     asyncHandler(requireRolesAssign),
-    asyncHandler(controller.assignRole.bind(controller))
+    asyncHandler(controller.assignLegacyRole.bind(controller))
+  );
+  router.put(
+    "/users/:id/roles",
+    authMiddleware,
+    validateAssignUserRoles,
+    asyncHandler(requireRolesAssign),
+    asyncHandler(controller.assignRoles.bind(controller))
   );
   return router;
 }

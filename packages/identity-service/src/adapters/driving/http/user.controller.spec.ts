@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { UserController } from "./user.controller";
 import type { CreateUserUseCase } from "../../../application/use-cases/create-user.use-case";
 import type { GetUserByIdUseCase } from "../../../application/use-cases/get-user-by-id.use-case";
-import type { AssignUserRoleUseCase } from "../../../application/use-cases/assign-user-role.use-case";
+import type { AssignUserRolesUseCase } from "../../../application/use-cases/assign-user-role.use-case";
 import type { Response } from "express";
 import type { NextFunction } from "express";
 import {
@@ -12,19 +12,19 @@ import {
 import { mapApplicationErrorToHttp } from "./error-to-http.mapper";
 import { sendError } from "@lframework/shared";
 import { createMockAuthenticatedRequest } from "@lframework/shared/test";
-import { USER_ROLES, permissionsForRole } from "../../../domain/types";
+import { USER_ROLES, permissionsForRole, PERMISSIONS } from "../../../domain/types";
 
 describe("UserController", () => {
   let createUserUseCase: CreateUserUseCase;
   let getUserByIdUseCase: GetUserByIdUseCase;
-  let assignUserRoleUseCase: AssignUserRoleUseCase;
+  let assignUserRolesUseCase: AssignUserRolesUseCase;
   let res: Partial<Response>;
   let next: NextFunction;
 
   beforeEach(() => {
     createUserUseCase = { execute: vi.fn() } as unknown as CreateUserUseCase;
     getUserByIdUseCase = { execute: vi.fn() } as unknown as GetUserByIdUseCase;
-    assignUserRoleUseCase = { execute: vi.fn() } as unknown as AssignUserRoleUseCase;
+    assignUserRolesUseCase = { execute: vi.fn() } as unknown as AssignUserRolesUseCase;
     res = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
@@ -42,6 +42,7 @@ describe("UserController", () => {
         email: "u@example.com",
         name: "Nome",
         primaryRole: USER_ROLES.VISUALIZADOR,
+        roles: [USER_ROLES.VISUALIZADOR],
         permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
         authzVersion: 1,
         isActive: true,
@@ -52,7 +53,7 @@ describe("UserController", () => {
       const controller = new UserController(
         createUserUseCase,
         getUserByIdUseCase,
-        assignUserRoleUseCase
+        assignUserRolesUseCase
       );
       const req = createMockAuthenticatedRequest({
         body: { email: "u@example.com", name: "Nome" },
@@ -72,7 +73,7 @@ describe("UserController", () => {
       const controller = new UserController(
         createUserUseCase,
         getUserByIdUseCase,
-        assignUserRoleUseCase
+        assignUserRolesUseCase
       );
       const req = createMockAuthenticatedRequest({
         body: { email: "existente@example.com", name: "X" },
@@ -90,7 +91,7 @@ describe("UserController", () => {
       const controller = new UserController(
         createUserUseCase,
         getUserByIdUseCase,
-        assignUserRoleUseCase
+        assignUserRolesUseCase
       );
       const req = createMockAuthenticatedRequest({
         body: { email: "invalido", name: "X" },
@@ -112,6 +113,7 @@ describe("UserController", () => {
         email: "u@example.com",
         name: "Nome",
         primaryRole: USER_ROLES.VISUALIZADOR,
+        roles: [USER_ROLES.VISUALIZADOR],
         permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
         authzVersion: 1,
         isActive: true,
@@ -122,7 +124,7 @@ describe("UserController", () => {
       const controller = new UserController(
         createUserUseCase,
         getUserByIdUseCase,
-        assignUserRoleUseCase
+        assignUserRolesUseCase
       );
       const req = createMockAuthenticatedRequest({
         params: { id: uuidOwner },
@@ -134,11 +136,42 @@ describe("UserController", () => {
       expect(getUserByIdUseCase.execute).toHaveBeenCalledWith(uuidOwner);
     });
 
+    it("deve permitir leitura com users.read.any mesmo sem primaryRole administrador", async () => {
+      const user = {
+        id: uuidOwner,
+        email: "u@example.com",
+        name: "Nome",
+        primaryRole: USER_ROLES.VISUALIZADOR,
+        roles: [USER_ROLES.VISUALIZADOR],
+        permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+        authzVersion: 1,
+        isActive: true,
+        createdAt: "2025-01-01T00:00:00.000Z",
+      };
+      vi.mocked(getUserByIdUseCase.execute).mockResolvedValue(user);
+
+      const controller = new UserController(
+        createUserUseCase,
+        getUserByIdUseCase,
+        assignUserRolesUseCase
+      );
+      const req = createMockAuthenticatedRequest({
+        params: { id: uuidOwner },
+        userId: "actor-1",
+        userPrimaryRole: USER_ROLES.VISUALIZADOR,
+        userPermissions: [PERMISSIONS.USERS_READ_ANY],
+      });
+      await controller.getById(req, res as Response, next);
+
+      expect(getUserByIdUseCase.execute).toHaveBeenCalledWith(uuidOwner);
+      expect(res.json).toHaveBeenCalledWith(user);
+    });
+
     it("deve retornar 400 quando id não é UUID", async () => {
       const controller = new UserController(
         createUserUseCase,
         getUserByIdUseCase,
-        assignUserRoleUseCase
+        assignUserRolesUseCase
       );
       const req = createMockAuthenticatedRequest({
         params: { id: "nao-uuid" },
@@ -157,7 +190,7 @@ describe("UserController", () => {
       const controller = new UserController(
         createUserUseCase,
         getUserByIdUseCase,
-        assignUserRoleUseCase
+        assignUserRolesUseCase
       );
       const req = createMockAuthenticatedRequest({
         params: { id: uuidOwner },
@@ -170,7 +203,7 @@ describe("UserController", () => {
     });
   });
 
-  describe("assignRole", () => {
+  describe("assignRoles", () => {
     const userId = "11111111-1111-1111-1111-111111111111";
 
     it("deve retornar 200 com usuário atualizado", async () => {
@@ -179,28 +212,36 @@ describe("UserController", () => {
         email: "u@example.com",
         name: "Nome",
         primaryRole: USER_ROLES.ADMINISTRADOR,
+        roles: [USER_ROLES.ADMINISTRADOR, USER_ROLES.GESTOR],
         permissions: permissionsForRole(USER_ROLES.ADMINISTRADOR),
         authzVersion: 2,
         isActive: true,
         createdAt: "2025-01-01T00:00:00.000Z",
       };
-      vi.mocked(assignUserRoleUseCase.execute).mockResolvedValue(updated);
+      vi.mocked(assignUserRolesUseCase.execute).mockResolvedValue(updated);
       const controller = new UserController(
         createUserUseCase,
         getUserByIdUseCase,
-        assignUserRoleUseCase
+        assignUserRolesUseCase
       );
 
       const req = createMockAuthenticatedRequest({
         params: { id: userId },
-        body: { primaryRole: USER_ROLES.ADMINISTRADOR },
+        body: {
+          primaryRole: USER_ROLES.ADMINISTRADOR,
+          roles: [USER_ROLES.ADMINISTRADOR, USER_ROLES.GESTOR],
+        },
         userId: "actor-1",
+        userPermissions: [PERMISSIONS.ROLES_ASSIGN],
       });
-      await controller.assignRole(req, res as Response, next);
+      await controller.assignRoles(req, res as Response, next);
 
-      expect(assignUserRoleUseCase.execute).toHaveBeenCalledWith(
+      expect(assignUserRolesUseCase.execute).toHaveBeenCalledWith(
         userId,
-        { primaryRole: USER_ROLES.ADMINISTRADOR },
+        {
+          primaryRole: USER_ROLES.ADMINISTRADOR,
+          roles: [USER_ROLES.ADMINISTRADOR, USER_ROLES.GESTOR],
+        },
         "actor-1"
       );
       expect(res.status).toHaveBeenCalledWith(200);
@@ -208,19 +249,20 @@ describe("UserController", () => {
     });
 
     it("deve retornar 404 quando usuário não existe", async () => {
-      vi.mocked(assignUserRoleUseCase.execute).mockResolvedValue(null);
+      vi.mocked(assignUserRolesUseCase.execute).mockResolvedValue(null);
       const controller = new UserController(
         createUserUseCase,
         getUserByIdUseCase,
-        assignUserRoleUseCase
+        assignUserRolesUseCase
       );
 
       const req = createMockAuthenticatedRequest({
         params: { id: userId },
-        body: { primaryRole: USER_ROLES.ADMINISTRADOR },
+        body: { primaryRole: USER_ROLES.ADMINISTRADOR, roles: [USER_ROLES.ADMINISTRADOR] },
         userId: "actor-1",
+        userPermissions: [PERMISSIONS.ROLES_ASSIGN],
       });
-      await controller.assignRole(req, res as Response, next);
+      await controller.assignRoles(req, res as Response, next);
 
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({ error: "User not found" });
@@ -230,19 +272,95 @@ describe("UserController", () => {
       const controller = new UserController(
         createUserUseCase,
         getUserByIdUseCase,
-        assignUserRoleUseCase
+        assignUserRolesUseCase
       );
 
       const req = createMockAuthenticatedRequest({
         params: { id: userId },
-        body: { primaryRole: USER_ROLES.ADMINISTRADOR },
+        body: { primaryRole: USER_ROLES.ADMINISTRADOR, roles: [USER_ROLES.ADMINISTRADOR] },
         userId: undefined,
       });
-      await controller.assignRole(req, res as Response, next);
+      await controller.assignRoles(req, res as Response, next);
 
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith({ error: "Forbidden" });
-      expect(assignUserRoleUseCase.execute).not.toHaveBeenCalled();
+      expect(assignUserRolesUseCase.execute).not.toHaveBeenCalled();
+    });
+
+    it("deve retornar 403 quando requester não possui roles.assign", async () => {
+      const controller = new UserController(
+        createUserUseCase,
+        getUserByIdUseCase,
+        assignUserRolesUseCase
+      );
+
+      const req = createMockAuthenticatedRequest({
+        params: { id: userId },
+        body: { primaryRole: USER_ROLES.ADMINISTRADOR, roles: [USER_ROLES.ADMINISTRADOR] },
+        userId: "actor-1",
+        userPermissions: [],
+      });
+      await controller.assignRoles(req, res as Response, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({ error: "Forbidden" });
+      expect(assignUserRolesUseCase.execute).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("assignLegacyRole", () => {
+    it("deve converter body legado para sync de roles", async () => {
+      const controller = new UserController(
+        createUserUseCase,
+        getUserByIdUseCase,
+        assignUserRolesUseCase
+      );
+      vi.mocked(assignUserRolesUseCase.execute).mockResolvedValue({
+        id: "user-1",
+        email: "u@example.com",
+        name: "Nome",
+        primaryRole: USER_ROLES.ADMINISTRADOR,
+        roles: [USER_ROLES.ADMINISTRADOR],
+        permissions: permissionsForRole(USER_ROLES.ADMINISTRADOR),
+        authzVersion: 2,
+        isActive: true,
+        createdAt: "2025-01-01T00:00:00.000Z",
+      });
+
+      const req = createMockAuthenticatedRequest({
+        params: { id: "11111111-1111-1111-1111-111111111111" },
+        body: { primaryRole: USER_ROLES.ADMINISTRADOR },
+        userId: "actor-1",
+        userPermissions: [PERMISSIONS.ROLES_ASSIGN],
+      });
+      await controller.assignLegacyRole(req, res as Response, next);
+
+      expect(assignUserRolesUseCase.execute).toHaveBeenCalledWith(
+        "11111111-1111-1111-1111-111111111111",
+        { primaryRole: USER_ROLES.ADMINISTRADOR, roles: [USER_ROLES.ADMINISTRADOR] },
+        "actor-1"
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+    });
+
+    it("deve retornar 403 quando não possui roles.assign", async () => {
+      const controller = new UserController(
+        createUserUseCase,
+        getUserByIdUseCase,
+        assignUserRolesUseCase
+      );
+      const req = createMockAuthenticatedRequest({
+        params: { id: "11111111-1111-1111-1111-111111111111" },
+        body: { primaryRole: USER_ROLES.ADMINISTRADOR },
+        userId: "actor-1",
+        userPermissions: [],
+      });
+
+      await controller.assignLegacyRole(req, res as Response, next);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith({ error: "Forbidden" });
+      expect(assignUserRolesUseCase.execute).not.toHaveBeenCalled();
     });
   });
 });

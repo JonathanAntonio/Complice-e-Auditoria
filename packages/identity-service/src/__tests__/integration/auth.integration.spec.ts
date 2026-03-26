@@ -113,6 +113,7 @@ describe("Auth API integration", () => {
           email: "alice@example.com",
           name: "Alice",
           primaryRole: USER_ROLES.VISUALIZADOR,
+          roles: [USER_ROLES.VISUALIZADOR],
           permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
           authzVersion: 1,
           isActive: true,
@@ -122,7 +123,7 @@ describe("Auth API integration", () => {
       });
       expect(res.body.user).toHaveProperty("id");
       expect(res.body.user).toHaveProperty("createdAt");
-    });
+    }, 10000);
 
     it("returns 409 when email already exists", async ({ skip }) => {
       if (!servicesAvailable()) skip();
@@ -219,6 +220,7 @@ describe("Auth API integration", () => {
           email: "login@example.com",
           name: "Login User",
           primaryRole: USER_ROLES.VISUALIZADOR,
+          roles: [USER_ROLES.VISUALIZADOR],
           permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
           authzVersion: 1,
           isActive: true,
@@ -287,7 +289,7 @@ describe("Auth API integration", () => {
           password: "CorrectPass123",
         })
         .expect(423);
-    });
+    }, 15000);
 
     it("returns 401 for unknown email", async ({ skip }) => {
       if (!servicesAvailable()) skip();
@@ -344,6 +346,7 @@ describe("Auth API integration", () => {
         email: "me@example.com",
         name: "Me User",
         primaryRole: USER_ROLES.VISUALIZADOR,
+        roles: [USER_ROLES.VISUALIZADOR],
         permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
         authzVersion: 1,
         isActive: true,

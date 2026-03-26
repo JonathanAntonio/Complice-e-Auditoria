@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import { createHash } from "crypto";
 import { z } from "zod";
 import type { ITokenService, TokenPayload } from "../../../application/ports/token-service.port";
 import { logger } from "@lframework/shared";
@@ -9,7 +10,9 @@ const jwtPayloadSchema = z.object({
   sub: z.string().min(1),
   email: z.string().optional(),
   primaryRole: z.string().optional(),
+  roles: z.array(z.string()).optional(),
   permissions: z.array(z.string()).optional(),
+  permissionsHash: z.string().optional(),
   authzVersion: z.number().int().positive().optional(),
   exp: z.number(),
   iat: z.number(),
@@ -27,13 +30,26 @@ export class JwtTokenService implements ITokenService {
   constructor(private readonly config: JwtTokenServiceConfig) {}
 
   sign(payload: Omit<TokenPayload, "iat" | "exp">): string {
-    const { sub, email, primaryRole, permissions, authzVersion } = payload;
+    const { sub, email, primaryRole, roles, permissions, authzVersion } = payload;
+    const resolvedPrimaryRole = primaryRole ?? DEFAULT_USER_ROLE;
+    const resolvedRoles = [...(roles ?? [resolvedPrimaryRole])];
+    if (!resolvedRoles.includes(resolvedPrimaryRole)) {
+      resolvedRoles.push(resolvedPrimaryRole);
+    }
+    const resolvedPermissions = permissions ?? [];
+    const permissionsHash =
+      resolvedPermissions.length > 0
+        ? createHash("sha256").update([...resolvedPermissions].sort().join(",")).digest("hex")
+        : undefined;
+
     return jwt.sign(
       {
         sub,
         email,
-        primaryRole: primaryRole ?? DEFAULT_USER_ROLE,
-        permissions: permissions ?? [],
+        primaryRole: resolvedPrimaryRole,
+        roles: resolvedRoles,
+        permissions: resolvedPermissions,
+        permissionsHash,
         authzVersion: authzVersion ?? 1,
       },
       this.config.secret,
@@ -52,14 +68,21 @@ export class JwtTokenService implements ITokenService {
         return null;
       }
       const data = result.data;
+      const resolvedPrimaryRole = data.primaryRole ?? DEFAULT_USER_ROLE;
+      const resolvedRoles = [...(data.roles ?? [resolvedPrimaryRole])];
+      if (!resolvedRoles.includes(resolvedPrimaryRole)) {
+        resolvedRoles.push(resolvedPrimaryRole);
+      }
       return {
         sub: data.sub,
         email: data.email ?? "",
-        primaryRole: data.primaryRole ?? DEFAULT_USER_ROLE,
+        primaryRole: resolvedPrimaryRole,
+        roles: resolvedRoles,
         permissions: data.permissions ?? [],
         authzVersion: data.authzVersion ?? 1,
         iat: data.iat,
         exp: data.exp,
+        ...(data.permissionsHash ? { permissionsHash: data.permissionsHash } : {}),
       };
     } catch (err) {
       logger.debug({ err }, "JWT verify failed");

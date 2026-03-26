@@ -69,6 +69,7 @@ describe("createAuthMiddleware", () => {
       sub: "user-123",
       email: "u@example.com",
       primaryRole: "admin",
+      roles: ["admin", "auditor"],
       permissions: ["users.create"],
       authzVersion: 2,
     };
@@ -82,6 +83,7 @@ describe("createAuthMiddleware", () => {
     expect(req.userEmail).toBe("u@example.com");
     expect(req.userRole).toBe("admin");
     expect(req.userPrimaryRole).toBe("admin");
+    expect(req.userRoles).toEqual(["admin", "auditor"]);
     expect(req.userPermissions).toEqual(["users.create"]);
     expect(req.authzVersion).toBe(2);
     expect(next).toHaveBeenCalled();
@@ -97,6 +99,7 @@ describe("createAuthMiddleware", () => {
 
     expect(req.userId).toBe("id-1");
     expect(req.userRole).toBe("user");
+    expect(req.userRoles).toEqual([]);
     expect(req.userPermissions).toEqual([]);
     expect(next).toHaveBeenCalled();
   });

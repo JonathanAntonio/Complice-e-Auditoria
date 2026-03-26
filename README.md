@@ -74,7 +74,7 @@ Com o gateway: **http://localhost:8080** (prefixos `/identity/` e `/catalog/`). 
 pnpm test
 ```
 
-Roda Vitest em todos os pacotes (use cases, DTOs, controllers).
+Roda Vitest em todos os pacotes (use cases, DTOs, controllers) e smoke tests das rotas de documentação (`/api-docs.json`, `/api-docs`, `/openapi.json`, `/`).
 
 ## Padrões
 

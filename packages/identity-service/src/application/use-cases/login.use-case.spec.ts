@@ -77,6 +77,7 @@ describe("LoginUseCase", () => {
       email: "u@example.com",
       name: "Nome",
       primaryRole: USER_ROLES.VISUALIZADOR,
+      roles: [USER_ROLES.VISUALIZADOR],
       permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
       authzVersion: 1,
       isActive: true,
@@ -87,6 +88,7 @@ describe("LoginUseCase", () => {
       sub: "user-1",
       email: "u@example.com",
       primaryRole: USER_ROLES.VISUALIZADOR,
+      roles: [USER_ROLES.VISUALIZADOR],
       permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
       authzVersion: 1,
     });

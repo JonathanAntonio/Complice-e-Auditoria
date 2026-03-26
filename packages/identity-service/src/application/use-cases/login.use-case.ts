@@ -119,6 +119,7 @@ export class LoginUseCase {
         ...baseAuditPayload,
         userId: user.id,
         primaryRole: user.primaryRole,
+        roles: user.roles,
         permissions: user.permissions,
         authzVersion: user.authorizationVersion,
       })
@@ -128,6 +129,7 @@ export class LoginUseCase {
       sub: user.id,
       email: user.email.value,
       primaryRole: user.primaryRole,
+      roles: user.roles,
       permissions: user.permissions,
       authzVersion: user.authorizationVersion,
     });

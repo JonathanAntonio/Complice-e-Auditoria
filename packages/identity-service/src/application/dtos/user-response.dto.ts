@@ -16,6 +16,7 @@ export const userResponseDtoSchema = z.object({
   email: z.string().email(),
   name: z.string(),
   primaryRole: userRoleSchema,
+  roles: z.array(userRoleSchema).min(1),
   permissions: z.array(permissionSchema),
   authzVersion: z.number().int().positive(),
   isActive: z.boolean(),

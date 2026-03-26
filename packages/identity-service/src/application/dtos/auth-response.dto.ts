@@ -6,6 +6,7 @@ export interface AuthUserDto {
   email: string;
   name: string;
   primaryRole: string;
+  roles: string[];
   permissions: string[];
   authzVersion: number;
   isActive: boolean;

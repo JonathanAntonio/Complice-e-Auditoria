@@ -27,4 +27,12 @@ export class ItemController {
       next(err);
     }
   };
+
+  testPermission = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      res.json({ ok: true, permission: "catalog.test.access" });
+    } catch (err) {
+      next(err);
+    }
+  };
 }

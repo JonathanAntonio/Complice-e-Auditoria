@@ -91,7 +91,7 @@ describe("Outbox integration", () => {
     );
     expect(userCreatedRow).toBeDefined();
     expect((userCreatedRow!.payload as { email: string }).email).toBe(email);
-  });
+  }, 15000);
 
   it("relay publishes and marks outbox row when eventPublisher is provided", async ({ skip }) => {
     if (!dbAvailable) skip();

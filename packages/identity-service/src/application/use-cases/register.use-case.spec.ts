@@ -59,6 +59,7 @@ describe("RegisterUseCase", () => {
       email: "novo@example.com",
       name: "Novo User",
       primaryRole: USER_ROLES.VISUALIZADOR,
+      roles: [USER_ROLES.VISUALIZADOR],
       permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
       authzVersion: 1,
       isActive: true,

@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import { z } from "zod";
 import {
   hasPermission,
   logger,
@@ -10,6 +11,8 @@ import {
   createSecurityAuditEvent,
   SECURITY_AUDIT_EVENTS,
 } from "../../../application/security-audit";
+
+const uuidSchema = z.string().uuid();
 
 async function appendDeniedAuditSafely(
   outboxRepository: IOutboxRepository,
@@ -31,6 +34,11 @@ export function requirePermissionWithAudit(
 ) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const authReq = req as AuthenticatedRequest;
+    if (!authReq.userId) {
+      sendError(res, 401, "Unauthorized");
+      return;
+    }
+
     if (hasPermission(req, permission)) {
       next();
       return;
@@ -64,6 +72,11 @@ export function requireSelfOrPermissionWithAudit(
     }
 
     if (!targetUserId) {
+      sendError(res, 400, "Missing or invalid target user id");
+      return;
+    }
+
+    if (!uuidSchema.safeParse(targetUserId).success) {
       sendError(res, 400, "Missing or invalid target user id");
       return;
     }

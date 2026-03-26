@@ -45,10 +45,17 @@ export class PrismaUserRegistrationPersistence implements IUserRegistrationPersi
             "authorization_version" = EXCLUDED."authorization_version"
         `;
         await tx.$executeRaw`
-          INSERT INTO "user_roles" ("user_id", "role_id", "assigned_at")
-          VALUES (${user.id}, ${roleId}, NOW())
-          ON CONFLICT ("user_id") DO UPDATE SET
-            "role_id" = EXCLUDED."role_id",
+          UPDATE "user_roles"
+          SET "is_primary" = false
+          WHERE "user_id" = ${user.id}
+            AND "is_primary" = true
+            AND "role_id" <> ${roleId}
+        `;
+        await tx.$executeRaw`
+          INSERT INTO "user_roles" ("user_id", "role_id", "is_primary", "assigned_at")
+          VALUES (${user.id}, ${roleId}, true, NOW())
+          ON CONFLICT ("user_id", "role_id") DO UPDATE SET
+            "is_primary" = true,
             "assigned_at" = NOW()
         `;
         await tx.authCredentialModel.upsert({

@@ -1,5 +1,4 @@
-import { Prisma } from "@prisma/client";
-import { PrismaClient } from "../../../../generated/prisma-client";
+import { Prisma, PrismaClient } from "../../../../generated/prisma-client";
 import type { IReplicatedUserStore } from "../../../application/ports/replicated-user-store.port";
 import type { UserCreatedPayload } from "@lframework/shared";
 
@@ -54,7 +53,10 @@ export class PrismaReplicatedUserStore implements IReplicatedUserStore {
             },
           });
         } catch (err) {
-          if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+          if (
+            err instanceof Prisma.PrismaClientKnownRequestError &&
+            err.code === "P2002"
+          ) {
             // Benign race: another concurrent insert created the row; skip.
             return;
           }

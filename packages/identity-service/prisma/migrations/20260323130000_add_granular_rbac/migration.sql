@@ -37,10 +37,11 @@ CREATE TABLE "role_permissions" (
 CREATE TABLE "user_roles" (
     "user_id" TEXT NOT NULL,
     "role_id" TEXT NOT NULL,
+    "is_primary" BOOLEAN NOT NULL DEFAULT false,
     "assigned_by" TEXT,
     "assigned_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "user_roles_pkey" PRIMARY KEY ("user_id")
+    CONSTRAINT "user_roles_pkey" PRIMARY KEY ("user_id","role_id")
 );
 
 -- AlterTable
@@ -55,6 +56,9 @@ CREATE UNIQUE INDEX "permissions_code_key" ON "permissions"("code");
 
 -- CreateIndex
 CREATE INDEX "user_roles_role_id_idx" ON "user_roles"("role_id");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "user_roles_primary_role_per_user_key" ON "user_roles"("user_id") WHERE "is_primary" = true;
 
 -- Backfill user_roles from current users.role values before dropping the legacy column.
 INSERT INTO "roles" ("id", "code", "name", "is_system", "created_at", "updated_at")
@@ -82,14 +86,15 @@ BEGIN
     END IF;
 END $$;
 
-INSERT INTO "user_roles" ("user_id", "role_id", "assigned_at")
+INSERT INTO "user_roles" ("user_id", "role_id", "is_primary", "assigned_at")
 SELECT
     u."id",
     r."id",
+    true,
     CURRENT_TIMESTAMP
 FROM "users" u
 LEFT JOIN "roles" r ON r."code" = COALESCE(NULLIF(u."role", ''), 'visualizador')
-ON CONFLICT ("user_id") DO NOTHING;
+ON CONFLICT ("user_id", "role_id") DO NOTHING;
 
 ALTER TABLE "users" DROP COLUMN "role";
 

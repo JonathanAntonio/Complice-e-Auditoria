@@ -29,7 +29,7 @@ export class CreateUserUseCase {
     }
 
     const id = randomUUID();
-    const user = User.create(id, email, dto.name, DEFAULT_USER_ROLE);
+    const user = User.create(id, email, dto.name, DEFAULT_USER_ROLE, [DEFAULT_USER_ROLE]);
     await this.userRepository.saveUserAndOutbox(user, {
       eventName: USER_CREATED_EVENT,
       payload: {

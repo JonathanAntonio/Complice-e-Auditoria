@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { PrismaClient } from "../../../../generated/prisma-client";
+import { Prisma, PrismaClient } from "../../../../generated/prisma-client";
 import { User } from "../../../domain/entities/user.entity";
 import type { IUserRepository } from "../../../application/ports/user-repository.port";
 import type { OutboxEvent } from "../../../application/ports/outbox-writer.port";
@@ -45,7 +45,6 @@ export class PrismaUserRepository implements IUserRepository {
     try {
       await this.prisma.$transaction(async (tx) => {
         await ensureAuthorizationCatalog(tx);
-        const roleId = await resolveRoleIdByCode(tx, user.primaryRole);
         await tx.$executeRaw`
           INSERT INTO "users" (
             "id", "email", "name", "authorization_version", "is_active",
@@ -63,13 +62,7 @@ export class PrismaUserRepository implements IUserRepository {
             "failed_login_attempts" = EXCLUDED."failed_login_attempts",
             "blocked_until" = EXCLUDED."blocked_until"
         `;
-        await tx.$executeRaw`
-          INSERT INTO "user_roles" ("user_id", "role_id", "assigned_at")
-          VALUES (${user.id}, ${roleId}, NOW())
-          ON CONFLICT ("user_id") DO UPDATE SET
-            "role_id" = EXCLUDED."role_id",
-            "assigned_at" = NOW()
-        `;
+        await syncUserRoles(tx, user);
       });
     } catch (err) {
       if (isPrismaP2002(err)) {
@@ -83,7 +76,6 @@ export class PrismaUserRepository implements IUserRepository {
     try {
       await this.prisma.$transaction(async (tx) => {
         await ensureAuthorizationCatalog(tx);
-        const roleId = await resolveRoleIdByCode(tx, user.primaryRole);
         await tx.$executeRaw`
           INSERT INTO "users" (
             "id", "email", "name", "authorization_version", "is_active",
@@ -101,13 +93,7 @@ export class PrismaUserRepository implements IUserRepository {
             "failed_login_attempts" = EXCLUDED."failed_login_attempts",
             "blocked_until" = EXCLUDED."blocked_until"
         `;
-        await tx.$executeRaw`
-          INSERT INTO "user_roles" ("user_id", "role_id", "assigned_at")
-          VALUES (${user.id}, ${roleId}, NOW())
-          ON CONFLICT ("user_id") DO UPDATE SET
-            "role_id" = EXCLUDED."role_id",
-            "assigned_at" = NOW()
-        `;
+        await syncUserRoles(tx, user);
         await tx.outboxModel.create({
           data: {
             id: randomUUID(),
@@ -126,7 +112,7 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   async findById(id: string): Promise<User | null> {
-    const row = (await this.prisma.$queryRaw<Array<UserAuthorizationRow>>`
+    const row = (await this.prisma.$queryRaw<Array<UserRow>>`
       SELECT
         u."id",
         u."email",
@@ -135,20 +121,21 @@ export class PrismaUserRepository implements IUserRepository {
         u."is_active" AS "isActive",
         u."failed_login_attempts" AS "failedLoginAttempts",
         u."blocked_until" AS "blockedUntil",
-        u."created_at" AS "createdAt",
-        r."code" AS "primaryRole"
+        u."created_at" AS "createdAt"
       FROM "users" u
-      LEFT JOIN "user_roles" ur ON ur."user_id" = u."id"
-      LEFT JOIN "roles" r ON r."id" = ur."role_id"
       WHERE u."id" = ${id}
       LIMIT 1
     `)[0];
     if (!row) return null;
-    return this.toDomainUser(row, await this.findPermissionsByUserId(row.id));
+    return this.toDomainUser(
+      row,
+      await this.findRolesByUserId(row.id),
+      await this.findPermissionsByUserId(row.id)
+    );
   }
 
   async findByEmail(email: string): Promise<User | null> {
-    const row = (await this.prisma.$queryRaw<Array<UserAuthorizationRow>>`
+    const row = (await this.prisma.$queryRaw<Array<UserRow>>`
       SELECT
         u."id",
         u."email",
@@ -157,41 +144,65 @@ export class PrismaUserRepository implements IUserRepository {
         u."is_active" AS "isActive",
         u."failed_login_attempts" AS "failedLoginAttempts",
         u."blocked_until" AS "blockedUntil",
-        u."created_at" AS "createdAt",
-        r."code" AS "primaryRole"
+        u."created_at" AS "createdAt"
       FROM "users" u
-      LEFT JOIN "user_roles" ur ON ur."user_id" = u."id"
-      LEFT JOIN "roles" r ON r."id" = ur."role_id"
       WHERE u."email" = ${email}
       LIMIT 1
     `)[0];
     if (!row) return null;
-    return this.toDomainUser(row, await this.findPermissionsByUserId(row.id));
+    return this.toDomainUser(
+      row,
+      await this.findRolesByUserId(row.id),
+      await this.findPermissionsByUserId(row.id)
+    );
+  }
+
+  private async findRolesByUserId(userId: string): Promise<Array<{ code: UserRole; isPrimary: boolean }>> {
+    const rows = await this.prisma.$queryRaw<Array<{ code: string; isPrimary: boolean }>>`
+      SELECT r."code", ur."is_primary" AS "isPrimary"
+      FROM "user_roles" ur
+      INNER JOIN "roles" r ON r."id" = ur."role_id"
+      WHERE ur."user_id" = ${userId}
+      ORDER BY ur."is_primary" DESC, r."code" ASC
+    `;
+
+    return rows.map((row) => ({
+      code: toDomainUserRole(row.code),
+      isPrimary: row.isPrimary,
+    }));
   }
 
   private async findPermissionsByUserId(userId: string): Promise<Permission[]> {
     const rows = await this.prisma.$queryRaw<Array<{ code: string }>>`
-      SELECT p."code"
+      SELECT DISTINCT p."code"
       FROM "permissions" p
       INNER JOIN "role_permissions" rp ON rp."permission_id" = p."id"
       INNER JOIN "user_roles" ur ON ur."role_id" = rp."role_id"
       WHERE ur."user_id" = ${userId}
       ORDER BY p."code" ASC
     `;
-    return rows.map((row) => toDomainPermission(row.code));
+    const permissions = rows.map((row) => toDomainPermission(row.code));
+    return PERMISSION_VALUES.filter((permission) => permissions.includes(permission as Permission)) as Permission[];
   }
 
-  private toDomainUser(row: UserAuthorizationRow, permissions: Permission[]): User {
-    if (!row.primaryRole) {
+  private toDomainUser(
+    row: UserRow,
+    roleRows: Array<{ code: UserRole; isPrimary: boolean }>,
+    permissions: Permission[]
+  ): User {
+    const primaryRole = roleRows.find((role) => role.isPrimary)?.code ?? roleRows[0]?.code;
+    if (!primaryRole) {
       throw new Error(`User ${row.id} does not have an assigned role`);
     }
+    const roles = roleRows.map((role) => role.code);
 
     return User.reconstitute(
       row.id,
       row.email,
       row.name,
       row.createdAt,
-      toDomainUserRole(row.primaryRole),
+      primaryRole,
+      roles,
       permissions,
       row.authorizationVersion,
       row.isActive,
@@ -201,7 +212,51 @@ export class PrismaUserRepository implements IUserRepository {
   }
 }
 
-interface UserAuthorizationRow {
+async function syncUserRoles(
+  tx: Prisma.TransactionClient,
+  user: User
+): Promise<void> {
+  const resolvedRoles = await Promise.all(
+    user.roles.map(async (role) => ({
+      roleId: await resolveRoleIdByCode(tx, role),
+      isPrimary: role === user.primaryRole,
+    }))
+  );
+
+  await tx.$executeRaw`
+    UPDATE "user_roles"
+    SET "is_primary" = false
+    WHERE "user_id" = ${user.id}
+  `;
+
+  const roleIds = resolvedRoles.map((role) => role.roleId);
+  if (roleIds.length === 0) {
+    await tx.$executeRaw`
+      DELETE FROM "user_roles"
+      WHERE "user_id" = ${user.id}
+    `;
+  } else {
+    await tx.$executeRaw(
+      Prisma.sql`
+        DELETE FROM "user_roles"
+        WHERE "user_id" = ${user.id}
+          AND "role_id" NOT IN (${Prisma.join(roleIds)})
+      `
+    );
+  }
+
+  for (const role of resolvedRoles) {
+    await tx.$executeRaw`
+      INSERT INTO "user_roles" ("user_id", "role_id", "is_primary", "assigned_at")
+      VALUES (${user.id}, ${role.roleId}, ${role.isPrimary}, NOW())
+      ON CONFLICT ("user_id", "role_id") DO UPDATE SET
+        "is_primary" = EXCLUDED."is_primary",
+        "assigned_at" = NOW()
+    `;
+  }
+}
+
+interface UserRow {
   id: string;
   email: string;
   name: string;
@@ -210,5 +265,4 @@ interface UserAuthorizationRow {
   failedLoginAttempts: number;
   blockedUntil: Date | null;
   createdAt: Date;
-  primaryRole: string | null;
 }

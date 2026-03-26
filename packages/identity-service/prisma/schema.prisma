@@ -29,7 +29,7 @@ model RoleModel {
   code            String             @unique
   name            String
   description     String?
-  isSystem        Boolean            @default(true) @map("is_system")
+  isSystem        Boolean            @default(false) @map("is_system")
   createdAt       DateTime           @default(now()) @map("created_at")
   updatedAt       DateTime           @updatedAt @map("updated_at")
   rolePermissions RolePermissionModel[]
@@ -63,13 +63,18 @@ model RolePermissionModel {
 }
 
 model UserRoleModel {
-  userId     String    @id @map("user_id")
+  userId     String    @map("user_id")
   roleId     String    @map("role_id")
+  // Partial unique index is created via SQL migration:
+  // CREATE UNIQUE INDEX ... ON "user_roles"("user_id") WHERE "is_primary" = true
+  isPrimary  Boolean   @default(false) @map("is_primary")
+  // Actor user id for audit trail; kept as free-form string (no FK) intentionally.
   assignedBy String?   @map("assigned_by")
   assignedAt DateTime  @default(now()) @map("assigned_at")
   user       UserModel @relation(fields: [userId], references: [id], onDelete: Cascade)
   role       RoleModel @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
+  @@id([userId, roleId])
   @@index([roleId])
   @@map("user_roles")
 }

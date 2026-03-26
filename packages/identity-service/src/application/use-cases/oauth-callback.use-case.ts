@@ -137,21 +137,25 @@ export class OAuthCallbackUseCase {
     isNewUser: boolean,
     baseAuditPayload: Record<string, unknown>
   ): Promise<OAuthCallbackResultDto> {
-    await this.outboxRepository.append(
-      createSecurityAuditEvent(SECURITY_AUDIT_EVENTS.LOGIN_SUCCEEDED, {
+    await this.appendAuditEventSafely(
+      SECURITY_AUDIT_EVENTS.LOGIN_SUCCEEDED,
+      {
         ...baseAuditPayload,
         userId: user.id,
         primaryRole: user.primaryRole,
+        roles: user.roles,
         permissions: user.permissions,
         authzVersion: user.authorizationVersion,
         isNewUser,
-      })
+      },
+      "oauth_login_succeeded"
     );
 
     const accessToken = this.tokenService.sign({
       sub: user.id,
       email: user.email.value,
       primaryRole: user.primaryRole,
+      roles: user.roles,
       permissions: user.permissions,
       authzVersion: user.authorizationVersion,
     });

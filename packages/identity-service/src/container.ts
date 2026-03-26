@@ -20,7 +20,7 @@ import { GitHubOAuthProvider } from "./adapters/driven/auth/github-oauth.provide
 import type { IOAuthProvider } from "./application/ports/oauth-provider.port";
 import { CreateUserUseCase } from "./application/use-cases/create-user.use-case";
 import { GetUserByIdUseCase } from "./application/use-cases/get-user-by-id.use-case";
-import { AssignUserRoleUseCase } from "./application/use-cases/assign-user-role.use-case";
+import { AssignUserRolesUseCase } from "./application/use-cases/assign-user-role.use-case";
 import { RegisterUseCase } from "./application/use-cases/register.use-case";
 import { LoginUseCase } from "./application/use-cases/login.use-case";
 import { GetCurrentUserUseCase } from "./application/use-cases/get-current-user.use-case";
@@ -86,7 +86,7 @@ interface IdentityCradle {
   loginUseCase: LoginUseCase;
   getCurrentUserUseCase: GetCurrentUserUseCase;
   oauthCallbackUseCase: OAuthCallbackUseCase;
-  assignUserRoleUseCase: AssignUserRoleUseCase;
+  assignUserRolesUseCase: AssignUserRolesUseCase;
   userController: UserController;
   authController: AuthController;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
@@ -224,9 +224,9 @@ export function createContainer(config: ContainerConfig) {
         new GetCurrentUserUseCase(cradle.userRepository)
     ).singleton(),
 
-    assignUserRoleUseCase: asFunction(
+    assignUserRolesUseCase: asFunction(
       (cradle: IdentityCradle) =>
-        new AssignUserRoleUseCase(cradle.userRepository)
+        new AssignUserRolesUseCase(cradle.userRepository)
     ).singleton(),
 
     oauthCallbackUseCase: asFunction(
@@ -246,7 +246,7 @@ export function createContainer(config: ContainerConfig) {
         new UserController(
           cradle.createUserUseCase,
           cradle.getUserByIdUseCase,
-          cradle.assignUserRoleUseCase
+          cradle.assignUserRolesUseCase
         )
     ).singleton(),
 
@@ -290,7 +290,7 @@ export function createContainer(config: ContainerConfig) {
         requirePermissionWithAudit(
           outboxRepository,
           PERMISSIONS.ROLES_ASSIGN,
-          "PUT /api/users/:id/role"
+          "PUT /api/users/:id/roles"
         )
     ).singleton(),
 

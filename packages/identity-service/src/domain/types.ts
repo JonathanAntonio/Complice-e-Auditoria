@@ -37,6 +37,9 @@ export const PERMISSIONS = {
   INTEGRATIONS_READ: "integrations.read",
   INTEGRATIONS_MANAGE: "integrations.manage",
   SYSTEM_SETTINGS_MANAGE: "system.settings.manage",
+  CATALOG_ITEMS_READ: "catalog.items.read",
+  CATALOG_ITEMS_CREATE: "catalog.items.create",
+  CATALOG_TEST_ACCESS: "catalog.test.access",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -59,6 +62,9 @@ const ROLE_PERMISSION_MAP: Record<UserRole, Permission[]> = {
     PERMISSIONS.INTEGRATIONS_READ,
     PERMISSIONS.INTEGRATIONS_MANAGE,
     PERMISSIONS.SYSTEM_SETTINGS_MANAGE,
+    PERMISSIONS.CATALOG_ITEMS_READ,
+    PERMISSIONS.CATALOG_ITEMS_CREATE,
+    PERMISSIONS.CATALOG_TEST_ACCESS,
   ],
   [USER_ROLES.COMPLIANCE_OFFICER]: [
     PERMISSIONS.USERS_READ_SELF,
@@ -68,30 +74,60 @@ const ROLE_PERMISSION_MAP: Record<UserRole, Permission[]> = {
     PERMISSIONS.COMPLIANCE_RULES_DEACTIVATE,
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORTS_READ,
+    PERMISSIONS.CATALOG_ITEMS_READ,
   ],
   [USER_ROLES.AUDITOR_INTERNO]: [
     PERMISSIONS.USERS_READ_SELF,
     PERMISSIONS.AUDIT_LOGS_READ_ANY,
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORTS_READ,
+    PERMISSIONS.CATALOG_ITEMS_READ,
   ],
   [USER_ROLES.AUDITOR_EXTERNO]: [
     PERMISSIONS.USERS_READ_SELF,
     PERMISSIONS.AUDIT_LOGS_READ_SCOPED,
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORTS_READ,
+    PERMISSIONS.CATALOG_ITEMS_READ,
   ],
   [USER_ROLES.GESTOR]: [
     PERMISSIONS.USERS_READ_SELF,
     PERMISSIONS.DASHBOARD_READ,
     PERMISSIONS.REPORTS_READ,
+    PERMISSIONS.CATALOG_ITEMS_READ,
+    PERMISSIONS.CATALOG_ITEMS_CREATE,
+    PERMISSIONS.CATALOG_TEST_ACCESS,
   ],
   [USER_ROLES.VISUALIZADOR]: [
     PERMISSIONS.USERS_READ_SELF,
     PERMISSIONS.DASHBOARD_READ,
+    PERMISSIONS.CATALOG_ITEMS_READ,
   ],
 };
 
 export function permissionsForRole(role: UserRole): Permission[] {
   return [...ROLE_PERMISSION_MAP[role]];
+}
+
+export function permissionsForRoles(roles: UserRole[]): Permission[] {
+  const granted = new Set<Permission>();
+  for (const role of roles) {
+    for (const permission of ROLE_PERMISSION_MAP[role]) {
+      granted.add(permission);
+    }
+  }
+
+  return PERMISSION_VALUES.filter((permission) => granted.has(permission as Permission)) as Permission[];
+}
+
+export function uniqueRoles(roles: UserRole[]): UserRole[] {
+  const seen = new Set<UserRole>();
+  const unique: UserRole[] = [];
+  for (const role of roles) {
+    if (!seen.has(role)) {
+      seen.add(role);
+      unique.push(role);
+    }
+  }
+  return unique;
 }

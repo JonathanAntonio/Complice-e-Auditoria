@@ -41,6 +41,7 @@ describe("JwtTokenVerifier", () => {
           sub: "user-1",
           email: "user@example.com",
           primaryRole: "admin",
+          roles: ["admin", "auditor"],
           permissions: ["users.create"],
           authzVersion: 3,
         },
@@ -52,6 +53,7 @@ describe("JwtTokenVerifier", () => {
         sub: "user-1",
         email: "user@example.com",
         primaryRole: "admin",
+        roles: ["admin", "auditor"],
         permissions: ["users.create"],
         authzVersion: 3,
       });

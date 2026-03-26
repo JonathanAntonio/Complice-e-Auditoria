@@ -75,18 +75,40 @@ describe("Catalog API integration", () => {
     await container.prisma.itemModel.deleteMany({});
   });
 
-  function validToken(): string {
+  function validToken(permissions: string[] = ["catalog.items.read", "catalog.items.create", "catalog.test.access"]): string {
     return jwt.sign(
-      { sub: "test-user-id" },
+      {
+        sub: "test-user-id",
+        primaryRole: "gestor",
+        roles: ["gestor"],
+        permissions,
+        authzVersion: 1,
+      },
       config.jwtSecret,
       { algorithm: "HS256" }
     );
   }
 
   describe("GET /api/items", () => {
+    it("returns 401 when Authorization header is missing", async ({ skip }) => {
+      if (!dbAvailable) skip();
+      await request(app).get("/api/items").expect(401);
+    });
+
+    it("returns 403 when token lacks catalog.items.read", async ({ skip }) => {
+      if (!dbAvailable) skip();
+      await request(app)
+        .get("/api/items")
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
+        .expect(403);
+    });
+
     it("returns 200 with empty array when no items exist", async ({ skip }) => {
       if (!dbAvailable) skip();
-      const res = await request(app).get("/api/items").expect(200);
+      const res = await request(app)
+        .get("/api/items")
+        .set("Authorization", `Bearer ${validToken(["catalog.items.read"])}`)
+        .expect(200);
       expect(res.body).toEqual([]);
     });
 
@@ -94,11 +116,14 @@ describe("Catalog API integration", () => {
       if (!dbAvailable) skip();
       await request(app)
         .post("/api/items")
-        .set("Authorization", `Bearer ${validToken()}`)
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
         .send({ name: "Widget", priceAmount: 1000, priceCurrency: "BRL" })
         .expect(201);
 
-      const res = await request(app).get("/api/items").expect(200);
+      const res = await request(app)
+        .get("/api/items")
+        .set("Authorization", `Bearer ${validToken(["catalog.items.read"])}`)
+        .expect(200);
       expect(Array.isArray(res.body)).toBe(true);
       expect(res.body).toHaveLength(1);
       expect(res.body[0]).toMatchObject({
@@ -116,16 +141,19 @@ describe("Catalog API integration", () => {
       if (!dbAvailable) skip();
       await request(app)
         .post("/api/items")
-        .set("Authorization", `Bearer ${validToken()}`)
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
         .send({ name: "First", priceAmount: 100, priceCurrency: "BRL" })
         .expect(201);
       await request(app)
         .post("/api/items")
-        .set("Authorization", `Bearer ${validToken()}`)
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
         .send({ name: "Second", priceAmount: 200, priceCurrency: "BRL" })
         .expect(201);
 
-      const res = await request(app).get("/api/items").expect(200);
+      const res = await request(app)
+        .get("/api/items")
+        .set("Authorization", `Bearer ${validToken(["catalog.items.read"])}`)
+        .expect(200);
       expect(res.body).toHaveLength(2);
       expect(res.body[0].name).toBe("Second");
       expect(res.body[1].name).toBe("First");
@@ -137,7 +165,7 @@ describe("Catalog API integration", () => {
       if (!dbAvailable) skip();
       const created = await request(app)
         .post("/api/items")
-        .set("Authorization", `Bearer ${validToken()}`)
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
         .send({ name: "Shape Test", priceAmount: 0, priceCurrency: "EUR" })
         .expect(201);
 
@@ -148,7 +176,10 @@ describe("Catalog API integration", () => {
       expect(created.body.priceCurrency).toBe("EUR");
       expect(created.body.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/);
 
-      const listRes = await request(app).get("/api/items").expect(200);
+      const listRes = await request(app)
+        .get("/api/items")
+        .set("Authorization", `Bearer ${validToken(["catalog.items.read"])}`)
+        .expect(200);
       const item = listRes.body.find((i: { name: string }) => i.name === "Shape Test");
       expect(item).toBeDefined();
       expect(item.id).toMatch(uuidRegex);
@@ -187,13 +218,22 @@ describe("Catalog API integration", () => {
       expect(res.body).toHaveProperty("error");
     });
 
+    it("returns 403 when token lacks catalog.items.create", async ({ skip }) => {
+      if (!dbAvailable) skip();
+      await request(app)
+        .post("/api/items")
+        .set("Authorization", `Bearer ${validToken(["catalog.items.read"])}`)
+        .send({ name: "Item", priceAmount: 500, priceCurrency: "BRL" })
+        .expect(403);
+    });
+
     it("returns 201 with created item when payload is valid and token is valid", async ({
       skip,
     }) => {
       if (!dbAvailable) skip();
       const res = await request(app)
         .post("/api/items")
-        .set("Authorization", `Bearer ${validToken()}`)
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
         .send({
           name: "Test Item",
           priceAmount: 1999,
@@ -216,7 +256,7 @@ describe("Catalog API integration", () => {
       if (!dbAvailable) skip();
       const res = await request(app)
         .post("/api/items")
-        .set("Authorization", `Bearer ${validToken()}`)
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
         .send({ name: "Default Currency", priceAmount: 500 })
         .expect(201);
       expect(res.body.priceCurrency).toBe("BRL");
@@ -226,7 +266,7 @@ describe("Catalog API integration", () => {
       if (!dbAvailable) skip();
       const res = await request(app)
         .post("/api/items")
-        .set("Authorization", `Bearer ${validToken()}`)
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
         .send({ priceAmount: 100, priceCurrency: "BRL" })
         .expect(400);
       expect(res.body).toHaveProperty("error");
@@ -236,7 +276,7 @@ describe("Catalog API integration", () => {
       if (!dbAvailable) skip();
       const res = await request(app)
         .post("/api/items")
-        .set("Authorization", `Bearer ${validToken()}`)
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
         .send({ name: "Item", priceAmount: -1, priceCurrency: "BRL" })
         .expect(400);
       expect(res.body).toHaveProperty("error");
@@ -246,7 +286,7 @@ describe("Catalog API integration", () => {
       if (!dbAvailable) skip();
       const res = await request(app)
         .post("/api/items")
-        .set("Authorization", `Bearer ${validToken()}`)
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
         .send({})
         .expect(400);
       expect(res.body).toHaveProperty("error");
@@ -256,7 +296,7 @@ describe("Catalog API integration", () => {
       if (!dbAvailable) skip();
       const res = await request(app)
         .post("/api/items")
-        .set("Authorization", `Bearer ${validToken()}`)
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
         .send({ name: "Item", priceAmount: 100, priceCurrency: "XXX" })
         .expect(400);
       expect(res.body).toHaveProperty("error");
@@ -266,7 +306,7 @@ describe("Catalog API integration", () => {
       if (!dbAvailable) skip();
       const res = await request(app)
         .post("/api/items")
-        .set("Authorization", `Bearer ${validToken()}`)
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
         .send({ name: "   ", priceAmount: 100, priceCurrency: "BRL" })
         .expect(400);
       expect(res.body).toHaveProperty("error");
@@ -276,7 +316,7 @@ describe("Catalog API integration", () => {
       if (!dbAvailable) skip();
       const res = await request(app)
         .post("/api/items")
-        .set("Authorization", `Bearer ${validToken()}`)
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
         .send({ name: "Item<script>", priceAmount: 100, priceCurrency: "BRL" })
         .expect(400);
       expect(res.body).toHaveProperty("error");
@@ -286,7 +326,7 @@ describe("Catalog API integration", () => {
       if (!dbAvailable) skip();
       const res = await request(app)
         .post("/api/items")
-        .set("Authorization", `Bearer ${validToken()}`)
+        .set("Authorization", `Bearer ${validToken(["catalog.items.create"])}`)
         .send({
           name: "Item",
           priceAmount: 1_000_000_000,
@@ -294,6 +334,30 @@ describe("Catalog API integration", () => {
         })
         .expect(400);
       expect(res.body).toHaveProperty("error");
+    });
+  });
+
+  describe("GET /api/items/test-permission", () => {
+    it("returns 401 when Authorization header is missing", async ({ skip }) => {
+      if (!dbAvailable) skip();
+      await request(app).get("/api/items/test-permission").expect(401);
+    });
+
+    it("returns 403 when token lacks catalog.test.access", async ({ skip }) => {
+      if (!dbAvailable) skip();
+      await request(app)
+        .get("/api/items/test-permission")
+        .set("Authorization", `Bearer ${validToken(["catalog.items.read"])}`)
+        .expect(403);
+    });
+
+    it("returns 200 when token has catalog.test.access", async ({ skip }) => {
+      if (!dbAvailable) skip();
+      const res = await request(app)
+        .get("/api/items/test-permission")
+        .set("Authorization", `Bearer ${validToken(["catalog.test.access"])}`)
+        .expect(200);
+      expect(res.body).toEqual({ ok: true, permission: "catalog.test.access" });
     });
   });
 

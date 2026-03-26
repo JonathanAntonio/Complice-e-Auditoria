@@ -32,6 +32,7 @@ describe("CreateUserUseCase", () => {
       email: "user@example.com",
       name: "João Silva",
       primaryRole: USER_ROLES.VISUALIZADOR,
+      roles: [USER_ROLES.VISUALIZADOR],
       permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
       authzVersion: 1,
       isActive: true,

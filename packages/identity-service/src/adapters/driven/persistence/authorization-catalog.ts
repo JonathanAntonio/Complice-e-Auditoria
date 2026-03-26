@@ -47,6 +47,9 @@ const PERMISSION_NAMES: Record<Permission, string> = {
   [PERMISSIONS.INTEGRATIONS_READ]: "Ler integrações",
   [PERMISSIONS.INTEGRATIONS_MANAGE]: "Gerenciar integrações",
   [PERMISSIONS.SYSTEM_SETTINGS_MANAGE]: "Gerenciar configurações do sistema",
+  [PERMISSIONS.CATALOG_ITEMS_READ]: "Ler itens do catálogo",
+  [PERMISSIONS.CATALOG_ITEMS_CREATE]: "Criar itens do catálogo",
+  [PERMISSIONS.CATALOG_TEST_ACCESS]: "Acessar rota de teste do catálogo",
 };
 
 function moduleForPermission(permission: Permission): string {
@@ -122,7 +125,8 @@ export async function resolveRoleIdByCode(db: CatalogDb, role: UserRole): Promis
       throw err;
     }
 
-    await ensureAuthorizationCatalog(db);
+    authorizationCatalogSeeded = false;
+    await ensureAuthorizationCatalogInitialized(db);
     return (await resolveRoleRowByCode(db, role)).id;
   }
 }

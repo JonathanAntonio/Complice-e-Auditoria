@@ -153,6 +153,7 @@ describe("OAuth integration", () => {
         email: "oauth-new@example.com",
         name: "OAuth New User",
         primaryRole: USER_ROLES.VISUALIZADOR,
+        roles: [USER_ROLES.VISUALIZADOR],
         permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
         authzVersion: 1,
         isNewUser: true,

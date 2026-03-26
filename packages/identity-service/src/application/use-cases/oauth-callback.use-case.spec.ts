@@ -99,6 +99,7 @@ describe("OAuthCallbackUseCase", () => {
       sub: "user-1",
       email: "existente@example.com",
       primaryRole: USER_ROLES.VISUALIZADOR,
+      roles: [USER_ROLES.VISUALIZADOR],
       permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
       authzVersion: 1,
     });
@@ -183,7 +184,7 @@ describe("OAuthCallbackUseCase", () => {
     ).rejects.toThrow(InvalidCredentialsError);
   });
 
-  it("deve preservar InvalidCredentialsError quando auditoria falha após erro do provider", async () => {
+  it("deve envolver erro do provider em 'OAuth authentication failed' quando auditoria falha", async () => {
     vi.mocked(provider.getUserInfoFromCode).mockRejectedValue(new Error("provider failed"));
     vi.mocked(outboxRepository.append).mockRejectedValue(new Error("audit failed"));
 
@@ -244,7 +245,7 @@ describe("OAuthCallbackUseCase", () => {
     vi.mocked(oauthAccountRepository.findByProviderAndProviderId).mockResolvedValue({
       userId: "user-inactive",
     });
-    const inactiveUser = User.reconstitute(
+    const inactiveUser = User.reconstituteLegacy(
       "user-inactive",
       "inactive@example.com",
       "Inactive",
@@ -278,7 +279,7 @@ describe("OAuthCallbackUseCase", () => {
     vi.mocked(oauthAccountRepository.findByProviderAndProviderId).mockResolvedValue({
       userId: "user-locked",
     });
-    const blockedUser = User.reconstitute(
+    const blockedUser = User.reconstituteLegacy(
       "user-locked",
       "locked@example.com",
       "Locked",

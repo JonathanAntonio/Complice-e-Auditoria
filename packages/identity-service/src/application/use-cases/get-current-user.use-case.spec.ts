@@ -34,6 +34,7 @@ describe("GetCurrentUserUseCase", () => {
       email: "u@example.com",
       name: "Nome Completo",
       primaryRole: USER_ROLES.VISUALIZADOR,
+      roles: [USER_ROLES.VISUALIZADOR],
       permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
       authzVersion: 1,
       isActive: true,

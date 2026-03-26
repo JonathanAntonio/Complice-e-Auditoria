@@ -52,3 +52,11 @@ export class UserInactiveError extends AppError {
     Object.setPrototypeOf(this, UserInactiveError.prototype);
   }
 }
+
+export class AuthorizationError extends AppError {
+  override name = "AuthorizationError";
+  constructor(message = "Forbidden") {
+    super(message);
+    Object.setPrototypeOf(this, AuthorizationError.prototype);
+  }
+}

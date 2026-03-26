@@ -6,7 +6,7 @@ import { USER_ROLES } from "../types";
 describe("User", () => {
   it("deve retornar cópia defensiva de blockedUntil", () => {
     const originalBlockedUntil = new Date("2025-01-02T00:00:00.000Z");
-    const user = User.reconstitute(
+    const user = User.reconstituteLegacy(
       "user-1",
       "u@example.com",
       "Nome",
@@ -24,7 +24,7 @@ describe("User", () => {
   });
 
   it("não deve estender bloqueio ao registrar falha enquanto já bloqueado", () => {
-    const user = User.reconstitute(
+    const user = User.reconstituteLegacy(
       "user-1",
       "u@example.com",
       "Nome",

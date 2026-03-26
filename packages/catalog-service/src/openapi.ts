@@ -20,7 +20,8 @@ registry.registerPath({
   path: "/api/items",
   summary: "Listar itens",
   tags: ["Items"],
-  description: "Público; não exige autenticação.",
+  description: "Exige autenticação e a permissão catalog.items.read.",
+  security: [{ bearerAuth: [] }],
   responses: {
     200: {
       description: "Lista de itens",
@@ -29,6 +30,14 @@ registry.registerPath({
           schema: z.array(ItemResponseSchema),
         },
       },
+    },
+    401: {
+      description: "Não autenticado",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    403: {
+      description: "Sem permissão",
+      content: { "application/json": { schema: ErrorSchema } },
     },
   },
 });
@@ -54,6 +63,39 @@ registry.registerPath({
       description: "Não autenticado",
       content: { "application/json": { schema: ErrorSchema } },
     },
+    403: {
+      description: "Sem permissão",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/items/test-permission",
+  summary: "Validar permissão de teste do catálogo",
+  tags: ["Items"],
+  security: [{ bearerAuth: [] }],
+  responses: {
+    200: {
+      description: "Permissão válida",
+      content: {
+        "application/json": {
+          schema: z.object({
+            ok: z.literal(true),
+            permission: z.literal("catalog.test.access"),
+          }),
+        },
+      },
+    },
+    401: {
+      description: "Não autenticado",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
+    403: {
+      description: "Sem permissão",
+      content: { "application/json": { schema: ErrorSchema } },
+    },
   },
 });
 
@@ -68,7 +110,7 @@ export function createCatalogOpenApi(serverUrl: string): object {
     info: {
       title: "Catalog Service API",
       version: "1.0.0",
-      description: "Listagem e criação de itens do catálogo. POST exige JWT.",
+      description: "Listagem, criação e validação de permissão do catálogo. Rotas exigem JWT e permissões.",
     },
     servers: [{ url: serverUrl }],
   });

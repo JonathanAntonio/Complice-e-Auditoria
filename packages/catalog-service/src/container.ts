@@ -1,9 +1,14 @@
-import { createContainer as createAwilixContainer, asValue, asClass, asFunction } from "awilix";
+import { createContainer as createAwilixContainer, asValue, asFunction } from "awilix";
 import { PrismaClient } from "../generated/prisma-client";
 import Redis from "ioredis";
 import type { UserCreatedPayload } from "@lframework/shared";
 import type { ICacheService } from "@lframework/shared";
-import { RedisCacheAdapter, createAuthMiddleware, JwtTokenVerifier } from "@lframework/shared";
+import {
+  RedisCacheAdapter,
+  createAuthMiddleware,
+  JwtTokenVerifier,
+  requirePermission,
+} from "@lframework/shared";
 import { PrismaItemRepository } from "./adapters/driven/persistence/prisma-item.repository";
 import { PrismaReplicatedUserStore } from "./adapters/driven/persistence/prisma-replicated-user.store";
 import { ItemsListCacheInvalidatorAdapter } from "./adapters/driven/cache/items-list-cache-invalidator.adapter";
@@ -47,6 +52,9 @@ interface CatalogCradle {
   itemController: ItemController;
   tokenVerifier: JwtTokenVerifier;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
+  requireItemsRead: ReturnType<typeof requirePermission>;
+  requireItemsCreate: ReturnType<typeof requirePermission>;
+  requireCatalogTestAccess: ReturnType<typeof requirePermission>;
   itemRoutes: ReturnType<typeof createItemRoutes>;
   eventConsumer: RabbitMqUserEventsAdapter;
 }
@@ -116,14 +124,32 @@ export function createContainer(config: CatalogContainerConfig) {
         createAuthMiddleware((token) => tokenVerifier.verify(token))
     ).singleton(),
 
+    requireItemsRead: asFunction(() => requirePermission("catalog.items.read")).singleton(),
+
+    requireItemsCreate: asFunction(() => requirePermission("catalog.items.create")).singleton(),
+
+    requireCatalogTestAccess: asFunction(() => requirePermission("catalog.test.access")).singleton(),
+
     itemRoutes: asFunction(
       ({
         itemController,
         authMiddleware,
+        requireItemsRead,
+        requireItemsCreate,
+        requireCatalogTestAccess,
       }: {
         itemController: ItemController;
         authMiddleware: ReturnType<typeof createAuthMiddleware>;
-      }) => createItemRoutes(itemController, authMiddleware)
+        requireItemsRead: ReturnType<typeof requirePermission>;
+        requireItemsCreate: ReturnType<typeof requirePermission>;
+        requireCatalogTestAccess: ReturnType<typeof requirePermission>;
+      }) => createItemRoutes(
+        itemController,
+        authMiddleware,
+        requireItemsRead,
+        requireItemsCreate,
+        requireCatalogTestAccess
+      )
     ).singleton(),
 
     eventConsumer: asFunction(

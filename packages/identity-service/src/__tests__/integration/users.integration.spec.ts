@@ -95,9 +95,25 @@ describe("Users API integration", () => {
         where: { code: USER_ROLES.ADMINISTRADOR },
       });
       if (!adminUser || !adminRole) throw new Error("Admin role setup failed");
-      await container.prisma.userRoleModel.update({
-        where: { userId: adminUser.id },
-        data: { roleId: adminRole.id },
+      await container.prisma.$transaction(async (tx) => {
+        await tx.userRoleModel.updateMany({
+          where: { userId: adminUser.id },
+          data: { isPrimary: false },
+        });
+        await tx.userRoleModel.upsert({
+          where: {
+            userId_roleId: {
+              userId: adminUser.id,
+              roleId: adminRole.id,
+            },
+          },
+          update: { isPrimary: true, assignedAt: new Date() },
+          create: {
+            userId: adminUser.id,
+            roleId: adminRole.id,
+            isPrimary: true,
+          },
+        });
       });
       const adminLogin = await request(app)
         .post("/api/auth/login")
@@ -175,6 +191,7 @@ describe("Users API integration", () => {
         email: "created@example.com",
         name: "Created User",
         primaryRole: USER_ROLES.VISUALIZADOR,
+        roles: [USER_ROLES.VISUALIZADOR],
         permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
         authzVersion: 1,
         isActive: true,
@@ -247,7 +264,7 @@ describe("Users API integration", () => {
         .get("/api/users/not-a-uuid")
         .set("Authorization", `Bearer ${regularToken}`)
         .expect(400);
-      expect(res.body).toHaveProperty("error", "Invalid user id format");
+      expect(res.body).toHaveProperty("error", "Missing or invalid target user id");
     });
 
     it("returns 404 when user does not exist", async ({ skip }) => {

@@ -1,0 +1,50 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma-client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("INTEGRATION_DATABASE_URL")
+}
+
+enum OutboxStatus {
+  pending
+  processing
+  published
+  dead_letter
+}
+
+model InboundEventModel {
+  id             String   @id @default(uuid())
+  eventId        String   @unique @map("event_id")
+  eventType      String   @map("event_type")
+  producer       String
+  correlationId  String   @map("correlation_id")
+  occurredAtUTC  DateTime @map("occurred_at_utc")
+  version        String
+  payload        Json     @db.JsonB
+  receivedAt     DateTime @default(now()) @map("received_at")
+
+  @@map("inbound_events")
+}
+
+model OutboxModel {
+  id          String    @id @default(uuid())
+  eventName   String    @map("event_name")
+  exchange    String
+  routingKey  String    @map("routing_key")
+  payload     Json      @db.JsonB
+  status      OutboxStatus @default(pending)
+  retryCount  Int       @default(0) @map("retry_count")
+  lastError   String?   @map("last_error")
+  exhaustedAt DateTime? @map("exhausted_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  publishedAt DateTime? @map("published_at")
+
+  @@index([publishedAt])
+  @@index([status])
+  @@index([updatedAt])
+  @@map("outbox")
+}

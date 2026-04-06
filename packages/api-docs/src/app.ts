@@ -5,6 +5,7 @@ import { mergeOpenApiSpecs, type OpenApiSpec } from "./merge-specs";
 export interface CreateApiDocsAppOptions {
   identitySpecUrl?: string;
   catalogSpecUrl?: string;
+  integrationSpecUrl?: string;
   fetchFn?: typeof fetch;
   fetchTimeoutMs?: number;
 }
@@ -12,6 +13,7 @@ export interface CreateApiDocsAppOptions {
 export function createApp(options: CreateApiDocsAppOptions = {}) {
   const identitySpecUrl = options.identitySpecUrl ?? process.env.IDENTITY_SPEC_URL ?? "http://localhost:3001/api-docs.json";
   const catalogSpecUrl = options.catalogSpecUrl ?? process.env.CATALOG_SPEC_URL ?? "http://localhost:3002/api-docs.json";
+  const integrationSpecUrl = options.integrationSpecUrl ?? process.env.INTEGRATION_SPEC_URL ?? "http://localhost:3003/api-docs.json";
   const fetchFn = options.fetchFn ?? fetch;
   const fetchTimeoutMs = options.fetchTimeoutMs ?? 5000;
 
@@ -41,11 +43,16 @@ export function createApp(options: CreateApiDocsAppOptions = {}) {
   }
 
   async function getMergedSpec(): Promise<object> {
-    const [identitySpec, catalogSpec] = await Promise.all([
+    const [identitySpec, catalogSpec, integrationSpec] = await Promise.all([
       fetchSpec(identitySpecUrl),
       fetchSpec(catalogSpecUrl),
+      fetchSpec(integrationSpecUrl),
     ]);
-    return mergeOpenApiSpecs(identitySpec, catalogSpec);
+    return mergeOpenApiSpecs([
+      { spec: identitySpec, prefix: "Identity_", serviceName: "Identity Service" },
+      { spec: catalogSpec, prefix: "Catalog_", serviceName: "Catalog Service" },
+      { spec: integrationSpec, prefix: "Integration_", serviceName: "Integration Service" },
+    ]);
   }
 
   const app = express();
@@ -63,7 +70,7 @@ export function createApp(options: CreateApiDocsAppOptions = {}) {
       res.status(502).json({
         error: "Failed to merge specs",
         message: err instanceof Error ? err.message : String(err),
-        hint: "Ensure identity and catalog services are running and IDENTITY_SPEC_URL / CATALOG_SPEC_URL are correct.",
+        hint: "Ensure identity, catalog and integration services are running and *_SPEC_URL vars are correct.",
       });
     }
   });

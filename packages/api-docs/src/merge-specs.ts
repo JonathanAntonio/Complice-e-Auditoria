@@ -1,6 +1,6 @@
 /**
- * Mescla duas specs OpenAPI 3 em uma única, prefixando schemas para evitar colisões.
- * Mantém dois servers (Identity e Catalog) para o "Try it out" do Swagger.
+ * Mescla specs OpenAPI 3 em uma única, prefixando schemas para evitar colisões.
+ * Mantém múltiplos servers (Identity, Catalog, Integration) para o "Try it out" do Swagger.
  */
 
 export interface OpenApiSpec {
@@ -59,35 +59,49 @@ function prefixSpec(spec: OpenApiSpec, prefix: string): OpenApiSpec {
   };
 }
 
-export function mergeOpenApiSpecs(identitySpec: OpenApiSpec, catalogSpec: OpenApiSpec): OpenApiSpec {
-  const identity = prefixSpec(identitySpec, "Identity_");
-  const catalog = prefixSpec(catalogSpec, "Catalog_");
+export function mergeOpenApiSpecs(specs: Array<{ spec: OpenApiSpec; prefix: string; serviceName: string }>): OpenApiSpec {
+  const normalized = specs.map(({ spec, prefix, serviceName }) => ({
+    spec: prefixSpec(spec, prefix),
+    serviceName,
+  }));
 
-  const identityServers = identity.servers ?? [];
-  const catalogServers = catalog.servers ?? [];
-  const mergedServers = [
-    ...identityServers.map((s) => ({ ...s, description: s.description ?? "Identity Service" })),
-    ...catalogServers.map((s) => ({ ...s, description: s.description ?? "Catalog Service" })),
-  ];
+  const mergedServers = normalized.flatMap(({ spec, serviceName }) =>
+    (spec.servers ?? []).map((s) => ({ ...s, description: s.description ?? serviceName }))
+  );
+
+  const securitySchemes = normalized.reduce<Record<string, unknown>>((acc, { spec }) => {
+    return {
+      ...acc,
+      ...(spec.components?.securitySchemes ?? {}),
+    };
+  }, {});
+
+  const schemas = normalized.reduce<Record<string, unknown>>((acc, { spec }) => {
+    return {
+      ...acc,
+      ...(spec.components?.schemas ?? {}),
+    };
+  }, {});
+
+  const paths = normalized.reduce<Record<string, unknown>>((acc, { spec }) => {
+    return {
+      ...acc,
+      ...(spec.paths ?? {}),
+    };
+  }, {});
 
   return {
     openapi: "3.0.3",
     info: {
       title: "LFramework API",
       version: "1.0.0",
-      description: "Documentação unificada: Identity Service (auth, usuários) e Catalog Service (itens). Use o menu «Servers» para alternar o backend nas requisições.",
+      description: "Documentação unificada: Identity, Catalog e Integration. Use o menu «Servers» para alternar o backend nas requisições.",
     },
     servers: mergedServers,
     components: {
-      securitySchemes: identity.components?.securitySchemes ?? catalog.components?.securitySchemes ?? {},
-      schemas: {
-        ...identity.components?.schemas,
-        ...catalog.components?.schemas,
-      },
+      securitySchemes,
+      schemas,
     },
-    paths: {
-      ...identity.paths,
-      ...catalog.paths,
-    },
+    paths,
   };
 }

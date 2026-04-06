@@ -19,9 +19,12 @@ LFramework/
 ├── packages/
 │   ├── shared/             # Núcleo do framework: eventos, DTOs, HTTP helpers, schemas
 │   ├── identity-service/   # Microserviço de identidade (auth, usuários)
-│   └── catalog-service/    # Microserviço de catálogo (itens)
+│   ├── catalog-service/    # Microserviço de catálogo (itens)
+│   ├── integration-service/# Microserviço de integrações (ingestão de eventos)
+│   └── api-docs/           # Swagger unificado (identity + catalog + integration)
 ├── nginx/
 │   └── nginx.conf          # API Gateway (proxy reverso)
+├── ngrok.yml               # Túneis locais (gateway/docs/integration)
 ├── docker-compose.yml      # Postgres, Redis, RabbitMQ, Nginx
 └── docs/                   # Documentação
 ```
@@ -54,6 +57,7 @@ Migrações (uma vez):
 ```bash
 pnpm --filter identity-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
 pnpm --filter catalog-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
+pnpm --filter integration-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
 ```
 
 Para migrações futuras, ver [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
@@ -63,10 +67,35 @@ Serviços (em terminais separados ou ambos de uma vez):
 ```bash
 pnpm dev:identity   # http://localhost:3001
 pnpm dev:catalog    # http://localhost:3002
-# ou: pnpm dev       # sobe os dois
+pnpm dev:integration # http://localhost:3003
+pnpm dev:api-docs   # http://localhost:3000
+# ou: pnpm dev       # sobe todos
 ```
 
-Com o gateway: **http://localhost:8080** (prefixos `/identity/` e `/catalog/`). Detalhes em [docs/API.md](docs/API.md) e [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+Com o gateway: **http://localhost:8080** (prefixos `/identity/`, `/catalog/`, `/integration/` e Swagger unificado em `/api-docs/`).
+
+## Ngrok (webhooks e demo)
+
+Arquivo de config: `ngrok.yml` na raiz.
+
+Pré-requisito: o `ngrok.yml` usa `NGROK_AUTHTOKEN` no ambiente.
+Obtenha seu token em:
+`https://dashboard.ngrok.com/get-started/your-authtoken`
+
+Defina a variável antes de iniciar:
+
+```bash
+export NGROK_AUTHTOKEN=seu_token
+```
+
+```bash
+ngrok start --all --config ./ngrok.yml
+```
+
+URLs úteis:
+- Gateway: túnel para `http://localhost:8080`
+- API docs: túnel para `http://localhost:3000`
+- Integration service: túnel para `http://localhost:3003`
 
 ## Testes
 

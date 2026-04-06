@@ -14,6 +14,7 @@ export class LogoutUseCase {
         userId,
         ipAddress: auditContext.ipAddress,
         requestId: auditContext.requestId,
+        correlationId: auditContext.correlationId ?? auditContext.requestId,
         userAgent: auditContext.userAgent,
       })
     );

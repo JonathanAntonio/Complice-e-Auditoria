@@ -43,6 +43,7 @@ export class OAuthCallbackUseCase {
       provider: provider.provider,
       ipAddress: auditContext.ipAddress,
       requestId: auditContext.requestId,
+      correlationId: auditContext.correlationId ?? auditContext.requestId,
       userAgent: auditContext.userAgent,
     };
 
@@ -114,6 +115,8 @@ export class OAuthCallbackUseCase {
         userInfo.providerId,
         {
           eventName: USER_CREATED_EVENT,
+          correlationId: auditContext.correlationId ?? auditContext.requestId,
+          producer: "identity-service",
           payload: {
             userId: user.id,
             email: user.email.value,

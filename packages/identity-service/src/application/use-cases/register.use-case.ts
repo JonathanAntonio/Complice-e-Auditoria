@@ -56,6 +56,7 @@ export class RegisterUseCase {
 
     await this.registrationPersistence.saveUserAndCredential(user, passwordHash, {
       eventName: USER_CREATED_EVENT,
+      producer: "identity-service",
       payload: {
         userId: user.id,
         email: user.email.value,

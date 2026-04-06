@@ -43,6 +43,7 @@ export class DeactivateUserUseCase {
         authzVersion: user.authorizationVersion,
         ipAddress: auditContext.ipAddress,
         requestId: auditContext.requestId,
+        correlationId: auditContext.correlationId ?? auditContext.requestId,
         userAgent: auditContext.userAgent,
       })
     );

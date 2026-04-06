@@ -37,6 +37,7 @@ export class LoginUseCase {
       email: dto.email,
       ipAddress: auditContext.ipAddress,
       requestId: auditContext.requestId,
+      correlationId: auditContext.correlationId ?? auditContext.requestId,
       userAgent: auditContext.userAgent,
     };
     const user = await this.userRepository.findByEmail(dto.email);

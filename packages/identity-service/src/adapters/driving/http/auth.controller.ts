@@ -73,6 +73,7 @@ export class AuthController {
     return {
       ipAddress,
       requestId: req.headers["x-request-id"]?.toString(),
+      correlationId: req.headers["x-correlation-id"]?.toString() ?? req.headers["x-request-id"]?.toString(),
       userAgent: req.headers["user-agent"]?.toString(),
     };
   }

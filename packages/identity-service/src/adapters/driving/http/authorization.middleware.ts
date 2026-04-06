@@ -51,6 +51,8 @@ export function requirePermissionWithAudit(
       resource,
       requiredPermission: permission,
       ipAddress: req.ip,
+      requestId: req.headers["x-request-id"]?.toString(),
+      correlationId: req.headers["x-correlation-id"]?.toString() ?? req.headers["x-request-id"]?.toString(),
     });
     sendError(res, 403, "Forbidden");
   };
@@ -98,6 +100,8 @@ export function requireSelfOrPermissionWithAudit(
       requiredPermission: isSelfAccess ? selfPermission : anyPermission,
       allowedPermissions: [selfPermission, anyPermission],
       ipAddress: req.ip,
+      requestId: req.headers["x-request-id"]?.toString(),
+      correlationId: req.headers["x-correlation-id"]?.toString() ?? req.headers["x-request-id"]?.toString(),
     });
     sendError(res, 403, "Forbidden");
   };

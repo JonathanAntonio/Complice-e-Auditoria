@@ -3,6 +3,7 @@ import type { OutboxEvent } from "./ports/outbox-writer.port";
 export interface SecurityAuditContext {
   ipAddress?: string;
   requestId?: string;
+  correlationId?: string;
   userAgent?: string;
 }
 
@@ -35,6 +36,13 @@ export function createSecurityAuditEvent(
 
   return {
     eventName,
+    correlationId:
+      typeof payload.correlationId === "string" && payload.correlationId.length > 0
+        ? payload.correlationId
+        : (typeof payload.requestId === "string" && payload.requestId.length > 0
+          ? payload.requestId
+          : undefined),
+    producer: "identity-service",
     payload: {
       ...payload,
       occurredAt,

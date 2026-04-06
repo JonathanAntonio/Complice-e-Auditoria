@@ -244,7 +244,7 @@ export class UserController {
     }
   };
 
-  private buildAuditContext(req: Request): { ipAddress?: string; requestId?: string; userAgent?: string } {
+  private buildAuditContext(req: Request): { ipAddress?: string; requestId?: string; correlationId?: string; userAgent?: string } {
     const forwardedFor = req.headers["x-forwarded-for"];
     const forwardedIp = typeof forwardedFor === "string"
       ? forwardedFor.split(",")[0]?.trim()
@@ -252,6 +252,7 @@ export class UserController {
     return {
       ipAddress: forwardedIp || req.ip,
       requestId: req.headers["x-request-id"]?.toString(),
+      correlationId: req.headers["x-correlation-id"]?.toString() ?? req.headers["x-request-id"]?.toString(),
       userAgent: req.headers["user-agent"]?.toString(),
     };
   }

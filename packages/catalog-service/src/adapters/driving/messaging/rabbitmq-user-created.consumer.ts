@@ -1,12 +1,14 @@
 import amqp, { ConsumeMessage } from "amqplib";
 import { LRUCache } from "lru-cache";
 import { z } from "zod";
-import type { UserCreatedPayload } from "@lframework/shared";
+import type { EventEnvelopeV1, UserCreatedPayload } from "@lframework/shared";
 import {
   USER_CREATED_EVENT,
   EXCHANGE_USER_EVENTS,
   QUEUE_USER_CREATED_CATALOG,
   QUEUE_USER_CREATED_CATALOG_FAILED,
+  consumeEventEnvelopeV1,
+  routingKeyFromEventType,
   nameSchema,
   logger,
 } from "@lframework/shared";
@@ -90,14 +92,17 @@ export class RabbitMqUserCreatedConsumer {
     await this.channel.consume(QUEUE_USER_CREATED_CATALOG, async (msg: ConsumeMessage | null) => {
       if (!msg || !this.handler || !this.channel) return;
       try {
-        const body = JSON.parse(msg.content.toString());
-        if (body.type !== USER_CREATED_EVENT || !body.payload) {
+        const envelope = consumeEventEnvelopeV1(msg) as EventEnvelopeV1<Record<string, unknown>>;
+        if (envelope.type !== USER_CREATED_EVENT || !envelope.payload) {
           this.channel.ack(msg);
           return;
         }
-        const parsed = userCreatedPayloadSchema.safeParse(body.payload);
+        const parsed = userCreatedPayloadSchema.safeParse(envelope.payload);
         if (!parsed.success) {
-          logger.warn({ validation: parsed.error.flatten() }, "Invalid UserCreated payload");
+          logger.warn(
+            { validation: parsed.error.flatten(), correlationId: envelope.correlationId },
+            "Invalid UserCreated payload"
+          );
           this.channel.nack(msg, false, false);
           return;
         }
@@ -135,7 +140,7 @@ export class RabbitMqUserCreatedConsumer {
             this.pendingTimeouts.delete(timeoutId);
             if (!this.channel) return;
             try {
-              this.channel.publish(EXCHANGE_USER_EVENTS, "user_created", contentCopy, { headers });
+              this.channel.publish(EXCHANGE_USER_EVENTS, routingKeyFromEventType(USER_CREATED_EVENT), contentCopy, { headers });
               try {
                 this.channel.nack(msg, false, false);
               } catch (nackErr) {

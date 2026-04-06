@@ -6,6 +6,7 @@ export { sendValidationError } from "./send-validation-error";
 export { createValidateBody } from "./validate-body";
 export { asyncHandler, type AsyncRequestHandler } from "./async-handler";
 export { requestIdMiddleware, type RequestWithRequestId } from "./request-id.middleware";
+export { correlationIdMiddleware, type RequestWithCorrelationId } from "./correlation-id.middleware";
 export { requestLoggingMiddleware } from "./request-logging.middleware";
 export {
   errorHandlerMiddleware,

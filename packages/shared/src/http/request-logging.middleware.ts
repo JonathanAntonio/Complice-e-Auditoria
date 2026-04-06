@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { logger } from "../logger";
 import type { RequestWithRequestId } from "./request-id.middleware";
+import type { RequestWithCorrelationId } from "./correlation-id.middleware";
 
 /**
  * Middleware that logs each HTTP request when the response finishes.
@@ -14,7 +15,11 @@ export function requestLoggingMiddleware(
 ): void {
   const start = Date.now();
   const requestId = (req as RequestWithRequestId).requestId;
-  const log = requestId ? logger.child({ requestId }) : logger;
+  const correlationId = (req as RequestWithCorrelationId).correlationId;
+  const logContext: Record<string, string> = {};
+  if (requestId) logContext.requestId = requestId;
+  if (correlationId) logContext.correlationId = correlationId;
+  const log = Object.keys(logContext).length > 0 ? logger.child(logContext) : logger;
 
   res.on("finish", () => {
     const durationMs = Date.now() - start;

@@ -14,6 +14,7 @@ import {
   ensureAuthorizationCatalog,
   resolveRoleIdByCode,
 } from "./authorization-catalog";
+import { toEnvelope } from "./outbox-envelope";
 
 function isPrismaP2002(err: unknown): boolean {
   return typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002";
@@ -74,6 +75,7 @@ export class PrismaUserRepository implements IUserRepository {
 
   async saveUserAndOutbox(user: User, outboxEvent: OutboxEvent): Promise<void> {
     try {
+      const envelope = toEnvelope(outboxEvent);
       await this.prisma.$transaction(async (tx) => {
         await ensureAuthorizationCatalog(tx);
         await tx.$executeRaw`
@@ -98,7 +100,7 @@ export class PrismaUserRepository implements IUserRepository {
           data: {
             id: randomUUID(),
             eventName: outboxEvent.eventName,
-            payload: outboxEvent.payload as object,
+            payload: envelope as object,
             createdAt: new Date(),
           },
         });

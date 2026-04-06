@@ -1,9 +1,11 @@
 import { logger } from "@lframework/shared";
 import type { PrismaClient } from "../../../../generated/prisma-client";
 import type { IEventPublisher } from "../../../application/ports/event-publisher.port";
+import { parseEventEnvelopeV1 } from "@lframework/shared";
 
 const DEFAULT_BATCH_SIZE = 50;
 const DEFAULT_INTERVAL_MS = 2_000;
+const DEFAULT_MAX_RETRIES = 5;
 
 /**
  * Reads unpublished outbox rows, publishes to the message broker, and marks them as published.
@@ -16,7 +18,8 @@ export class OutboxRelayAdapter {
   constructor(
     private readonly prisma: PrismaClient,
     private readonly eventPublisher: IEventPublisher,
-    private readonly batchSize: number = DEFAULT_BATCH_SIZE
+    private readonly batchSize: number = DEFAULT_BATCH_SIZE,
+    private readonly maxRetries: number = DEFAULT_MAX_RETRIES
   ) {}
 
   /**
@@ -25,44 +28,52 @@ export class OutboxRelayAdapter {
    */
   async runOnce(): Promise<void> {
     const rows = await this.prisma.outboxModel.findMany({
-      where: { publishedAt: null },
+      where: {
+        publishedAt: null,
+        failedAt: null,
+        retryCount: { lt: this.maxRetries },
+      },
       orderBy: { createdAt: "asc" },
       take: this.batchSize,
     });
 
     for (const row of rows) {
       try {
-        const raw = row.payload;
-        let payload: object;
-        if (raw == null || typeof raw !== "object") {
-          if (typeof raw === "string") {
-            try {
-              const parsed = JSON.parse(raw);
-              if (parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)) {
-                payload = parsed as object;
-              } else {
-                logger.warn({ outboxId: row.id, eventName: row.eventName }, "Outbox relay: parsed payload is not a plain object, skipping");
-                continue;
-              }
-            } catch {
-              logger.warn({ outboxId: row.id, eventName: row.eventName }, "Outbox relay: payload is invalid JSON string, skipping");
-              continue;
-            }
-          } else {
-            logger.warn({ outboxId: row.id, eventName: row.eventName }, "Outbox relay: payload is null or not an object, skipping");
-            continue;
-          }
-        } else {
-          payload = raw as object;
-        }
-        await this.eventPublisher.publish(row.eventName, payload);
+        const envelope = parseEventEnvelopeV1(row.payload);
+        await this.eventPublisher.publish(envelope);
         await this.prisma.outboxModel.update({
           where: { id: row.id },
-          data: { publishedAt: new Date() },
+          data: { publishedAt: new Date(), lastError: null },
         });
       } catch (err) {
-        logger.warn({ err, outboxId: row.id, eventName: row.eventName }, "Outbox relay: publish failed, will retry");
-        // Do not mark as published; next run will retry.
+        const nextRetryCount = (row.retryCount ?? 0) + 1;
+        if (nextRetryCount >= this.maxRetries) {
+          await this.prisma.outboxModel.update({
+            where: { id: row.id },
+            data: {
+              retryCount: nextRetryCount,
+              lastError: err instanceof Error ? err.message : String(err),
+              failedAt: new Date(),
+            },
+          });
+          logger.warn(
+            { err, outboxId: row.id, eventName: row.eventName, retryCount: nextRetryCount },
+            "Outbox relay: max retries reached, row marked as failed"
+          );
+          continue;
+        }
+
+        await this.prisma.outboxModel.update({
+          where: { id: row.id },
+          data: {
+            retryCount: nextRetryCount,
+            lastError: err instanceof Error ? err.message : String(err),
+          },
+        });
+        logger.warn(
+          { err, outboxId: row.id, eventName: row.eventName, retryCount: nextRetryCount },
+          "Outbox relay: publish/parse failed, will retry"
+        );
       }
     }
   }

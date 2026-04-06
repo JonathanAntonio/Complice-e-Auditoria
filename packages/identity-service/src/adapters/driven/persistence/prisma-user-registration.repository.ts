@@ -8,6 +8,7 @@ import {
   ensureAuthorizationCatalog,
   resolveRoleIdByCode,
 } from "./authorization-catalog";
+import { toEnvelope } from "./outbox-envelope";
 
 function isPrismaP2002(err: unknown): boolean {
   return typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002";
@@ -64,11 +65,12 @@ export class PrismaUserRegistrationPersistence implements IUserRegistrationPersi
           update: { passwordHash },
         });
         if (outboxEvent) {
+          const envelope = toEnvelope(outboxEvent);
           await tx.outboxModel.create({
             data: {
               id: randomUUID(),
               eventName: outboxEvent.eventName,
-              payload: outboxEvent.payload as object,
+              payload: envelope as object,
               createdAt: new Date(),
             },
           });

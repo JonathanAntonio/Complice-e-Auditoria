@@ -1,6 +1,6 @@
 import amqp from "amqplib";
 import type { IEventPublisher } from "../../../application/ports/event-publisher.port";
-import { EXCHANGE_USER_EVENTS } from "@lframework/shared";
+import { EXCHANGE_USER_EVENTS, publishEventEnvelopeV1, type EventEnvelopeV1 } from "@lframework/shared";
 
 type AmqpConnection = Awaited<ReturnType<typeof amqp.connect>>;
 
@@ -26,13 +26,11 @@ export class RabbitMqEventPublisherAdapter implements IEventPublisher {
     await this.channel.assertExchange(this.exchange, "topic", { durable: true });
   }
 
-  async publish(eventName: string, payload: object): Promise<void> {
+  async publish(envelope: EventEnvelopeV1): Promise<void> {
     if (!this.channel) {
       throw new Error("RabbitMqEventPublisherAdapter não conectado; chame connect() antes de publicar.");
     }
-    const routingKey = eventName.replace(".", "_");
-    const message = Buffer.from(JSON.stringify({ type: eventName, payload }));
-    this.channel.publish(this.exchange, routingKey, message, { persistent: true });
+    await publishEventEnvelopeV1(this.channel, this.exchange, envelope);
   }
 
   async disconnect(): Promise<void> {

@@ -1,7 +1,9 @@
+import type { EventEnvelopeV1 } from "@lframework/shared";
+
 /**
  * Porta: publicador de eventos (ex.: RabbitMQ).
  * Implementação em infrastructure/messaging.
  */
 export interface IEventPublisher {
-  publish(eventName: string, payload: object): Promise<void>;
+  publish(envelope: EventEnvelopeV1): Promise<void>;
 }

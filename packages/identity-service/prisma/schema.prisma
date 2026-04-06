@@ -105,9 +105,13 @@ model OutboxModel {
   id         String   @id @default(uuid())
   eventName  String   @map("event_name")
   payload    Json     @db.JsonB
+  retryCount Int      @default(0) @map("retry_count")
+  lastError  String?  @map("last_error")
+  failedAt   DateTime? @map("failed_at")
   createdAt  DateTime @map("created_at")
   publishedAt DateTime? @map("published_at")
 
   @@index([publishedAt])
+  @@index([failedAt])
   @@map("outbox")
 }

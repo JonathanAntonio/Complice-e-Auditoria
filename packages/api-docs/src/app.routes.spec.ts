@@ -23,14 +23,25 @@ describe("api-docs routes", () => {
         servers: [{ url: "http://localhost:3002" }],
         paths: { "/api/items": { get: { responses: { "200": { description: "OK" } } } } },
       };
+      const integrationSpec = {
+        openapi: "3.0.0",
+        info: { title: "Integration", version: "1.0.0" },
+        servers: [{ url: "http://localhost:3003" }],
+        paths: { "/api/integrations/events": { post: { responses: { "202": { description: "Accepted" } } } } },
+      };
 
-      const body = url.includes("identity") ? identitySpec : catalogSpec;
+      const body = url.includes("identity")
+        ? identitySpec
+        : url.includes("catalog")
+          ? catalogSpec
+          : integrationSpec;
       return { ok: true, status: 200, json: async () => body };
     };
 
     const app = createApp({
       identitySpecUrl: "http://identity.test/api-docs.json",
       catalogSpecUrl: "http://catalog.test/api-docs.json",
+      integrationSpecUrl: "http://integration.test/api-docs.json",
       fetchFn: fakeFetch as unknown as typeof fetch,
     });
 
@@ -43,6 +54,7 @@ describe("api-docs routes", () => {
     });
     expect(res.body.paths).toHaveProperty("/api/auth/login");
     expect(res.body.paths).toHaveProperty("/api/items");
+    expect(res.body.paths).toHaveProperty("/api/integrations/events");
   });
 
   it("returns 502 with hint when upstream specs are unavailable", async () => {
@@ -53,6 +65,7 @@ describe("api-docs routes", () => {
     const app = createApp({
       identitySpecUrl: "http://identity.test/api-docs.json",
       catalogSpecUrl: "http://catalog.test/api-docs.json",
+      integrationSpecUrl: "http://integration.test/api-docs.json",
       fetchFn: failingFetch as unknown as typeof fetch,
     });
 
@@ -68,6 +81,7 @@ describe("api-docs routes", () => {
     const app = createApp({
       identitySpecUrl: "http://identity.test/api-docs.json",
       catalogSpecUrl: "http://catalog.test/api-docs.json",
+      integrationSpecUrl: "http://integration.test/api-docs.json",
       fetchFn: (async () => ({ ok: true, status: 200, json: async () => ({}) })) as unknown as typeof fetch,
     });
 

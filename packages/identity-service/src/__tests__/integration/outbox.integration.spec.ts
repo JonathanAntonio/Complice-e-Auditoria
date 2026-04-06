@@ -14,7 +14,7 @@ import { createApp } from "../../app";
 import { createNoOpEventPublisher } from "./test-event-publisher";
 import { createNoOpCache } from "./test-cache";
 import { OutboxRelayAdapter } from "../../adapters/driven/messaging/outbox-relay.adapter";
-import { USER_CREATED_EVENT } from "@lframework/shared";
+import { USER_CREATED_EVENT, type EventEnvelopeV1 } from "@lframework/shared";
 
 const databaseUrl =
   process.env.IDENTITY_DATABASE_URL ??
@@ -87,19 +87,21 @@ describe("Outbox integration", () => {
     });
     expect(outboxRows.length).toBeGreaterThanOrEqual(1);
     const userCreatedRow = outboxRows.find(
-      (r) => r.eventName === USER_CREATED_EVENT && (r.payload as { userId?: string }).userId === userId
+      (r) =>
+        r.eventName === USER_CREATED_EVENT &&
+        ((r.payload as { payload?: { userId?: string } }).payload?.userId === userId)
     );
     expect(userCreatedRow).toBeDefined();
-    expect((userCreatedRow!.payload as { email: string }).email).toBe(email);
+    expect((userCreatedRow?.payload as { payload?: { email?: string } } | undefined)?.payload?.email).toBe(email);
   }, 15000);
 
   it("relay publishes and marks outbox row when eventPublisher is provided", async ({ skip }) => {
     if (!dbAvailable) skip();
 
-    const published: { eventName: string; payload: object }[] = [];
+    const published: EventEnvelopeV1[] = [];
     const mockPublisher = {
-      publish: async (eventName: string, payload: object) => {
-        published.push({ eventName, payload });
+      publish: async (envelope: EventEnvelopeV1) => {
+        published.push(envelope);
       },
       connect: async () => {},
       disconnect: async () => {},
@@ -125,7 +127,7 @@ describe("Outbox integration", () => {
       where: { eventName: USER_CREATED_EVENT, publishedAt: null },
     });
     const rowBefore = unpublished.find(
-      (r) => (r.payload as { userId?: string }).userId === userId
+      (r) => ((r.payload as { payload?: { userId?: string } }).payload?.userId === userId)
     );
     expect(rowBefore).toBeDefined();
 
@@ -133,7 +135,7 @@ describe("Outbox integration", () => {
 
     const forThisUser = published.find(
       (p) =>
-        p.eventName === USER_CREATED_EVENT &&
+        p.type === USER_CREATED_EVENT &&
         (p.payload as { email: string }).email === email
     );
     expect(forThisUser).toBeDefined();

@@ -170,9 +170,13 @@ describe("OAuth integration", () => {
 
     expect(auditEvent).not.toBeNull();
     expect(auditEvent!.payload).toMatchObject({
-      authMethod: "oauth",
-      provider: "google",
-      userId: res.body.user.id,
+      type: "identity.auth.login_succeeded",
+      version: "1.0",
+      payload: {
+        authMethod: "oauth",
+        provider: "google",
+        userId: res.body.user.id,
+      },
     });
   });
 

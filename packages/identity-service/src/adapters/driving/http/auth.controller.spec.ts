@@ -187,6 +187,7 @@ describe("AuthController", () => {
         {
           ipAddress: "127.0.0.1",
           requestId: "req-1",
+          correlationId: "req-1",
           userAgent: "vitest",
         }
       );

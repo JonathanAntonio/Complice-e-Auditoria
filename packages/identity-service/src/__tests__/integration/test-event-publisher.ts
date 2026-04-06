@@ -5,7 +5,7 @@ import type { TestEventPublisher } from "../../container";
  */
 export function createNoOpEventPublisher(): TestEventPublisher {
   return {
-    publish: async () => {},
+    publish: async (_envelope) => {},
     connect: async () => {},
     disconnect: async () => {},
   };

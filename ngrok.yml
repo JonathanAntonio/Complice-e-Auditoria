@@ -3,12 +3,6 @@ agent:
   authtoken: ${NGROK_AUTHTOKEN}
 
 tunnels:
-  gateway:
+  frontend:
     proto: http
-    addr: 8080
-  api_docs:
-    proto: http
-    addr: 3000
-  integration_service:
-    proto: http
-    addr: 3003
+    addr: 5173

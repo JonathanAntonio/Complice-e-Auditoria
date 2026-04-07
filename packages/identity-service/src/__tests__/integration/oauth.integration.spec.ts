@@ -87,9 +87,9 @@ describe("OAuth integration", () => {
   let connected = false;
 
   async function getOAuthState(): Promise<string> {
-    const res = await request(app).get("/api/auth/google").expect(302);
-    const location = res.headers.location;
-    expect(location).toBeTruthy();
+    const res = await request(app).get("/api/auth/google/url").expect(200);
+    const location = res.body?.url;
+    expect(typeof location).toBe("string");
     const state = new URL(location, "https://oauth.example.test").searchParams.get("state");
     expect(state).toBeTruthy();
     return state!;
@@ -125,17 +125,15 @@ describe("OAuth integration", () => {
     if (!dbAvailable) return;
     await container.prisma.outboxModel.deleteMany({});
     await container.prisma.oAuthAccountModel.deleteMany({});
-    await container.prisma.authCredentialModel.deleteMany({});
     await container.prisma.userModel.deleteMany({});
   });
 
-  it("redirects to Google OAuth when provider is configured", async ({ skip }) => {
+  it("returns Google OAuth authorization url when provider is configured", async ({ skip }) => {
     if (!dbAvailable) skip();
 
-    const res = await request(app).get("/api/auth/google").expect(302);
-
-    expect(res.headers.location).toContain("https://oauth.example.test/google");
-    expect(res.headers.location).toContain("state=");
+    const res = await request(app).get("/api/auth/google/url").expect(200);
+    expect(res.body.url).toContain("https://oauth.example.test/google");
+    expect(res.body.url).toContain("state=");
   });
 
   it("authenticates with OAuth, creates user and writes audit log", async ({ skip }) => {
@@ -183,18 +181,12 @@ describe("OAuth integration", () => {
   it("rejects OAuth login for inactive user matched by email", async ({ skip }) => {
     if (!dbAvailable) skip();
 
-    await request(app)
-      .post("/api/auth/register")
-      .send({
+    await container.prisma.userModel.create({
+      data: {
         email: "inactive-oauth@example.com",
         name: "Inactive OAuth User",
-        password: "ValidPass123",
-      })
-      .expect(201);
-
-    await container.prisma.userModel.updateMany({
-      where: { email: "inactive-oauth@example.com" },
-      data: { isActive: false },
+        isActive: false,
+      },
     });
 
     const state = await getOAuthState();
@@ -208,18 +200,10 @@ describe("OAuth integration", () => {
   it("rejects OAuth login for blocked linked user", async ({ skip }) => {
     if (!dbAvailable) skip();
 
-    const registerRes = await request(app)
-      .post("/api/auth/register")
-      .send({
+    const blockedUser = await container.prisma.userModel.create({
+      data: {
         email: "blocked-oauth@example.com",
         name: "Blocked OAuth User",
-        password: "ValidPass123",
-      })
-      .expect(201);
-
-    await container.prisma.userModel.updateMany({
-      where: { id: registerRes.body.user.id },
-      data: {
         failedLoginAttempts: 5,
         blockedUntil: new Date(Date.now() + 15 * 60 * 1000),
       },
@@ -227,7 +211,7 @@ describe("OAuth integration", () => {
 
     await container.prisma.oAuthAccountModel.create({
       data: {
-        userId: registerRes.body.user.id,
+        userId: blockedUser.id,
         provider: "google",
         providerId: "google-blocked-user",
         createdAt: new Date(),

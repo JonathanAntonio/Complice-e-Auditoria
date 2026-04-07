@@ -19,7 +19,8 @@ package "PostgreSQL — modelo relacional" as pg {
     + id : UUID <<PK, S>>
     + nome : VARCHAR(255) <<S>>
     + email : VARCHAR(255) <<UK, S>>
-    + senha_hash : VARCHAR(255) <<S>>
+    + oauth_provider : VARCHAR(32) <<S>>
+    + oauth_provider_id : VARCHAR(255) <<S>>
     + papel_id : UUID <<FK, S>>
     + area_id : UUID <<FK, S>>
     + status : VARCHAR(32) <<S>>

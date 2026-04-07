@@ -47,22 +47,30 @@ end note
 
 newpage
 
-title Diagrama de sequência (2/3) — Login\nFonte: Autoria própria (2026)
+title Diagrama de sequência (2/3) — Login OAuth\nFonte: Autoria própria (2026)
 
 actor Usuário as U
+participant "Frontend/BFF" as BFF
 participant "API Auth\n(microsserviço)" as AUTH
+participant "Provedor OAuth\n(Google/GitHub)" as OAUTH
 database "PostgreSQL\n(Usuario)" as PG2
 database "MongoDB\n(auditoria)" as MONGO2
 
-U -> AUTH : POST /login (credenciais)
-activate AUTH
-AUTH -> PG2 : Busca usuário por e-mail
-PG2 --> AUTH : registro (hash, status, papel)
-AUTH -> AUTH : Valida senha e status ativo
+U -> BFF : GET /bff/auth/google/start
+activate BFF
+BFF -> AUTH : GET /auth/google/url
+AUTH --> BFF : URL de autorização
+BFF --> U : 302 para provedor
+U -> OAUTH : Autentica no provedor
+OAUTH --> BFF : Callback com code + state
+BFF -> AUTH : GET /auth/google/callback?code&state
+AUTH -> PG2 : Busca ou cria usuário vinculado\npor providerId/email
+AUTH -> AUTH : Valida status ativo/bloqueio
 AUTH -> AUTH : Emite JWT (expiração configurável)
-AUTH -> MONGO2 : Registra evento de auditoria\n(login bem-sucedido)
-AUTH --> U : JWT + metadados
-deactivate AUTH
+AUTH -> MONGO2 : Registra evento de auditoria\n(login OAuth bem-sucedido)
+AUTH --> BFF : JWT + metadados
+BFF --> U : Cookie HttpOnly de sessão + redirect
+deactivate BFF
 
 newpage
 

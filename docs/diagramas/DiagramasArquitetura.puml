@@ -28,7 +28,7 @@ component "Redis\n(cache)" as REDIS
 
 ' Acesso de usuários
 USERS --> FE
-FE --> AUTH : login/JWT
+FE --> AUTH : OAuth/JWT
 FE --> CE : gestão/consulta de regras\n+ violações
 FE --> REP : relatórios/exportação
 FE --> AUD : consulta de auditoria
@@ -62,4 +62,3 @@ note bottom
 end note
 
 @enduml
-

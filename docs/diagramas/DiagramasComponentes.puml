@@ -28,7 +28,7 @@ actor "Sistemas Externos\n(ERP/CRM)" as EXT
 
 ' Interações principais
 USERS --> FE
-FE --> AUTH : login/JWT
+FE --> AUTH : OAuth/JWT
 FE --> CE : regras/validações
 FE --> REP : relatórios/exportação
 FE --> AUD : consulta de auditoria
@@ -66,4 +66,3 @@ note bottom
 end note
 
 @enduml
-

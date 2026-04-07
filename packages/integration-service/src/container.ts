@@ -6,6 +6,10 @@ import { PrismaEventRepository } from "./adapters/driven/persistence/prisma-even
 import { RabbitMqEventPublisherAdapter } from "./adapters/driven/messaging/rabbitmq-event-publisher.adapter";
 import { OutboxRelayAdapter } from "./adapters/driven/messaging/outbox-relay.adapter";
 import { IntegrationMetrics } from "./application/metrics";
+import { PrometheusMetricsReaderAdapter } from "./adapters/driven/observability/prometheus-metrics-reader.adapter";
+import { GetMetricsUseCase } from "./application/use-cases/get-metrics.use-case";
+import { MetricsController } from "./adapters/driving/http/metrics.controller";
+import type { IMetricsReader } from "./application/ports/metrics-reader.port";
 
 export interface IntegrationContainerConfig {
   databaseUrl: string;
@@ -17,6 +21,9 @@ interface IntegrationCradle {
   config: IntegrationContainerConfig;
   prisma: PrismaClient;
   metrics: IntegrationMetrics;
+  metricsReader: IMetricsReader;
+  getMetricsUseCase: GetMetricsUseCase;
+  metricsController: MetricsController;
   repository: PrismaEventRepository;
   eventPublisher: RabbitMqEventPublisherAdapter;
   outboxRelay: OutboxRelayAdapter;
@@ -32,6 +39,9 @@ export function createContainer(config: IntegrationContainerConfig) {
       return new PrismaClient({ datasources: { db: { url: config.databaseUrl } } });
     }).singleton(),
     metrics: asFunction(() => new IntegrationMetrics()).singleton(),
+    metricsReader: asFunction((cradle: IntegrationCradle) => new PrometheusMetricsReaderAdapter(cradle.metrics)).singleton(),
+    getMetricsUseCase: asFunction((cradle: IntegrationCradle) => new GetMetricsUseCase(cradle.metricsReader)).singleton(),
+    metricsController: asFunction((cradle: IntegrationCradle) => new MetricsController(cradle.getMetricsUseCase)).singleton(),
     repository: asFunction((cradle: IntegrationCradle) => new PrismaEventRepository(cradle.prisma)).singleton(),
     eventPublisher: asFunction(({ config }: { config: IntegrationContainerConfig }) => new RabbitMqEventPublisherAdapter(config.rabbitmqUrl)).singleton(),
     outboxRelay: asFunction(
@@ -53,8 +63,8 @@ export function createContainer(config: IntegrationContainerConfig) {
     get integrationRoutes() {
       return c.integrationRoutes;
     },
-    get metrics() {
-      return c.metrics;
+    get metricsController() {
+      return c.metricsController;
     },
     async connectRabbitMQ(): Promise<void> {
       await c.eventPublisher.connect();

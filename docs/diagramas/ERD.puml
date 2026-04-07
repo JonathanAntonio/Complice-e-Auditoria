@@ -11,7 +11,8 @@ entity "Usuario" as usuario {
   --
   nome : VARCHAR
   email : VARCHAR <<UNIQUE>>
-  senha_hash : VARCHAR
+  oauth_provider : VARCHAR
+  oauth_provider_id : VARCHAR
   status : VARCHAR
   criado_em : TIMESTAMP
   atualizado_em : TIMESTAMP
@@ -118,4 +119,3 @@ note right of auditoria
 end note
 
 @enduml
-

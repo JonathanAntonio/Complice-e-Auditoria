@@ -20,8 +20,8 @@ describe("Identity API docs routes", () => {
       info: expect.any(Object),
       paths: expect.any(Object),
     });
-    expect(res.body.paths).toHaveProperty("/api/auth/register");
-    expect(res.body.paths).toHaveProperty("/api/auth/login");
+    expect(res.body.paths).toHaveProperty("/api/auth/google/url");
+    expect(res.body.paths).toHaveProperty("/api/auth/github/url");
     expect(res.body.paths).toHaveProperty("/api/users");
   });
 
@@ -40,4 +40,3 @@ describe("Identity API docs routes", () => {
     expect(res.text).toContain("Identity Service API");
   });
 });
-

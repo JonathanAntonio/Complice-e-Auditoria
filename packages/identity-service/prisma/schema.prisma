@@ -17,7 +17,6 @@ model UserModel {
   failedLoginAttempts Int                  @default(0) @map("failed_login_attempts")
   blockedUntil        DateTime?            @map("blocked_until")
   createdAt           DateTime             @default(now()) @map("created_at")
-  authCredential      AuthCredentialModel?
   oauthAccounts       OAuthAccountModel[]
   userRoles           UserRoleModel[]
 
@@ -77,15 +76,6 @@ model UserRoleModel {
   @@id([userId, roleId])
   @@index([roleId])
   @@map("user_roles")
-}
-
-model AuthCredentialModel {
-  id           String   @id @default(uuid())
-  userId       String   @unique @map("user_id")
-  passwordHash String   @map("password_hash")
-  user         UserModel @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@map("auth_credentials")
 }
 
 model OAuthAccountModel {

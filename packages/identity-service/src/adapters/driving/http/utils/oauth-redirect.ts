@@ -1,4 +1,3 @@
-import { Response } from "express";
 import { randomBytes } from "crypto";
 import type { IOAuthProvider } from "../../../../application/ports/oauth-provider.port";
 import type { ICacheService } from "@lframework/shared";
@@ -7,18 +6,17 @@ const OAUTH_STATE_TTL_SECONDS = 600; // 10 min
 export const OAUTH_STATE_PREFIX = "oauth_state:";
 
 /**
- * Gera state aleatório, grava no cache, monta redirectUri e redireciona para a URL de autorização do provedor.
+ * Gera state aleatório, grava no cache e retorna URL de autorização do provedor.
  */
-export async function performOAuthRedirect(
+export async function createOAuthAuthorizationUrl(
   provider: IOAuthProvider,
   basePath: string,
-  res: Response,
   cache: ICacheService,
-  baseUrl: string
-): Promise<void> {
+  baseUrl: string,
+  redirectUriOverride?: string
+): Promise<string> {
   const state = randomBytes(16).toString("hex");
-  await cache.set(OAUTH_STATE_PREFIX + state, "1", OAUTH_STATE_TTL_SECONDS);
-  const redirectUri = `${baseUrl}/api/auth/${basePath}/callback`;
-  const url = provider.getAuthorizationUrl(redirectUri, state);
-  res.redirect(url);
+  const redirectUri = redirectUriOverride ?? `${baseUrl}/api/auth/${basePath}/callback`;
+  await cache.set(OAUTH_STATE_PREFIX + state, { redirectUri }, OAUTH_STATE_TTL_SECONDS);
+  return provider.getAuthorizationUrl(redirectUri, state);
 }

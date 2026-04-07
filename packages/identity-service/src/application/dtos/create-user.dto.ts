@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { emailSchema, nameSchema } from "./auth-common.schema";
+import { emailSchema, nameSchema } from "./user-common.schema";
 
 /**
  * Schema de validação para criação de usuário (administrador).

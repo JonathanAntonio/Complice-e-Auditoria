@@ -8,11 +8,13 @@ import {
   requestLoggingMiddleware,
   createErrorHandlerMiddleware,
   createHealthHandler,
-  type HttpErrorMapping,
 } from "@lframework/shared";
+import { mapIntegrationErrorToHttp } from "./adapters/driving/http/error-to-http.mapper";
+import type { MetricsController } from "./adapters/driving/http/metrics.controller";
 
 export interface IntegrationAppContainer {
   integrationRoutes: Router;
+  metricsController: MetricsController;
 }
 
 export interface CreateAppOptions {
@@ -52,47 +54,9 @@ export function createApp(
   }
 
   app.use("/api", container.integrationRoutes);
+  app.get("/metrics", container.metricsController.get);
   app.get("/health", createHealthHandler("integration-service"));
-
-  const errorMapper = (err: unknown): HttpErrorMapping => {
-    if (typeof err === "object" && err !== null) {
-      const candidate = err as { statusCode?: unknown; status?: unknown; message?: unknown; name?: unknown; code?: unknown };
-      const statusCode = typeof candidate.statusCode === "number"
-        ? candidate.statusCode
-        : (typeof candidate.status === "number" ? candidate.status : undefined);
-      if (statusCode && statusCode >= 400 && statusCode <= 599) {
-        return {
-          statusCode,
-          message: statusCode >= 500
-            ? "Internal server error"
-            : (typeof candidate.message === "string" && candidate.message.length > 0
-              ? candidate.message
-              : "Request failed"),
-        };
-      }
-
-      if (candidate.name === "ZodError") {
-        return { statusCode: 400, message: "Invalid request payload" };
-      }
-      if (candidate.code === "P2002") {
-        return { statusCode: 409, message: "Conflict" };
-      }
-    }
-
-    if (err instanceof Error) {
-      const msg = err.message.toLowerCase();
-      if (msg.includes("unauthorized")) return { statusCode: 401, message: "Unauthorized" };
-      if (msg.includes("forbidden")) return { statusCode: 403, message: "Forbidden" };
-      if (msg.includes("not found")) return { statusCode: 404, message: "Not found" };
-      if (msg.includes("validation")) return { statusCode: 400, message: "Invalid request payload" };
-    }
-
-    return {
-      statusCode: 500,
-      message: "Internal server error",
-    };
-  };
-  app.use(createErrorHandlerMiddleware(errorMapper));
+  app.use(createErrorHandlerMiddleware(mapIntegrationErrorToHttp));
 
   return app;
 }

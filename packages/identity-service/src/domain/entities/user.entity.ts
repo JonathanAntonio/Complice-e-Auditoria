@@ -132,7 +132,7 @@ export class User {
     }
 
     if (!Number.isInteger(failedLoginAttempts) || failedLoginAttempts < 0) {
-      throw new Error("Invalid failed login attempts while reconstituting user");
+      throw new Error("Invalid failed authentication attempts while reconstituting user");
     }
 
     if (!User.isDateOrNull(blockedUntil)) {
@@ -172,7 +172,7 @@ export class User {
     }
 
     if (!Number.isInteger(failedLoginAttempts) || failedLoginAttempts < 0) {
-      throw new Error("Invalid failed login attempts while reconstituting user");
+      throw new Error("Invalid failed authentication attempts while reconstituting user");
     }
 
     if (!User.isDateOrNull(blockedUntil)) {

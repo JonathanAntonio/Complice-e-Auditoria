@@ -36,13 +36,13 @@ describe("RedisCacheAdapter", () => {
       expect(result).toEqual(value);
     });
 
-    it("retorna null e não lança quando JSON é inválido (sem schema)", async () => {
+    it("retorna string bruta quando JSON é inválido (sem schema, compat legado)", async () => {
       vi.mocked(redis.get).mockResolvedValue("not json {");
       const adapter = new RedisCacheAdapter(redis as never);
 
       const result = await adapter.get("key");
 
-      expect(result).toBeNull();
+      expect(result).toBe("not json {");
     });
 
     it("com schema: retorna dado validado quando válido", async () => {

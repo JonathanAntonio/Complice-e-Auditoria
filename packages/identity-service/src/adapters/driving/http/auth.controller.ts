@@ -1,29 +1,27 @@
 import { Request, Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "@lframework/shared";
-import type { RegisterUseCase } from "../../../application/use-cases/register.use-case";
-import type { LoginUseCase } from "../../../application/use-cases/login.use-case";
 import type { GetCurrentUserUseCase } from "../../../application/use-cases/get-current-user.use-case";
 import type { OAuthCallbackUseCase } from "../../../application/use-cases/oauth-callback.use-case";
 import type { LogoutUseCase } from "../../../application/use-cases/logout.use-case";
 import type { IOAuthProvider } from "../../../application/ports/oauth-provider.port";
 import type { ICacheService } from "@lframework/shared";
-import type { RegisterDto } from "../../../application/dtos/register.dto";
-import type { LoginDto } from "../../../application/dtos/login.dto";
-import type { AuthResponseDto } from "../../../application/dtos/auth-response.dto";
 import type { OAuthCallbackResponseDto } from "../../../application/dtos/oauth-callback-response.dto";
 import {
+  oauthAuthorizationUrlQuerySchema,
+} from "../../../application/dtos/oauth-authorization-url-query.dto";
+import {
   oauthCallbackQuerySchema,
-  type OAuthCallbackQueryDto,
 } from "../../../application/dtos/oauth-callback-query.dto";
 import { formatExpiresIn } from "./utils/format-expires-in";
-import { performOAuthRedirect, OAUTH_STATE_PREFIX } from "./utils/oauth-redirect";
+import {
+  createOAuthAuthorizationUrl,
+  OAUTH_STATE_PREFIX,
+} from "./utils/oauth-redirect";
 import { sendError, sendValidationError } from "@lframework/shared";
 import type { SecurityAuditContext } from "../../../application/security-audit";
 
 export class AuthController {
   constructor(
-    private readonly registerUseCase: RegisterUseCase,
-    private readonly loginUseCase: LoginUseCase,
     private readonly getCurrentUserUseCase: GetCurrentUserUseCase,
     private readonly oauthCallbackUseCase: OAuthCallbackUseCase,
     private readonly googleProvider: IOAuthProvider | null,
@@ -33,36 +31,6 @@ export class AuthController {
     private readonly jwtExpiresInSeconds: number,
     private readonly logoutUseCase?: LogoutUseCase
   ) {}
-
-  register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const dto: RegisterDto = req.body;
-      const result = await this.registerUseCase.execute(dto);
-      const body: AuthResponseDto = {
-        user: result.user,
-        accessToken: result.accessToken,
-        expiresIn: formatExpiresIn(this.jwtExpiresInSeconds),
-      };
-      res.status(201).json(body);
-    } catch (err) {
-      next(err);
-    }
-  };
-
-  login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    try {
-      const dto: LoginDto = req.body;
-      const result = await this.loginUseCase.execute(dto, this.buildAuditContext(req));
-      const body: AuthResponseDto = {
-        user: result.user,
-        accessToken: result.accessToken,
-        expiresIn: formatExpiresIn(this.jwtExpiresInSeconds),
-      };
-      res.status(200).json(body);
-    } catch (err) {
-      next(err);
-    }
-  };
 
   private buildAuditContext(req: Request): SecurityAuditContext {
     const forwardedFor = req.headers["x-forwarded-for"];
@@ -76,6 +44,30 @@ export class AuthController {
       correlationId: req.headers["x-correlation-id"]?.toString() ?? req.headers["x-request-id"]?.toString(),
       userAgent: req.headers["user-agent"]?.toString(),
     };
+  }
+
+  private firstQueryValue(value: unknown): string | undefined {
+    if (Array.isArray(value)) {
+      const first = value[0];
+      return typeof first === "string" ? first : undefined;
+    }
+    return typeof value === "string" ? value : undefined;
+  }
+
+  private resolveRedirectUriFromStateValue(stateValue: unknown, defaultRedirectUri: string): string | null {
+    if (typeof stateValue === "string") {
+      if (stateValue === "1") return defaultRedirectUri; // legado
+      return stateValue.length > 0 ? stateValue : null;
+    }
+
+    if (stateValue && typeof stateValue === "object") {
+      const redirectUri = (stateValue as { redirectUri?: unknown }).redirectUri;
+      if (typeof redirectUri === "string" && redirectUri.length > 0) {
+        return redirectUri;
+      }
+    }
+
+    return null;
   }
 
   me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
@@ -111,30 +103,56 @@ export class AuthController {
     }
   };
 
-  /** async + await performOAuthRedirect para compatibilidade com asyncHandler e propagação de erros. */
-  googleRedirect = async (req: Request, res: Response): Promise<void> => {
-    if (!this.googleProvider) {
-      sendError(res, 503, "Google OAuth is not configured");
-      return;
-    }
-    await performOAuthRedirect(this.googleProvider, "google", res, this.cache, this.baseUrl);
-  };
-
   googleCallback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     await this.handleOAuthCallback(req, res, next, this.googleProvider, "google");
   };
 
-  /** async + await performOAuthRedirect para compatibilidade com asyncHandler e propagação de erros. */
-  githubRedirect = async (req: Request, res: Response): Promise<void> => {
-    if (!this.githubProvider) {
-      sendError(res, 503, "GitHub OAuth is not configured");
+  googleAuthorizationUrl = async (req: Request, res: Response): Promise<void> => {
+    if (!this.googleProvider) {
+      sendError(res, 503, "Google OAuth is not configured");
       return;
     }
-    await performOAuthRedirect(this.githubProvider, "github", res, this.cache, this.baseUrl);
+    const parsed = oauthAuthorizationUrlQuerySchema.safeParse({
+      redirect_uri: this.firstQueryValue(req.query.redirect_uri),
+    });
+    if (!parsed.success) {
+      sendValidationError(res, parsed.error);
+      return;
+    }
+    const url = await createOAuthAuthorizationUrl(
+      this.googleProvider,
+      "google",
+      this.cache,
+      this.baseUrl,
+      parsed.data.redirect_uri
+    );
+    res.json({ url });
   };
 
   githubCallback = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     await this.handleOAuthCallback(req, res, next, this.githubProvider, "github");
+  };
+
+  githubAuthorizationUrl = async (req: Request, res: Response): Promise<void> => {
+    if (!this.githubProvider) {
+      sendError(res, 503, "GitHub OAuth is not configured");
+      return;
+    }
+    const parsed = oauthAuthorizationUrlQuerySchema.safeParse({
+      redirect_uri: this.firstQueryValue(req.query.redirect_uri),
+    });
+    if (!parsed.success) {
+      sendValidationError(res, parsed.error);
+      return;
+    }
+    const url = await createOAuthAuthorizationUrl(
+      this.githubProvider,
+      "github",
+      this.cache,
+      this.baseUrl,
+      parsed.data.redirect_uri
+    );
+    res.json({ url });
   };
 
   private handleOAuthCallback = async (
@@ -152,24 +170,30 @@ export class AuthController {
       );
       return;
     }
-    const code = Array.isArray(req.query.code) ? req.query.code[0] : req.query.code;
-    const state = Array.isArray(req.query.state) ? req.query.state[0] : req.query.state;
-    const parsed = oauthCallbackQuerySchema.safeParse({ code, state });
+    const parsed = oauthCallbackQuerySchema.safeParse({
+      code: this.firstQueryValue(req.query.code),
+      state: this.firstQueryValue(req.query.state),
+    });
     if (!parsed.success) {
       sendValidationError(res, parsed.error);
       return;
     }
-    const query: OAuthCallbackQueryDto = parsed.data;
+    const query = parsed.data;
     const stateKey = OAUTH_STATE_PREFIX + query.state;
-    const stateValid = await this.cache.get<string>(stateKey);
-    if (!stateValid) {
+    const stateValue = await this.cache.get<unknown>(stateKey);
+    if (!stateValue) {
       sendError(res, 400, "Invalid or expired state");
       return;
     }
     await this.cache.delete(stateKey);
+    const defaultRedirectUri = `${this.baseUrl}/api/auth/${providerName}/callback`;
+    const redirectUri = this.resolveRedirectUriFromStateValue(stateValue, defaultRedirectUri);
+    if (!redirectUri) {
+      sendError(res, 400, "Invalid or expired state");
+      return;
+    }
 
     try {
-      const redirectUri = this.baseUrl + "/api/auth/" + providerName + "/callback";
       const result = await this.oauthCallbackUseCase.execute(
         query.code,
         redirectUri,

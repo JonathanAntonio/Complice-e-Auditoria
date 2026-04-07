@@ -17,7 +17,6 @@
     "@lframework/shared": "workspace:*",
     "@prisma/client": "^5.22.0",
     "amqplib": "^0.10.3",
-    "argon2": "^0.41.1",
     "awilix": "^13.0.3",
     "cors": "^2.8.6",
     "express": "^4.21.0",

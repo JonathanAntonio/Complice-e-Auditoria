@@ -122,7 +122,7 @@ export function createCatalogOpenApi(serverUrl: string): object {
         type: "http",
         scheme: "bearer",
         bearerFormat: "JWT",
-        description: "Token obtido no Identity Service (POST /identity/api/auth/login)",
+        description: "Token obtido no Identity Service via OAuth callback",
       },
     };
   }

@@ -13,11 +13,11 @@ export class UserAlreadyExistsError extends AppError {
   }
 }
 
-export class InvalidCredentialsError extends AppError {
-  override name = "InvalidCredentialsError";
-  constructor(message = "Invalid email or password") {
+export class OAuthAuthenticationError extends AppError {
+  override name = "OAuthAuthenticationError";
+  constructor(message = "OAuth authentication failed") {
     super(message);
-    Object.setPrototypeOf(this, InvalidCredentialsError.prototype);
+    Object.setPrototypeOf(this, OAuthAuthenticationError.prototype);
   }
 }
 
@@ -29,17 +29,9 @@ export class InvalidEmailError extends AppError {
   }
 }
 
-export class PasswordValidationError extends AppError {
-  override name = "PasswordValidationError";
-  constructor(message: string) {
-    super(message);
-    Object.setPrototypeOf(this, PasswordValidationError.prototype);
-  }
-}
-
 export class AccountLockedError extends AppError {
   override name = "AccountLockedError";
-  constructor(message = "Account is temporarily locked due to failed login attempts") {
+  constructor(message = "Account is temporarily locked due to failed authentication attempts") {
     super(message);
     Object.setPrototypeOf(this, AccountLockedError.prototype);
   }

@@ -17,6 +17,8 @@ Framework de referência em TypeScript para projetos com **DDD**, **Arquitetura 
 ```
 LFramework/
 ├── packages/
+│   ├── frontend/           # Frontend React (Vite) consumindo apenas o BFF
+│   ├── bff-service/        # Backend for Frontend (sessão HttpOnly + OAuth callback)
 │   ├── shared/             # Núcleo do framework: eventos, DTOs, HTTP helpers, schemas
 │   ├── identity-service/   # Microserviço de identidade (auth, usuários)
 │   ├── catalog-service/    # Microserviço de catálogo (itens)
@@ -24,7 +26,7 @@ LFramework/
 │   └── api-docs/           # Swagger unificado (identity + catalog + integration)
 ├── nginx/
 │   └── nginx.conf          # API Gateway (proxy reverso)
-├── ngrok.yml               # Túneis locais (gateway/docs/integration)
+├── ngrok.yml               # Túnel público único para frontend (entrada do sistema)
 ├── docker-compose.yml      # Postgres, Redis, RabbitMQ, Nginx
 └── docs/                   # Documentação
 ```
@@ -69,10 +71,15 @@ pnpm dev:identity   # http://localhost:3001
 pnpm dev:catalog    # http://localhost:3002
 pnpm dev:integration # http://localhost:3003
 pnpm dev:api-docs   # http://localhost:3000
+pnpm dev:bff        # http://localhost:3004
+pnpm dev:frontend   # http://localhost:5173 (React + Vite)
 # ou: pnpm dev       # sobe todos
 ```
 
 Com o gateway: **http://localhost:8080** (prefixos `/identity/`, `/catalog/`, `/integration/` e Swagger unificado em `/api-docs/`).
+No frontend não há chamada direta para o gateway: todo tráfego de autenticação passa por `/bff/auth/*`.
+No frontend, use chamadas para **`/bff/auth/*`**. O BFF mantém sessão em cookie HttpOnly e conversa com IAM/Gateway internamente.
+Fluxo OAuth no frontend (entrada única): `/bff/auth/google/start`, `/bff/auth/github/start`, `/bff/auth/me` e `/bff/auth/logout`.
 
 ## Ngrok (webhooks e demo)
 
@@ -92,10 +99,10 @@ export NGROK_AUTHTOKEN=seu_token
 ngrok start --all --config ./ngrok.yml
 ```
 
-URLs úteis:
-- Gateway: túnel para `http://localhost:8080`
-- API docs: túnel para `http://localhost:3000`
-- Integration service: túnel para `http://localhost:3003`
+Modelo recomendado para OAuth com um único túnel externo:
+- Expor apenas o frontend (Vite) por ngrok.
+- Configurar `BFF_PUBLIC_BASE_URL` para `https://<seu-dominio-ngrok>`.
+- Configurar `BASE_URL` para `https://<seu-dominio-ngrok>/identity`.
 
 ## Testes
 

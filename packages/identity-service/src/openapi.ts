@@ -4,8 +4,6 @@ import {
   OpenAPIRegistry,
 } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
-import { registerSchema } from "./application/dtos/register.dto";
-import { loginSchema } from "./application/dtos/login.dto";
 import { createUserSchema } from "./application/dtos/create-user.dto";
 import { userResponseDtoSchema } from "./application/dtos/user-response.dto";
 import {
@@ -17,70 +15,20 @@ import { updateUserSecuritySchema } from "./application/dtos/update-user-securit
 extendZodWithOpenApi(z);
 
 const ErrorSchema = z.object({ error: z.string(), message: z.string() }).openapi("Error");
-const RegisterBodySchema = registerSchema.openapi("RegisterBody");
-const LoginBodySchema = loginSchema.openapi("LoginBody");
 const UserResponseSchema = userResponseDtoSchema.openapi("UserResponse");
-const AuthResponseSchema = z
-  .object({
-    user: UserResponseSchema,
-    accessToken: z.string(),
-    expiresIn: z.string(),
-  })
-  .openapi("AuthResponse");
 const CreateUserBodySchema = createUserSchema.openapi("CreateUserBody");
 const AssignUserRoleBodySchema = assignUserRoleSchema.openapi("AssignUserRoleBody");
 const AssignUserRolesBodySchema = assignUserRolesSchema.openapi("AssignUserRolesBody");
 const UpdateUserSecurityBodySchema = updateUserSecuritySchema.openapi("UpdateUserSecurityBody");
-const OAuthQuerySchema = z.object({ code: z.string(), state: z.string() });
+const OAuthCallbackQuerySchema = z.object({
+  code: z.string(),
+  state: z.string(),
+});
+const OAuthAuthorizationUrlQuerySchema = z.object({
+  redirect_uri: z.string().url().optional(),
+});
 
 const registry = new OpenAPIRegistry();
-
-registry.registerPath({
-  method: "post",
-  path: "/api/auth/register",
-  summary: "Registrar usuário",
-  tags: ["Auth"],
-  request: {
-    body: {
-      content: { "application/json": { schema: RegisterBodySchema } },
-    },
-  },
-  responses: {
-    201: {
-      description: "Usuário criado",
-      content: { "application/json": { schema: AuthResponseSchema } },
-    },
-    400: { description: "Validação", content: { "application/json": { schema: ErrorSchema } } },
-    409: { description: "Email já existe", content: { "application/json": { schema: ErrorSchema } } },
-  },
-});
-
-registry.registerPath({
-  method: "post",
-  path: "/api/auth/login",
-  summary: "Login",
-  tags: ["Auth"],
-  request: {
-    body: {
-      content: { "application/json": { schema: LoginBodySchema } },
-    },
-  },
-  responses: {
-    200: {
-      description: "OK",
-      content: { "application/json": { schema: AuthResponseSchema } },
-    },
-    400: { description: "Validação", content: { "application/json": { schema: ErrorSchema } } },
-    401: {
-      description: "Credenciais inválidas",
-      content: { "application/json": { schema: ErrorSchema } },
-    },
-    423: {
-      description: "Conta temporariamente bloqueada",
-      content: { "application/json": { schema: ErrorSchema } },
-    },
-  },
-});
 
 registry.registerPath({
   method: "get",
@@ -121,10 +69,20 @@ registry.registerPath({
 
 registry.registerPath({
   method: "get",
-  path: "/api/auth/google",
-  summary: "Redirect para login Google (OAuth)",
+  path: "/api/auth/google/url",
+  summary: "Retorna URL de autorização Google OAuth",
   tags: ["Auth"],
-  responses: { 302: { description: "Redirect para provedor" } },
+  request: { query: OAuthAuthorizationUrlQuerySchema },
+  responses: {
+    200: {
+      description: "OK",
+      content: {
+        "application/json": {
+          schema: z.object({ url: z.string().url() }),
+        },
+      },
+    },
+  },
 });
 
 registry.registerPath({
@@ -132,16 +90,43 @@ registry.registerPath({
   path: "/api/auth/google/callback",
   summary: "Callback OAuth Google (query: code, state)",
   tags: ["Auth"],
-  request: { query: OAuthQuerySchema },
-  responses: { 302: { description: "Redirect com token ou erro" } },
+  request: { query: OAuthCallbackQuerySchema },
+  responses: {
+    200: {
+      description: "Autenticado via OAuth",
+      content: {
+        "application/json": {
+          schema: z.object({
+            user: UserResponseSchema,
+            accessToken: z.string(),
+            expiresIn: z.string(),
+          }),
+        },
+      },
+    },
+    400: { description: "State inválido/expirado", content: { "application/json": { schema: ErrorSchema } } },
+    401: { description: "Não autenticado", content: { "application/json": { schema: ErrorSchema } } },
+    403: { description: "Usuário inativo", content: { "application/json": { schema: ErrorSchema } } },
+    423: { description: "Usuário bloqueado", content: { "application/json": { schema: ErrorSchema } } },
+  },
 });
 
 registry.registerPath({
   method: "get",
-  path: "/api/auth/github",
-  summary: "Redirect para login GitHub (OAuth)",
+  path: "/api/auth/github/url",
+  summary: "Retorna URL de autorização GitHub OAuth",
   tags: ["Auth"],
-  responses: { 302: { description: "Redirect para provedor" } },
+  request: { query: OAuthAuthorizationUrlQuerySchema },
+  responses: {
+    200: {
+      description: "OK",
+      content: {
+        "application/json": {
+          schema: z.object({ url: z.string().url() }),
+        },
+      },
+    },
+  },
 });
 
 registry.registerPath({
@@ -149,8 +134,25 @@ registry.registerPath({
   path: "/api/auth/github/callback",
   summary: "Callback OAuth GitHub (query: code, state)",
   tags: ["Auth"],
-  request: { query: OAuthQuerySchema },
-  responses: { 302: { description: "Redirect com token ou erro" } },
+  request: { query: OAuthCallbackQuerySchema },
+  responses: {
+    200: {
+      description: "Autenticado via OAuth",
+      content: {
+        "application/json": {
+          schema: z.object({
+            user: UserResponseSchema,
+            accessToken: z.string(),
+            expiresIn: z.string(),
+          }),
+        },
+      },
+    },
+    400: { description: "State inválido/expirado", content: { "application/json": { schema: ErrorSchema } } },
+    401: { description: "Não autenticado", content: { "application/json": { schema: ErrorSchema } } },
+    403: { description: "Usuário inativo", content: { "application/json": { schema: ErrorSchema } } },
+    423: { description: "Usuário bloqueado", content: { "application/json": { schema: ErrorSchema } } },
+  },
 });
 
 registry.registerPath({
@@ -367,7 +369,7 @@ export function createIdentityOpenApi(serverUrl: string): object {
         type: "http",
         scheme: "bearer",
         bearerFormat: "JWT",
-        description: "Token obtido em POST /api/auth/login ou /api/auth/register",
+        description: "Token obtido nos callbacks OAuth (/api/auth/google/callback ou /api/auth/github/callback)",
       },
     };
   }

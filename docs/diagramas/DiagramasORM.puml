@@ -20,7 +20,8 @@ package "Domínio / Entidades (ex.: JPA/Hibernate)" as domain {
     + id : UUID <<Id>>
     + nome : String
     + email : String {unique}
-    + senhaHash : String
+    + oauthProvider : String
+    + oauthProviderId : String
     + status : StatusUsuario
     + criadoEm : Instant
     + atualizadoEm : Instant
@@ -116,4 +117,3 @@ note bottom
 end note
 
 @enduml
-

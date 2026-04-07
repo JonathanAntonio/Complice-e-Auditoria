@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { User } from "../../domain/entities/user.entity";
 import { Email } from "../../domain/value-objects/email.vo";
 import { USER_CREATED_EVENT } from "@lframework/shared";
-import { AccountLockedError, InvalidCredentialsError, UserInactiveError } from "../errors";
+import { AccountLockedError, OAuthAuthenticationError, UserInactiveError } from "../errors";
 import type { IUserRepository } from "../ports/user-repository.port";
 import type { IOAuthAccountRepository } from "../ports/oauth-account-repository.port";
 import type { IUserOAuthRegistrationPersistence } from "../ports/user-oauth-registration-persistence.port";
@@ -63,7 +63,7 @@ export class OAuthCallbackUseCase {
         },
         "oauth_provider_error"
       );
-      throw new InvalidCredentialsError("OAuth authentication failed");
+      throw new OAuthAuthenticationError("OAuth authentication failed");
     }
 
     if (!userInfo) {
@@ -75,7 +75,7 @@ export class OAuthCallbackUseCase {
         },
         "oauth_userinfo_unavailable"
       );
-      throw new InvalidCredentialsError("OAuth authentication failed");
+      throw new OAuthAuthenticationError("OAuth authentication failed");
     }
 
     const existingLink = await this.oauthAccountRepository.findByProviderAndProviderId(
@@ -95,7 +95,7 @@ export class OAuthCallbackUseCase {
           },
           "oauth_linked_user_missing"
         );
-        throw new InvalidCredentialsError("OAuth authentication failed");
+        throw new OAuthAuthenticationError("OAuth authentication failed");
       }
       await this.assertUserCanAuthenticate(user, baseAuditPayload);
       return await this.buildSuccessResult(user, false, baseAuditPayload);

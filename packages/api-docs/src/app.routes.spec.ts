@@ -15,7 +15,7 @@ describe("api-docs routes", () => {
         openapi: "3.0.0",
         info: { title: "Identity", version: "1.0.0" },
         servers: [{ url: "http://localhost:3001" }],
-        paths: { "/api/auth/login": { post: { responses: { "200": { description: "OK" } } } } },
+        paths: { "/api/auth/google/url": { get: { responses: { "200": { description: "OK" } } } } },
       };
       const catalogSpec = {
         openapi: "3.0.0",
@@ -52,7 +52,7 @@ describe("api-docs routes", () => {
       info: { title: "LFramework API" },
       paths: expect.any(Object),
     });
-    expect(res.body.paths).toHaveProperty("/api/auth/login");
+    expect(res.body.paths).toHaveProperty("/api/auth/google/url");
     expect(res.body.paths).toHaveProperty("/api/items");
     expect(res.body.paths).toHaveProperty("/api/integrations/events");
   });

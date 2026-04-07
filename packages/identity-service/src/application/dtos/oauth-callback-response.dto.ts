@@ -1,7 +1,7 @@
-import type { AuthUserDto } from "./auth-response.dto";
+import type { UserAuthProfileDto } from "./user-auth-profile.dto";
 
 export interface OAuthCallbackResponseDto {
-  user: AuthUserDto;
+  user: UserAuthProfileDto;
   accessToken: string;
   expiresIn: string;
 }

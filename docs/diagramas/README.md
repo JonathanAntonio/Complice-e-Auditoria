@@ -12,7 +12,7 @@ Esta pasta contém os diagramas do projeto.
 
 ## Diagrama de sequência
 
-- `DiagramasSequencia.puml`: três fluxos em páginas separadas (`newpage`), conforme seção 3.2.1 do DDE — (1) registro de evento → RabbitMQ → Audit → Compliance → notificação; (2) login com JWT e auditoria; (3) gestão/versionamento de regra de compliance.
+- `DiagramasSequencia.puml`: três fluxos em páginas separadas (`newpage`), conforme seção 3.2.1 do DDE — (1) registro de evento → RabbitMQ → Audit → Compliance → notificação; (2) login OAuth com JWT e auditoria; (3) gestão/versionamento de regra de compliance.
 
 ## Diagrama de estados
 
@@ -20,7 +20,7 @@ Esta pasta contém os diagramas do projeto.
 
 ## Diagrama de caso de uso
 
-- `DiagramasCasosDeUso.puml`: atores e casos de uso principais conforme seção 3.3.1 do DDE (Login/Recuperar senha, gestão de usuários, regras, violações, auditoria, dashboard, relatórios, integrações e recebimento de eventos).
+- `DiagramasCasosDeUso.puml`: atores e casos de uso principais conforme seção 3.3.1 do DDE (Login OAuth, gestão de usuários, regras, violações, auditoria, dashboard, relatórios, integrações e recebimento de eventos).
 
 ## Diagrama de componentes
 
@@ -37,4 +37,3 @@ Esta pasta contém os diagramas do projeto.
 ## BPMN (Business Process Model and Notation)
 
 - `DiagramasBPMN.puml`: três processos em diagramas de atividade com raias (swimlanes), alinhados à seção 3.5 do DDE — registro e validação de evento; análise de violação; recuperação de senha. Na exportação PNG, costuma gerar um arquivo por diagrama.
-

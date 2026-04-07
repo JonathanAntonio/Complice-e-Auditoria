@@ -8,7 +8,7 @@ import type { IOAuthProvider } from "../ports/oauth-provider.port";
 import type { ITokenService } from "../ports/token-service.port";
 import type { IUserCreatedNotifier } from "../ports/user-created-notifier.port";
 import type { IOutboxRepository } from "../ports/outbox-repository.port";
-import { AccountLockedError, InvalidCredentialsError, UserInactiveError } from "../errors";
+import { AccountLockedError, OAuthAuthenticationError, UserInactiveError } from "../errors";
 import { USER_ROLES, permissionsForRole } from "../../domain/types";
 import { logger } from "@lframework/shared";
 
@@ -181,7 +181,7 @@ describe("OAuthCallbackUseCase", () => {
 
     await expect(
       useCase.execute("invalid-code", "http://localhost/callback", provider)
-    ).rejects.toThrow(InvalidCredentialsError);
+    ).rejects.toThrow(OAuthAuthenticationError);
   });
 
   it("deve envolver erro do provider em 'OAuth authentication failed' quando auditoria falha", async () => {
@@ -210,7 +210,7 @@ describe("OAuthCallbackUseCase", () => {
     );
   });
 
-  it("deve preservar InvalidCredentialsError quando auditoria falha com userInfo nulo", async () => {
+  it("deve preservar OAuthAuthenticationError quando auditoria falha com userInfo nulo", async () => {
     vi.mocked(provider.getUserInfoFromCode).mockResolvedValue(null);
     vi.mocked(outboxRepository.append).mockRejectedValue(new Error("audit failed"));
 

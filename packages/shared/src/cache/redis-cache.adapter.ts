@@ -7,7 +7,7 @@ import { logger } from "../logger";
  * Adapter: implementação do cache com Redis.
  *
  * get(key, schema?): se schema for passado, valida com Zod após JSON.parse;
- * falha de parse ou validação = null + log (cache miss).
+ * falha de parse com schema = null + log (cache miss).
  *
  * **Importante:** Sem schema, o retorno NÃO é validado em runtime — dados corrompidos
  * ou maliciosos podem passar. Novos usos devem passar um schema Zod para garantir
@@ -23,8 +23,12 @@ export class RedisCacheAdapter implements ICacheService {
     try {
       parsed = JSON.parse(raw);
     } catch (err) {
-      logger.warn({ err, key }, "Redis cache parse failed, returning null");
-      return null;
+      if (schema) {
+        logger.warn({ err, key }, "Redis cache parse failed, returning null");
+        return null;
+      }
+      // Compatibilidade: alguns valores legados foram salvos como string literal.
+      return raw as T;
     }
     if (schema) {
       const result = schema.safeParse(parsed);

@@ -1,10 +1,8 @@
-import { createContainer as createAwilixContainer, asValue, asClass, asFunction } from "awilix";
+import { createContainer as createAwilixContainer, asValue, asFunction } from "awilix";
 import { PrismaClient } from "../generated/prisma-client";
 import Redis from "ioredis";
 import { RedisCacheAdapter, type ICacheService } from "@lframework/shared";
 import { PrismaUserRepository } from "./adapters/driven/persistence/prisma-user.repository";
-import { PrismaAuthCredentialRepository } from "./adapters/driven/persistence/prisma-auth-credential.repository";
-import { PrismaUserRegistrationPersistence } from "./adapters/driven/persistence/prisma-user-registration.repository";
 import { PrismaUserOAuthRegistrationPersistence } from "./adapters/driven/persistence/prisma-user-oauth-registration.repository";
 import { PrismaOAuthAccountRepository } from "./adapters/driven/persistence/prisma-oauth-account.repository";
 import { PrismaOutboxRepository } from "./adapters/driven/persistence/prisma-outbox.repository";
@@ -14,15 +12,12 @@ import type { IEventPublisher } from "./application/ports/event-publisher.port";
 import type { IOutboxRepository } from "./application/ports/outbox-repository.port";
 import { UserCreatedNotifierAdapter } from "./adapters/driven/notifiers/user-created-notifier.adapter";
 import { JwtTokenService } from "./adapters/driven/auth/jwt-token.service";
-import { Argon2PasswordHasher } from "./adapters/driven/auth/argon2-password-hasher";
 import { GoogleOAuthProvider } from "./adapters/driven/auth/google-oauth.provider";
 import { GitHubOAuthProvider } from "./adapters/driven/auth/github-oauth.provider";
 import type { IOAuthProvider } from "./application/ports/oauth-provider.port";
 import { CreateUserUseCase } from "./application/use-cases/create-user.use-case";
 import { GetUserByIdUseCase } from "./application/use-cases/get-user-by-id.use-case";
 import { AssignUserRolesUseCase } from "./application/use-cases/assign-user-role.use-case";
-import { RegisterUseCase } from "./application/use-cases/register.use-case";
-import { LoginUseCase } from "./application/use-cases/login.use-case";
 import { GetCurrentUserUseCase } from "./application/use-cases/get-current-user.use-case";
 import { OAuthCallbackUseCase } from "./application/use-cases/oauth-callback.use-case";
 import { LogoutUseCase } from "./application/use-cases/logout.use-case";
@@ -70,14 +65,11 @@ interface IdentityCradle {
   redis: Redis;
   cache: RedisCacheAdapter;
   userRepository: PrismaUserRepository;
-  authCredentialRepository: PrismaAuthCredentialRepository;
-  registrationPersistence: PrismaUserRegistrationPersistence;
   userOAuthRegistrationPersistence: PrismaUserOAuthRegistrationPersistence;
   oauthAccountRepository: PrismaOAuthAccountRepository;
   outboxRepository: IOutboxRepository;
   eventPublisher: IEventPublisher & { connect?: () => Promise<void>; disconnect?: () => Promise<void> };
   tokenService: JwtTokenService;
-  passwordHasher: Argon2PasswordHasher;
   googleProvider: IOAuthProvider | null;
   githubProvider: IOAuthProvider | null;
   baseUrl: string;
@@ -85,8 +77,6 @@ interface IdentityCradle {
   userCreatedNotifier: UserCreatedNotifierAdapter;
   createUserUseCase: CreateUserUseCase;
   getUserByIdUseCase: GetUserByIdUseCase;
-  registerUseCase: RegisterUseCase;
-  loginUseCase: LoginUseCase;
   getCurrentUserUseCase: GetCurrentUserUseCase;
   oauthCallbackUseCase: OAuthCallbackUseCase;
   logoutUseCase: LogoutUseCase;
@@ -134,14 +124,6 @@ export function createContainer(config: ContainerConfig) {
     userRepository: asFunction(
       (cradle: IdentityCradle) => new PrismaUserRepository(cradle.prisma)
     ).singleton(),
-    authCredentialRepository: asFunction(
-      (cradle: IdentityCradle) =>
-        new PrismaAuthCredentialRepository(cradle.prisma)
-    ).singleton(),
-    registrationPersistence: asFunction(
-      (cradle: IdentityCradle) =>
-        new PrismaUserRegistrationPersistence(cradle.prisma)
-    ).singleton(),
     userOAuthRegistrationPersistence: asFunction(
       (cradle: IdentityCradle) =>
         new PrismaUserOAuthRegistrationPersistence(cradle.prisma)
@@ -170,8 +152,6 @@ export function createContainer(config: ContainerConfig) {
         expiresInSeconds: config.jwtExpiresInSeconds,
       });
     }).singleton(),
-
-    passwordHasher: asClass(Argon2PasswordHasher).singleton(),
 
     googleProvider: asFunction(
       ({ config }: { config: ContainerConfig }): IOAuthProvider | null =>
@@ -203,28 +183,6 @@ export function createContainer(config: ContainerConfig) {
     getUserByIdUseCase: asFunction(
       (cradle: IdentityCradle) =>
         new GetUserByIdUseCase(cradle.userRepository, cradle.cache)
-    ).singleton(),
-
-    registerUseCase: asFunction(
-      (cradle: IdentityCradle) =>
-        new RegisterUseCase(
-          cradle.userRepository,
-          cradle.registrationPersistence,
-          cradle.passwordHasher,
-          cradle.tokenService,
-          cradle.userCreatedNotifier
-        )
-    ).singleton(),
-
-    loginUseCase: asFunction(
-      (cradle: IdentityCradle) =>
-        new LoginUseCase(
-          cradle.userRepository,
-          cradle.authCredentialRepository,
-          cradle.outboxRepository,
-          cradle.passwordHasher,
-          cradle.tokenService
-        )
     ).singleton(),
 
     getCurrentUserUseCase: asFunction(
@@ -278,8 +236,6 @@ export function createContainer(config: ContainerConfig) {
     authController: asFunction(
       (cradle: IdentityCradle) =>
         new AuthController(
-          cradle.registerUseCase,
-          cradle.loginUseCase,
           cradle.getCurrentUserUseCase,
           cradle.oauthCallbackUseCase,
           cradle.googleProvider,

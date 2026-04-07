@@ -121,7 +121,7 @@ O objetivo é detalhar, classificar e priorizar os requisitos funcionais e não 
 
 - **Ator:** Diretoria, Compliance Officer, Auditor
 - **Fluxo principal:**
-  1. Usuário acessa o dashboard com suas credenciais.
+  1. Usuário acessa o dashboard via provedor OAuth corporativo.
   2. Sistema exibe KPIs conforme perfil e permissões.
   3. Usuário aplica filtros por período, área ou nível de risco.
   4. Sistema atualiza os indicadores dinamicamente.

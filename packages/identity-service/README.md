@@ -1,6 +1,6 @@
 # Identity Service
 
-Microserviço de identidade: autenticação (JWT), registro de usuários e OAuth (Google/GitHub).
+Microserviço de identidade: autenticação OAuth (Google/GitHub), JWT e gestão de usuários.
 
 - **Porta HTTP:** 3001 (ou `IDENTITY_SERVICE_PORT`)
 - **Roteamento:** `/api` (users, auth); `/health`

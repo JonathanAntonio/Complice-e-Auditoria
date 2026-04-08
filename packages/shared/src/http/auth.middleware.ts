@@ -15,6 +15,31 @@ export interface JwtPayload {
   authzVersion?: number;
 }
 
+function normalizePermissionCode(permission: string): string {
+  const normalized = permission.trim().toLowerCase();
+  switch (normalized) {
+    case "catalog.items.read":
+      return "compliance.violations.read";
+    case "catalog.items.create":
+      return "compliance.violations.create";
+    case "catalog.test.access":
+      return "compliance.test.access";
+    default:
+      return normalized;
+  }
+}
+
+function normalizePermissions(permissions: string[] | undefined): string[] {
+  if (!permissions || permissions.length === 0) return [];
+  const normalized = new Set<string>();
+  for (const permission of permissions) {
+    if (typeof permission !== "string") continue;
+    const code = normalizePermissionCode(permission);
+    if (code) normalized.add(code);
+  }
+  return [...normalized];
+}
+
 /**
  * Este módulo estende globalmente Express.Request com userId, userEmail e userRole.
  * Em monorepos com um app por processo isso é estável; evite misturar múltiplas apps no mesmo processo.
@@ -75,7 +100,7 @@ export function createAuthMiddleware(
     req.userPrimaryRole = payload.primaryRole;
     req.userRoles = payload.roles ?? (payload.primaryRole ? [payload.primaryRole] : []);
     req.userRole = payload.primaryRole ?? "user";
-    req.userPermissions = payload.permissions ?? [];
+    req.userPermissions = normalizePermissions(payload.permissions);
     req.authzVersion = payload.authzVersion;
     next();
   };

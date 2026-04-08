@@ -2,6 +2,8 @@ export interface BffConfig {
   port: number;
   gatewayBaseUrl: string;
   iamAuthBasePath: string;
+  complianceBasePath: string;
+  auditBasePath: string;
   explicitPublicBaseUrl: string | null;
   sessionCookieName: string;
   sessionMaxAgeSeconds: number;
@@ -12,6 +14,8 @@ export function loadBffConfig(env: NodeJS.ProcessEnv): BffConfig {
     port: parsePort(env.BFF_PORT, 3004),
     gatewayBaseUrl: normalizeBaseUrl(env.BFF_GATEWAY_URL ?? "http://localhost:8080"),
     iamAuthBasePath: normalizeBasePath(env.BFF_IAM_AUTH_BASE_PATH ?? "/identity/api/auth"),
+    complianceBasePath: normalizeBasePath(env.BFF_COMPLIANCE_BASE_PATH ?? "/compliance/api"),
+    auditBasePath: normalizeBasePath(env.BFF_AUDIT_BASE_PATH ?? "/audit/api"),
     explicitPublicBaseUrl: normalizeOptionalUrl(env.BFF_PUBLIC_BASE_URL),
     sessionCookieName: (env.BFF_SESSION_COOKIE_NAME ?? "complice_session").trim() || "complice_session",
     sessionMaxAgeSeconds: parsePositiveInt(env.BFF_SESSION_MAX_AGE_SECONDS, 604800),

@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("AUDIT_DATABASE_URL")
+}
+
+model AuditLogModel {
+  id            String   @id @default(uuid())
+  eventId       String   @unique @map("event_id")
+  eventType     String   @map("event_type")
+  occurredAtUTC DateTime @map("occurred_at_utc")
+  recordedAtUTC DateTime @default(now()) @map("recorded_at_utc")
+  actorId       String?  @map("actor_id")
+  actorType     String?  @map("actor_type")
+  sourceService String   @map("source_service")
+  correlationId String   @map("correlation_id")
+  severity      String
+  payload       Json     @db.JsonB
+
+  @@index([occurredAtUTC])
+  @@index([eventType])
+  @@index([actorId])
+  @@index([severity])
+  @@map("audit_logs")
+}

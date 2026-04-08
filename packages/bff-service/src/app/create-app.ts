@@ -6,11 +6,17 @@ import {
 } from "@lframework/shared";
 import type { BffConfig } from "./config";
 import { IamAuthHttpClient } from "../adapters/driven/http/iam-auth-http.client";
+import { ComplianceHttpClient } from "../adapters/driven/http/compliance-http.client";
+import { AuditHttpClient } from "../adapters/driven/http/audit-http.client";
 import { CookieSessionService } from "../adapters/driving/http/cookie-session.service";
 import { StartOAuthUseCase } from "../application/use-cases/start-oauth.use-case";
 import { CompleteOAuthCallbackUseCase } from "../application/use-cases/complete-oauth-callback.use-case";
 import { GetCurrentUserUseCase } from "../application/use-cases/get-current-user.use-case";
 import { LogoutUseCase } from "../application/use-cases/logout.use-case";
+import { CreateComplianceViolationUseCase } from "../application/use-cases/create-compliance-violation.use-case";
+import { ListComplianceViolationsUseCase } from "../application/use-cases/list-compliance-violations.use-case";
+import { UpdateComplianceViolationUseCase } from "../application/use-cases/update-compliance-violation.use-case";
+import { ListAuditLogsUseCase } from "../application/use-cases/list-audit-logs.use-case";
 import { AuthHandlers } from "../adapters/driving/http/auth.handlers";
 
 export function createApp(config: BffConfig) {
@@ -25,6 +31,14 @@ export function createApp(config: BffConfig) {
     gatewayBaseUrl: config.gatewayBaseUrl,
     iamAuthBasePath: config.iamAuthBasePath,
   });
+  const complianceHttpClient = new ComplianceHttpClient({
+    gatewayBaseUrl: config.gatewayBaseUrl,
+    complianceBasePath: config.complianceBasePath,
+  });
+  const auditHttpClient = new AuditHttpClient({
+    gatewayBaseUrl: config.gatewayBaseUrl,
+    auditBasePath: config.auditBasePath,
+  });
   const cookieSessionService = new CookieSessionService({
     sessionCookieName: config.sessionCookieName,
     sessionMaxAgeSeconds: config.sessionMaxAgeSeconds,
@@ -35,6 +49,10 @@ export function createApp(config: BffConfig) {
     completeOAuthCallbackUseCase: new CompleteOAuthCallbackUseCase(iamAuthClient),
     getCurrentUserUseCase: new GetCurrentUserUseCase(iamAuthClient),
     logoutUseCase: new LogoutUseCase(iamAuthClient),
+    createComplianceViolationUseCase: new CreateComplianceViolationUseCase(complianceHttpClient),
+    updateComplianceViolationUseCase: new UpdateComplianceViolationUseCase(complianceHttpClient),
+    listComplianceViolationsUseCase: new ListComplianceViolationsUseCase(complianceHttpClient),
+    listAuditLogsUseCase: new ListAuditLogsUseCase(auditHttpClient),
     cookieSessionService,
     explicitPublicBaseUrl: config.explicitPublicBaseUrl,
   });
@@ -46,6 +64,10 @@ export function createApp(config: BffConfig) {
   app.get("/bff/auth/github/callback", handlers.githubCallback);
   app.get("/bff/auth/me", handlers.me);
   app.post("/bff/auth/logout", handlers.logout);
+  app.get("/bff/compliance/violations", handlers.listComplianceViolations);
+  app.post("/bff/compliance/violations", handlers.createComplianceViolation);
+  app.patch("/bff/compliance/violations/:violationId", handlers.updateComplianceViolation);
+  app.get("/bff/audit/logs", handlers.listAuditLogs);
 
   return app;
 }

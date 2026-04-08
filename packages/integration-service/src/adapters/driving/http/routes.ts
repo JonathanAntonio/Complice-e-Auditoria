@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from "express";
 import rateLimit from "express-rate-limit";
-import { logger, validateEventEnvelopeV1, sendError } from "@lframework/shared";
+import { logger, validateEventEnvelopeV1, sendError, createEventEnvelopeV1 } from "@lframework/shared";
 import type { PrismaEventRepository } from "../../driven/persistence/prisma-event.repository";
 import type { IntegrationMetrics } from "../../../application/metrics";
 
@@ -41,10 +41,20 @@ export function createIntegrationRoutes(
 
   router.post("/integrations/events", limiter, async (req: Request, res: Response) => {
     metrics.eventsReceivedTotal.inc();
+    const correlationId = resolveCorrelationId(req);
 
     const apiKey = resolveApiKey(req);
     if (!apiKey || apiKey !== integrationApiKey) {
       metrics.eventsRejectedTotal.inc();
+      await tryAppendAuditEvent(repository, {
+        type: "integration.audit.rejected",
+        correlationId,
+        payload: {
+          reason: "unauthorized",
+          path: req.path,
+          method: req.method,
+        },
+      });
       sendError(res, 401, "Unauthorized");
       return;
     }
@@ -54,24 +64,89 @@ export function createIntegrationRoutes(
       const result = await repository.storeInboundAndOutbox(envelope);
       if (result.duplicate) {
         metrics.eventsDuplicateTotal.inc();
+        await tryAppendAuditEvent(repository, {
+          type: "integration.audit.duplicate",
+          correlationId: envelope.correlationId,
+          payload: {
+            sourceEventId: envelope.eventId,
+            sourceEventType: envelope.type,
+            producer: envelope.producer,
+          },
+        });
         res.status(200).json({ accepted: true, duplicate: true, eventId: envelope.eventId });
         return;
       }
 
       metrics.eventsAcceptedTotal.inc();
+      await tryAppendAuditEvent(repository, {
+        type: "integration.audit.accepted",
+        correlationId: envelope.correlationId,
+        payload: {
+          sourceEventId: envelope.eventId,
+          sourceEventType: envelope.type,
+          producer: envelope.producer,
+        },
+      });
       res.status(202).json({ accepted: true, duplicate: false, eventId: envelope.eventId });
     } catch (err) {
       if (isValidationLikeError(err)) {
         metrics.eventsRejectedTotal.inc();
         logger.warn({ err }, "Invalid inbound integration event");
+        await tryAppendAuditEvent(repository, {
+          type: "integration.audit.rejected",
+          correlationId,
+          payload: {
+            reason: "invalid_envelope",
+            path: req.path,
+            method: req.method,
+          },
+        });
         sendError(res, 400, "Invalid event envelope");
         return;
       }
 
       logger.error({ err }, "Integration repository failure while persisting inbound event");
+      await tryAppendAuditEvent(repository, {
+        type: "integration.audit.rejected",
+        correlationId,
+        payload: {
+          reason: "repository_failure",
+          path: req.path,
+          method: req.method,
+        },
+      });
       sendError(res, 500, "Internal server error");
     }
   });
 
   return router;
+}
+
+function resolveCorrelationId(req: Request): string {
+  const value = req.headers["x-correlation-id"];
+  if (Array.isArray(value)) return value[0] ?? "";
+  if (typeof value === "string") return value;
+  return "";
+}
+
+async function tryAppendAuditEvent(
+  repository: PrismaEventRepository,
+  params: {
+    type: string;
+    correlationId?: string;
+    payload: Record<string, unknown>;
+  }
+): Promise<void> {
+  try {
+    await repository.appendAuditEvent(
+      createEventEnvelopeV1({
+        type: params.type,
+        producer: "integration-service",
+        correlationId: params.correlationId,
+        payload: params.payload,
+      })
+    );
+  } catch (err) {
+    logger.warn({ err, type: params.type }, "Failed to append integration audit event");
+  }
 }

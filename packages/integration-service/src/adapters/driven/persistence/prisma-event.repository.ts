@@ -50,4 +50,19 @@ export class PrismaEventRepository {
       throw err;
     }
   }
+
+  async appendAuditEvent(envelope: EventEnvelopeV1): Promise<void> {
+    await this.prisma.outboxModel.create({
+      data: {
+        id: randomUUID(),
+        eventName: envelope.type,
+        exchange: EXCHANGE_USER_EVENTS,
+        routingKey: routingKeyFromEventType(envelope.type),
+        payload: envelope as unknown as Prisma.InputJsonValue,
+        retryCount: 0,
+        lastError: null,
+        createdAt: new Date(),
+      },
+    });
+  }
 }

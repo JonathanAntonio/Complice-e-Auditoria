@@ -8,6 +8,17 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            react: ["react", "react-dom"],
+            antd: ["antd"],
+            icons: ["lucide-react"],
+          },
+        },
+      },
+    },
     server: {
       host: "0.0.0.0",
       port: frontendPort,

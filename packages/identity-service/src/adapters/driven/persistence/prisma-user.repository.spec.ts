@@ -22,7 +22,7 @@ describe("PrismaUserRepository", () => {
           },
         ])
         .mockResolvedValueOnce([{ code: USER_ROLES.GESTOR, isPrimary: true }])
-        .mockResolvedValueOnce([{ code: PERMISSIONS.CATALOG_ITEMS_READ }]),
+        .mockResolvedValueOnce([{ code: PERMISSIONS.COMPLIANCE_VIOLATIONS_READ }]),
     } as any;
 
     const repository = new PrismaUserRepository(prisma);
@@ -33,7 +33,7 @@ describe("PrismaUserRepository", () => {
     expect(user!.email.value).toBe("u@example.com");
     expect(user!.primaryRole).toBe(USER_ROLES.GESTOR);
     expect(user!.roles).toEqual([USER_ROLES.GESTOR]);
-    expect(user!.permissions).toContain(PERMISSIONS.CATALOG_ITEMS_READ);
+    expect(user!.permissions).toContain(PERMISSIONS.COMPLIANCE_VIOLATIONS_READ);
     expect(user!.authorizationVersion).toBe(3);
     expect(user!.isActive).toBe(true);
     expect(user!.failedLoginAttempts).toBe(1);

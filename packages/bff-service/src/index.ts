@@ -16,6 +16,8 @@ app.listen(config.port, () => {
       port: config.port,
       gatewayBaseUrl: config.gatewayBaseUrl,
       iamAuthBasePath: config.iamAuthBasePath,
+      complianceBasePath: config.complianceBasePath,
+      auditBasePath: config.auditBasePath,
       publicBaseUrl: config.explicitPublicBaseUrl,
       sessionCookieName: config.sessionCookieName,
       sessionMaxAgeSeconds: config.sessionMaxAgeSeconds,

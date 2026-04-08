@@ -1,7 +1,9 @@
 import { requestBffAuth } from "../infrastructure/http/bff-auth.api";
+import { parseAuthSessionDto } from "./dtos/auth-session.dto";
 
 export async function getCurrentUserSession() {
-  return requestBffAuth("/me", { defaultErrorMessage: "Não autenticado." });
+  const payload = await requestBffAuth("/me", { defaultErrorMessage: "Não autenticado." });
+  return parseAuthSessionDto(payload);
 }
 
 export async function logoutSession() {

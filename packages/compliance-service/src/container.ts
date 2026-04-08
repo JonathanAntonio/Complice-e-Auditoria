@@ -1,0 +1,208 @@
+import { createContainer as createAwilixContainer, asValue, asFunction } from "awilix";
+import { PrismaClient } from "../generated/prisma-client";
+import Redis from "ioredis";
+import type { UserCreatedPayload } from "@lframework/shared";
+import type { ICacheService } from "@lframework/shared";
+import {
+  RedisCacheAdapter,
+  createAuthMiddleware,
+  JwtTokenVerifier,
+  requirePermission,
+} from "@lframework/shared";
+import { PrismaItemRepository } from "./adapters/driven/persistence/prisma-item.repository";
+import { PrismaReplicatedUserStore } from "./adapters/driven/persistence/prisma-replicated-user.store";
+import { ItemsListCacheInvalidatorAdapter } from "./adapters/driven/cache/items-list-cache-invalidator.adapter";
+import { RabbitMqUserEventsAdapter } from "./adapters/driving/messaging/rabbitmq-user-events.adapter";
+import { CreateItemUseCase } from "./application/use-cases/create-item.use-case";
+import { ListItemsUseCase } from "./application/use-cases/list-items.use-case";
+import { UpdateItemUseCase } from "./application/use-cases/update-item.use-case";
+import { HandleUserCreatedUseCase } from "./application/use-cases/handle-user-created.use-case";
+import { ItemController } from "./adapters/driving/http/item.controller";
+import { createItemRoutes } from "./adapters/driving/http/routes";
+import { mapApplicationErrorToHttp } from "./adapters/driving/http/error-to-http.mapper";
+
+/** No-op event consumer for tests; when set, RabbitMQ is not used. */
+export interface TestEventConsumer {
+  start(): Promise<void>;
+  close(): Promise<void>;
+}
+
+export interface ComplianceContainerConfig {
+  databaseUrl: string;
+  redisUrl: string;
+  rabbitmqUrl: string;
+  jwtSecret: string;
+  /** When set, used instead of Redis cache (e.g. no-op in integration tests). */
+  cacheOverride?: ICacheService;
+  /** When set, used instead of starting RabbitMQ consumer (e.g. no-op in integration tests). */
+  eventConsumerOverride?: TestEventConsumer;
+}
+
+/** Tipo do cradle (dependências resolvidas) para type-safety. */
+interface ComplianceCradle {
+  config: ComplianceContainerConfig;
+  prisma: PrismaClient;
+  redis: Redis;
+  cache: ICacheService;
+  itemRepository: PrismaItemRepository;
+  replicatedUserStore: PrismaReplicatedUserStore;
+  itemsListCacheInvalidator: ItemsListCacheInvalidatorAdapter;
+  createItemUseCase: CreateItemUseCase;
+  listItemsUseCase: ListItemsUseCase;
+  updateItemUseCase: UpdateItemUseCase;
+  handleUserCreatedUseCase: HandleUserCreatedUseCase;
+  itemController: ItemController;
+  tokenVerifier: JwtTokenVerifier;
+  authMiddleware: ReturnType<typeof createAuthMiddleware>;
+  requireItemsRead: ReturnType<typeof requirePermission>;
+  requireItemsCreate: ReturnType<typeof requirePermission>;
+  requireComplianceTestAccess: ReturnType<typeof requirePermission>;
+  itemRoutes: ReturnType<typeof createItemRoutes>;
+  eventConsumer: RabbitMqUserEventsAdapter;
+}
+
+/**
+ * Container de DI com Awilix.
+ * Dependências registradas por nome; resolução automática por parâmetros do construtor.
+ */
+export function createContainer(config: ComplianceContainerConfig) {
+  const awilix = createAwilixContainer<ComplianceCradle>();
+
+  awilix.register({
+    config: asValue(config),
+
+    prisma: asFunction(({ config }: { config: ComplianceContainerConfig }) => {
+      return new PrismaClient({
+        datasources: { db: { url: config.databaseUrl } },
+      });
+    }).singleton(),
+
+    redis: asFunction(({ config }: { config: ComplianceContainerConfig }) => {
+      return new Redis(config.redisUrl, {
+        connectTimeout: 5000,
+        commandTimeout: 5000,
+      });
+    }).singleton(),
+
+    cache: asFunction(
+      ({ config, redis }: { config: ComplianceContainerConfig; redis: Redis }) =>
+        config.cacheOverride ?? new RedisCacheAdapter(redis)
+    ).singleton(),
+    itemRepository: asFunction(
+      (cradle: ComplianceCradle) => new PrismaItemRepository(cradle.prisma)
+    ).singleton(),
+    replicatedUserStore: asFunction(
+      (cradle: ComplianceCradle) => new PrismaReplicatedUserStore(cradle.prisma)
+    ).singleton(),
+    itemsListCacheInvalidator: asFunction(
+      (cradle: ComplianceCradle) =>
+        new ItemsListCacheInvalidatorAdapter(cradle.cache)
+    ).singleton(),
+
+    createItemUseCase: asFunction(
+      (cradle: ComplianceCradle) =>
+        new CreateItemUseCase(cradle.itemRepository, cradle.itemsListCacheInvalidator)
+    ).singleton(),
+    listItemsUseCase: asFunction(
+      (cradle: ComplianceCradle) =>
+        new ListItemsUseCase(cradle.itemRepository, cradle.cache)
+    ).singleton(),
+    updateItemUseCase: asFunction(
+      (cradle: ComplianceCradle) =>
+        new UpdateItemUseCase(cradle.itemRepository, cradle.itemsListCacheInvalidator)
+    ).singleton(),
+    handleUserCreatedUseCase: asFunction(
+      (cradle: ComplianceCradle) =>
+        new HandleUserCreatedUseCase(cradle.replicatedUserStore, cradle.cache)
+    ).singleton(),
+
+    itemController: asFunction(
+      (cradle: ComplianceCradle) =>
+        new ItemController(cradle.createItemUseCase, cradle.listItemsUseCase, cradle.updateItemUseCase)
+    ).singleton(),
+
+    tokenVerifier: asFunction(({ config }: { config: ComplianceContainerConfig }) => {
+      return new JwtTokenVerifier(config.jwtSecret);
+    }).singleton(),
+
+    authMiddleware: asFunction(
+      ({ tokenVerifier }: { tokenVerifier: JwtTokenVerifier }) =>
+        createAuthMiddleware((token) => tokenVerifier.verify(token))
+    ).singleton(),
+
+    requireItemsRead: asFunction(() => requirePermission("compliance.violations.read")).singleton(),
+
+    requireItemsCreate: asFunction(() => requirePermission("compliance.violations.create")).singleton(),
+
+    requireComplianceTestAccess: asFunction(() => requirePermission("compliance.test.access")).singleton(),
+
+    itemRoutes: asFunction(
+      ({
+        itemController,
+        authMiddleware,
+        requireItemsRead,
+        requireItemsCreate,
+        requireComplianceTestAccess,
+      }: {
+        itemController: ItemController;
+        authMiddleware: ReturnType<typeof createAuthMiddleware>;
+        requireItemsRead: ReturnType<typeof requirePermission>;
+        requireItemsCreate: ReturnType<typeof requirePermission>;
+        requireComplianceTestAccess: ReturnType<typeof requirePermission>;
+      }) => createItemRoutes(
+        itemController,
+        authMiddleware,
+        requireItemsRead,
+        requireItemsCreate,
+        requireComplianceTestAccess
+      )
+    ).singleton(),
+
+    eventConsumer: asFunction(
+      ({ config }: { config: ComplianceContainerConfig }) =>
+        new RabbitMqUserEventsAdapter(config.rabbitmqUrl)
+    ).singleton(),
+  });
+
+  const c = awilix.cradle;
+  let activeConsumer: { close(): Promise<void> } | null = null;
+
+  return {
+    get prisma() {
+      return c.prisma;
+    },
+    get redis() {
+      return c.redis;
+    },
+    get itemRoutes() {
+      return c.itemRoutes;
+    },
+    mapApplicationErrorToHttp,
+    get handleUserCreatedUseCase() {
+      return c.handleUserCreatedUseCase;
+    },
+    async connectRabbitMQ(userCreatedHandler: (payload: UserCreatedPayload) => Promise<void>): Promise<void> {
+      if (activeConsumer) {
+        await activeConsumer.close();
+        activeConsumer = null;
+      }
+      const config = c.config;
+      if (config.eventConsumerOverride) {
+        await config.eventConsumerOverride.start();
+        activeConsumer = config.eventConsumerOverride;
+      } else {
+        c.eventConsumer.onUserCreated(userCreatedHandler);
+        await c.eventConsumer.start();
+        activeConsumer = c.eventConsumer;
+      }
+    },
+    async disconnect(): Promise<void> {
+      if (activeConsumer) {
+        await activeConsumer.close();
+        activeConsumer = null;
+      }
+      await c.prisma.$disconnect();
+      c.redis.disconnect();
+    },
+  };
+}

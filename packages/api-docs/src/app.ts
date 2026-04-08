@@ -4,16 +4,18 @@ import { mergeOpenApiSpecs, type OpenApiSpec } from "./merge-specs";
 
 export interface CreateApiDocsAppOptions {
   identitySpecUrl?: string;
-  catalogSpecUrl?: string;
+  complianceSpecUrl?: string;
   integrationSpecUrl?: string;
+  auditSpecUrl?: string;
   fetchFn?: typeof fetch;
   fetchTimeoutMs?: number;
 }
 
 export function createApp(options: CreateApiDocsAppOptions = {}) {
   const identitySpecUrl = options.identitySpecUrl ?? process.env.IDENTITY_SPEC_URL ?? "http://localhost:3001/api-docs.json";
-  const catalogSpecUrl = options.catalogSpecUrl ?? process.env.CATALOG_SPEC_URL ?? "http://localhost:3002/api-docs.json";
+  const complianceSpecUrl = options.complianceSpecUrl ?? process.env.COMPLIANCE_SPEC_URL ?? "http://localhost:3002/api-docs.json";
   const integrationSpecUrl = options.integrationSpecUrl ?? process.env.INTEGRATION_SPEC_URL ?? "http://localhost:3003/api-docs.json";
+  const auditSpecUrl = options.auditSpecUrl ?? process.env.AUDIT_SPEC_URL ?? "http://localhost:3005/api-docs.json";
   const fetchFn = options.fetchFn ?? fetch;
   const fetchTimeoutMs = options.fetchTimeoutMs ?? 5000;
 
@@ -31,7 +33,7 @@ export function createApp(options: CreateApiDocsAppOptions = {}) {
     } catch (err) {
       if (timeoutId) clearTimeout(timeoutId);
       if (err instanceof Error && (err.name === "AbortError" || err.name === "TimeoutError")) {
-        throw new Error(`fetchSpec timed out fetching ${url}`);
+        throw new Error(`fetchSpec timed out fetching ${url}`, { cause: err });
       }
       throw err;
     } finally {
@@ -43,15 +45,17 @@ export function createApp(options: CreateApiDocsAppOptions = {}) {
   }
 
   async function getMergedSpec(): Promise<object> {
-    const [identitySpec, catalogSpec, integrationSpec] = await Promise.all([
+    const [identitySpec, complianceSpec, integrationSpec, auditSpec] = await Promise.all([
       fetchSpec(identitySpecUrl),
-      fetchSpec(catalogSpecUrl),
+      fetchSpec(complianceSpecUrl),
       fetchSpec(integrationSpecUrl),
+      fetchSpec(auditSpecUrl),
     ]);
     return mergeOpenApiSpecs([
       { spec: identitySpec, prefix: "Identity_", serviceName: "Identity Service" },
-      { spec: catalogSpec, prefix: "Catalog_", serviceName: "Catalog Service" },
+      { spec: complianceSpec, prefix: "Compliance_", serviceName: "Compliance Service" },
       { spec: integrationSpec, prefix: "Integration_", serviceName: "Integration Service" },
+      { spec: auditSpec, prefix: "Audit_", serviceName: "Audit Service" },
     ]);
   }
 
@@ -70,7 +74,7 @@ export function createApp(options: CreateApiDocsAppOptions = {}) {
       res.status(502).json({
         error: "Failed to merge specs",
         message: err instanceof Error ? err.message : String(err),
-        hint: "Ensure identity, catalog and integration services are running and *_SPEC_URL vars are correct.",
+        hint: "Ensure identity, compliance, integration and audit services are running and *_SPEC_URL vars are correct.",
       });
     }
   });

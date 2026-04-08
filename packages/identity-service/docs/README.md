@@ -24,13 +24,11 @@ Composition root: `src/container.ts`. Entry: `src/index.ts`.
 
 ## Documentação geral
 
-- [ARCHITECTURE](../../../docs/ARCHITECTURE.md) — visão do framework e do shared
-- [STRUCTURE](../../../docs/STRUCTURE.md) — árvore e convenções
-- [API](../../../docs/API.md) — endpoints e autenticação
-- [DEVELOPMENT](../../../docs/DEVELOPMENT.md) — rodar, testar, troubleshooting
-- [SECURITY](../../../docs/SECURITY.md) — validação e segurança
+- [Visao Geral](../../../docs/VisaoGeralProjeto.md) — arquitetura e fluxo do sistema
+- [Requisitos Corporativos](../../../docs/RequisitosCorp.md) — requisitos funcionais e não funcionais
+- [Regras de Negócio](../../../docs/RegrasDeNegocio.md) — regras do domínio
 - [RBAC Roadmap](../../../docs/RBAC-IDENTITY-ROADMAP.md) — plano detalhado para evoluir o `identity-service` de role única para RBAC granular
 
 ## Observação
 
-Parte dos links acima aponta para documentos ainda não presentes no repositório atual. O arquivo `docs/RBAC-IDENTITY-ROADMAP.md` registra esse gap explicitamente e trata essa correção como parte do roadmap técnico.
+Este README referencia apenas documentos atualmente presentes no repositório.

@@ -90,6 +90,24 @@ describe("createAuthMiddleware", () => {
     expect(res.status).not.toHaveBeenCalled();
   });
 
+  it("deve normalizar permissões legadas de catalog para compliance", () => {
+    req.headers = { authorization: "Bearer legacy-token" };
+    const verify = vi.fn().mockReturnValue({
+      sub: "user-legacy",
+      permissions: ["catalog.items.read", "catalog.items.create", "catalog.test.access"],
+    });
+    const middleware = createAuthMiddleware(verify);
+
+    middleware(req as Request, res as Response, next);
+
+    expect(req.userPermissions).toEqual([
+      "compliance.violations.read",
+      "compliance.violations.create",
+      "compliance.test.access",
+    ]);
+    expect(next).toHaveBeenCalled();
+  });
+
   it("deve usar role 'user' e lista vazia quando payload não traz autorização", () => {
     req.headers = { authorization: "Bearer token" };
     const verify = vi.fn().mockReturnValue({ sub: "id-1" });

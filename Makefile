@@ -11,7 +11,7 @@ help:
 	@echo "  make infra-wait  - aguarda infraestrutura ficar saudável (healthcheck)"
 	@echo "  make infra-down  - derruba infraestrutura Docker"
 	@echo "  make migrate     - executa migrações dos serviços"
-	@echo "  make dev         - sobe identity, catalog, integration, api-docs, bff e frontend"
+	@echo "  make dev         - sobe identity, compliance, integration, audit, api-docs, bff e frontend"
 	@echo "  make run         - instala deps, sobe infra e inicia todos os serviços"
 	@echo "  make test        - roda testes"
 	@echo "  make lint        - roda lint"
@@ -43,8 +43,9 @@ infra-down:
 
 migrate:
 	pnpm --filter identity-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
-	pnpm --filter catalog-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
+	pnpm --filter compliance-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
 	pnpm --filter integration-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
+	pnpm --filter audit-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
 
 dev:
 	pnpm dev
@@ -61,4 +62,4 @@ build:
 	pnpm build
 
 ngrok:
-	ngrok start --all --config ./ngrok.yml
+	ngrok http 5173 --domain=apparent-driving-horse.ngrok-free.app

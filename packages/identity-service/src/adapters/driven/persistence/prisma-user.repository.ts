@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { Prisma, PrismaClient } from "../../../../generated/prisma-client";
+import { logger } from "@lframework/shared";
 import { User } from "../../../domain/entities/user.entity";
 import type { IUserRepository } from "../../../application/ports/user-repository.port";
 import type { OutboxEvent } from "../../../application/ports/outbox-writer.port";
@@ -11,9 +12,9 @@ import {
   type UserRole,
 } from "../../../domain/types";
 import {
-  ensureAuthorizationCatalog,
+  ensureAuthorizationRegistry,
   resolveRoleIdByCode,
-} from "./authorization-catalog";
+} from "./authorization-registry";
 import { toEnvelope } from "./outbox-envelope";
 
 function isPrismaP2002(err: unknown): boolean {
@@ -21,19 +22,39 @@ function isPrismaP2002(err: unknown): boolean {
 }
 
 function toDomainUserRole(role: string): UserRole {
-  if (USER_ROLE_VALUES.includes(role as UserRole)) {
-    return role as UserRole;
+  const normalized = role.trim().toLowerCase();
+  if (USER_ROLE_VALUES.includes(normalized as UserRole)) {
+    return normalized as UserRole;
   }
 
   throw new Error(`Invalid user role from database: ${role}`);
 }
 
-function toDomainPermission(permission: string): Permission {
-  if (PERMISSION_VALUES.includes(permission as Permission)) {
-    return permission as Permission;
+function toDomainPermission(permission: string): Permission | null {
+  const normalized = normalizeLegacyPermissionCode(permission);
+  if (PERMISSION_VALUES.includes(normalized as Permission)) {
+    return normalized as Permission;
   }
 
-  throw new Error(`Invalid permission from database: ${permission}`);
+  logger.warn(
+    { permission, normalizedPermission: normalized },
+    "Ignoring unknown permission code from database"
+  );
+  return null;
+}
+
+function normalizeLegacyPermissionCode(permission: string): string {
+  const normalizedPermission = permission.trim().toLowerCase();
+  switch (normalizedPermission) {
+    case "catalog.items.read":
+      return "compliance.violations.read";
+    case "catalog.items.create":
+      return "compliance.violations.create";
+    case "catalog.test.access":
+      return "compliance.test.access";
+    default:
+      return normalizedPermission;
+  }
 }
 
 /**
@@ -45,7 +66,7 @@ export class PrismaUserRepository implements IUserRepository {
   async save(user: User): Promise<void> {
     try {
       await this.prisma.$transaction(async (tx) => {
-        await ensureAuthorizationCatalog(tx);
+        await ensureAuthorizationRegistry(tx);
         await tx.$executeRaw`
           INSERT INTO "users" (
             "id", "email", "name", "authorization_version", "is_active",
@@ -77,7 +98,7 @@ export class PrismaUserRepository implements IUserRepository {
     try {
       const envelope = toEnvelope(outboxEvent);
       await this.prisma.$transaction(async (tx) => {
-        await ensureAuthorizationCatalog(tx);
+        await ensureAuthorizationRegistry(tx);
         await tx.$executeRaw`
           INSERT INTO "users" (
             "id", "email", "name", "authorization_version", "is_active",
@@ -183,7 +204,9 @@ export class PrismaUserRepository implements IUserRepository {
       WHERE ur."user_id" = ${userId}
       ORDER BY p."code" ASC
     `;
-    const permissions = rows.map((row) => toDomainPermission(row.code));
+    const permissions = rows
+      .map((row) => toDomainPermission(row.code))
+      .filter((permission): permission is Permission => permission !== null);
     return PERMISSION_VALUES.filter((permission) => permissions.includes(permission as Permission)) as Permission[];
   }
 

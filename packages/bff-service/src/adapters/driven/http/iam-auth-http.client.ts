@@ -48,20 +48,24 @@ export class IamAuthHttpClient implements IIamAuthClient {
       headers,
     });
 
-    const raw = await response.text();
-    let payload: unknown = raw;
-
-    try {
-      payload = raw ? JSON.parse(raw) : null;
-    } catch {
-      payload = raw;
-    }
+    const payload = await parseHttpPayload(response);
 
     if (!response.ok) {
       throw new UpstreamHttpError(response.status, payloadMessage(payload, `IAM request failed (${response.status})`));
     }
 
     return payload as T;
+  }
+}
+
+async function parseHttpPayload(response: Response): Promise<unknown> {
+  const raw = await response.text();
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    return raw;
   }
 }
 

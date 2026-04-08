@@ -1,10 +1,18 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, beforeAll } from "vitest";
 import request from "supertest";
 import { Router } from "express";
+import { createServer } from "node:net";
 import { createApp } from "./app";
 
 describe("Identity API docs routes", () => {
-  it("serves OpenAPI spec at GET /api-docs.json when baseUrl is provided", async () => {
+  let canListen = true;
+
+  beforeAll(async () => {
+    canListen = await canBindTcpPort();
+  });
+
+  it("serves OpenAPI spec at GET /api-docs.json when baseUrl is provided", async ({ skip }) => {
+    if (!canListen) skip();
     const app = createApp(
       {
         userRoutes: Router(),
@@ -25,7 +33,8 @@ describe("Identity API docs routes", () => {
     expect(res.body.paths).toHaveProperty("/api/users");
   });
 
-  it("serves Swagger UI at GET /api-docs", async () => {
+  it("serves Swagger UI at GET /api-docs", async ({ skip }) => {
+    if (!canListen) skip();
     const app = createApp(
       {
         userRoutes: Router(),
@@ -40,3 +49,13 @@ describe("Identity API docs routes", () => {
     expect(res.text).toContain("Identity Service API");
   });
 });
+
+async function canBindTcpPort(): Promise<boolean> {
+  return await new Promise((resolve) => {
+    const server = createServer();
+    server.once("error", () => resolve(false));
+    server.listen(0, "127.0.0.1", () => {
+      server.close(() => resolve(true));
+    });
+  });
+}

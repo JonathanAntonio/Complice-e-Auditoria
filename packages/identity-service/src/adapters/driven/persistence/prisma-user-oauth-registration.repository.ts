@@ -6,9 +6,9 @@ import type { OutboxEvent } from "../../../application/ports/outbox-writer.port"
 import { User } from "../../../domain/entities/user.entity";
 import { UserAlreadyExistsError } from "../../../application/errors";
 import {
-  ensureAuthorizationCatalog,
+  ensureAuthorizationRegistry,
   resolveRoleIdByCode,
-} from "./authorization-catalog";
+} from "./authorization-registry";
 import { toEnvelope } from "./outbox-envelope";
 
 function isPrismaP2002(err: unknown): boolean {
@@ -30,7 +30,7 @@ export class PrismaUserOAuthRegistrationPersistence implements IUserOAuthRegistr
   ): Promise<void> {
     try {
       await this.prisma.$transaction(async (tx) => {
-        await ensureAuthorizationCatalog(tx);
+        await ensureAuthorizationRegistry(tx);
         const roleId = await resolveRoleIdByCode(tx, user.primaryRole);
         if (!roleId) {
           throw new Error(`Role code not found for OAuth user registration: ${user.primaryRole}`);

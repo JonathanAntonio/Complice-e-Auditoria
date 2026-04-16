@@ -2,4 +2,6 @@
 setlocal
 
 powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0make.ps1" %*
-exit /b %ERRORLEVEL%
+set EXIT_CODE=%ERRORLEVEL%
+
+endlocal & exit /b %EXIT_CODE%

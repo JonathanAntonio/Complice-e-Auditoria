@@ -8,6 +8,7 @@ NGROK_URL ?= rage-awhile-snowcap.ngrok-free.dev
 
 help:
 	@echo "Targets disponíveis:"
+	@echo "  Windows: use ./make.ps1 <target> ou make.cmd <target>"
 	@echo "  make install     - instala dependências do monorepo"
 	@echo "  make infra-up    - sobe Postgres, Redis, RabbitMQ e Nginx (gateway)"
 	@echo "  make infra-wait  - aguarda infraestrutura ficar saudável (healthcheck)"
@@ -44,10 +45,10 @@ infra-down:
 	pnpm docker:down
 
 migrate:
-	pnpm --filter identity-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
-	pnpm --filter compliance-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
-	pnpm --filter integration-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
-	pnpm --filter audit-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
+	./packages/identity-service/node_modules/.bin/prisma migrate dev --name init --schema=./packages/identity-service/prisma/schema.prisma
+	./packages/compliance-service/node_modules/.bin/prisma migrate dev --name init --schema=./packages/compliance-service/prisma/schema.prisma
+	./packages/integration-service/node_modules/.bin/prisma migrate dev --name init --schema=./packages/integration-service/prisma/schema.prisma
+	./packages/audit-service/node_modules/.bin/prisma migrate dev --name init --schema=./packages/audit-service/prisma/schema.prisma
 
 dev:
 	pnpm dev

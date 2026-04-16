@@ -1,143 +1,186 @@
-[CmdletBinding()]
 param(
-    [Parameter(Position = 0)]
-    [string]$Target = "help"
+  [Parameter(Position = 0)]
+  [string]$Target = "help"
 )
 
 $ErrorActionPreference = "Stop"
-Set-StrictMode -Version Latest
+$RepoRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 
-$NgrokAuthToken = "3CPFFE4q2RRHyNayNOLCm3Mp0tI_2fnYKa95PeDtoNEqgVZKH"
-$NgrokUrl = if ([string]::IsNullOrWhiteSpace($env:NGROK_URL)) {
-    "rage-awhile-snowcap.ngrok-free.dev"
-} else {
-    $env:NGROK_URL
+function Invoke-Step {
+  param(
+    [Parameter(Mandatory = $true)]
+    [string]$FilePath,
+    [Parameter(Mandatory = $true)]
+    [string[]]$Arguments
+  )
+
+  & $FilePath @Arguments
+  if ($LASTEXITCODE -ne 0) {
+    throw "Command failed with exit code $LASTEXITCODE: $FilePath $($Arguments -join ' ')"
+  }
 }
 
 function Show-Help {
-    Write-Host "Targets disponiveis:"
-    Write-Host "  .\\make.cmd install     - instala dependencias do monorepo"
-    Write-Host "  .\\make.cmd infra-up    - sobe Postgres, Redis, RabbitMQ e Nginx (gateway)"
-    Write-Host "  .\\make.cmd infra-wait  - aguarda infraestrutura ficar saudavel (healthcheck)"
-    Write-Host "  .\\make.cmd infra-down  - derruba infraestrutura Docker"
-    Write-Host "  .\\make.cmd migrate     - executa migracoes dos servicos"
-    Write-Host "  .\\make.cmd dev         - sobe todos os servicos"
-    Write-Host "  .\\make.cmd run         - instala deps, sobe infra e inicia todos os servicos"
-    Write-Host "  .\\make.cmd test        - roda testes"
-    Write-Host "  .\\make.cmd lint        - roda lint"
-    Write-Host "  .\\make.cmd build       - roda build de todos os pacotes"
-    Write-Host "  .\\make.cmd ngrok       - expoe frontend via ngrok"
+  Write-Host "Targets disponiveis:"
+  Write-Host "  .\make.ps1 help    - mostra esta ajuda"
+  Write-Host "  .\make.ps1 install - instala dependencias do monorepo"
+  Write-Host "  .\make.ps1 infra-up   - sobe Postgres, Redis, RabbitMQ e Nginx (gateway)"
+  Write-Host "  .\make.ps1 infra-wait - aguarda infraestrutura ficar saudavel (healthcheck)"
+  Write-Host "  .\make.ps1 infra-down - derruba infraestrutura Docker"
+  Write-Host "  .\make.ps1 migrate - executa migracoes dos servicos"
+  Write-Host "  .\make.ps1 dev     - sobe todos os servicos"
+  Write-Host "  .\make.ps1 run     - instala deps, sobe infra e inicia todos os servicos"
+  Write-Host "  .\make.ps1 test    - roda testes"
+  Write-Host "  .\make.ps1 lint    - roda lint"
+  Write-Host "  .\make.ps1 build   - roda build de todos os pacotes"
 }
 
-function Invoke-Step {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string[]]$Args
-    )
+function Wait-Infra {
+  Write-Host "Aguardando infraestrutura ficar healthy..."
 
-    $cmd = $Args -join " "
-    Write-Host "> $cmd"
-    if ($Args.Length -eq 1) {
-        & $Args[0]
-    } else {
-        & $Args[0] $Args[1..($Args.Length - 1)]
+  for ($i = 0; $i -lt 90; $i++) {
+    $status = (& docker ps --format '{{.Names}} {{.Status}}') 2>$null
+
+    if (
+      ($status | Select-String -Pattern 'lframework-postgres .*healthy' -Quiet) -and
+      ($status | Select-String -Pattern 'lframework-redis .*healthy' -Quiet) -and
+      ($status | Select-String -Pattern 'lframework-rabbitmq .*healthy' -Quiet) -and
+      ($status | Select-String -Pattern 'lframework-nginx .*healthy' -Quiet)
+    ) {
+      Write-Host "Infra pronta."
+      return
     }
-    if ($LASTEXITCODE -ne 0) {
-        throw "Comando falhou (exit code $LASTEXITCODE): $cmd"
-    }
+
+    Start-Sleep -Seconds 1
+  }
+
+  Write-Host "Timeout aguardando healthchecks da infra."
+  & docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Ports}}' | Select-String 'lframework-(postgres|redis|rabbitmq|nginx)' | ForEach-Object { $_.Line }
+  throw "Infraestrutura nao ficou healthy a tempo."
 }
 
-function Invoke-InfraWait {
-    Write-Host "Aguardando infraestrutura ficar healthy..."
-
-    for ($i = 1; $i -le 90; $i++) {
-        $status = (& docker ps --format '{{.Names}} {{.Status}}' 2>$null)
-
-        $postgresHealthy = $status -match 'lframework-postgres\s+.*healthy'
-        $redisHealthy = $status -match 'lframework-redis\s+.*healthy'
-        $rabbitHealthy = $status -match 'lframework-rabbitmq\s+.*healthy'
-        $nginxHealthy = $status -match 'lframework-nginx\s+.*healthy'
-
-        if ($postgresHealthy -and $redisHealthy -and $rabbitHealthy -and $nginxHealthy) {
-            Write-Host "Infra pronta."
-            return
-        }
-
-        Start-Sleep -Seconds 1
+function Run-Migrations {
+  $prismaTasks = @(
+    @{
+      Name = "identity-service"
+      Prisma = Join-Path $RepoRoot "packages/identity-service/node_modules/.bin/prisma.cmd"
+      Schema = Join-Path $RepoRoot "packages/identity-service/prisma/schema.prisma"
+    },
+    @{
+      Name = "compliance-service"
+      Prisma = Join-Path $RepoRoot "packages/compliance-service/node_modules/.bin/prisma.cmd"
+      Schema = Join-Path $RepoRoot "packages/compliance-service/prisma/schema.prisma"
+    },
+    @{
+      Name = "integration-service"
+      Prisma = Join-Path $RepoRoot "packages/integration-service/node_modules/.bin/prisma.cmd"
+      Schema = Join-Path $RepoRoot "packages/integration-service/prisma/schema.prisma"
+    },
+    @{
+      Name = "audit-service"
+      Prisma = Join-Path $RepoRoot "packages/audit-service/node_modules/.bin/prisma.cmd"
+      Schema = Join-Path $RepoRoot "packages/audit-service/prisma/schema.prisma"
     }
+  )
 
-    Write-Host "Timeout aguardando healthchecks da infra."
-    & docker ps --format "table {{.Names}}`t{{.Status}}`t{{.Ports}}" | Select-String -Pattern 'lframework-(postgres|redis|rabbitmq|nginx)'
-    throw "Infra nao ficou saudavel dentro do tempo limite."
+  foreach ($task in $prismaTasks) {
+    if (-not (Test-Path -Path $task.Prisma)) {
+      throw "Prisma binary nao encontrado para $($task.Name): $($task.Prisma). Rode '.\make.ps1 install' primeiro."
+    }
+  }
+
+  Push-Location $RepoRoot
+  try {
+    foreach ($task in $prismaTasks) {
+      Write-Host "Executando migracao: $($task.Name)"
+      Invoke-Step -FilePath $task.Prisma -Arguments @("migrate", "dev", "--name", "init", "--schema=$($task.Schema)")
+    }
+  }
+  finally {
+    Pop-Location
+  }
 }
 
-$targetNormalized = $Target.ToLowerInvariant()
-
-switch ($targetNormalized) {
-    "help" {
-        Show-Help
+switch ($Target.ToLowerInvariant()) {
+  "help" {
+    Show-Help
+  }
+  "install" {
+    Push-Location $RepoRoot
+    try {
+      Invoke-Step -FilePath "pnpm" -Arguments @("install")
     }
-    "install" {
-        Invoke-Step @("pnpm", "install")
+    finally {
+      Pop-Location
     }
-    "infra-up" {
-        Invoke-Step @("pnpm", "docker:up")
+  }
+  "infra-up" {
+    Push-Location $RepoRoot
+    try {
+      Invoke-Step -FilePath "pnpm" -Arguments @("docker:up")
     }
-    "infra-wait" {
-        Invoke-InfraWait
+    finally {
+      Pop-Location
     }
-    "infra-down" {
-        Invoke-Step @("pnpm", "docker:down")
+  }
+  "infra-wait" {
+    Wait-Infra
+  }
+  "infra-down" {
+    Push-Location $RepoRoot
+    try {
+      Invoke-Step -FilePath "pnpm" -Arguments @("docker:down")
     }
-    "migrate" {
-        Invoke-Step @("pnpm", "--filter", "identity-service", "exec", "prisma", "migrate", "dev", "--name", "init", "--schema=./prisma/schema.prisma")
-        Invoke-Step @("pnpm", "--filter", "compliance-service", "exec", "prisma", "migrate", "dev", "--name", "init", "--schema=./prisma/schema.prisma")
-        Invoke-Step @("pnpm", "--filter", "integration-service", "exec", "prisma", "migrate", "dev", "--name", "init", "--schema=./prisma/schema.prisma")
-        Invoke-Step @("pnpm", "--filter", "audit-service", "exec", "prisma", "migrate", "dev", "--name", "init", "--schema=./prisma/schema.prisma")
+    finally {
+      Pop-Location
     }
-    "dev" {
-        Invoke-Step @("pnpm", "dev")
+  }
+  "migrate" {
+    Run-Migrations
+  }
+  "dev" {
+    Push-Location $RepoRoot
+    try {
+      Invoke-Step -FilePath "pnpm" -Arguments @("dev")
     }
-    "run" {
-        Invoke-Step @("pnpm", "install")
-        Invoke-Step @("pnpm", "docker:up")
-        Invoke-InfraWait
-        Invoke-Step @("pnpm", "dev")
+    finally {
+      Pop-Location
     }
-    "test" {
-        Invoke-Step @("pnpm", "test")
+  }
+  "run" {
+    & $MyInvocation.MyCommand.Path install
+    & $MyInvocation.MyCommand.Path infra-up
+    & $MyInvocation.MyCommand.Path infra-wait
+    & $MyInvocation.MyCommand.Path dev
+  }
+  "test" {
+    Push-Location $RepoRoot
+    try {
+      Invoke-Step -FilePath "pnpm" -Arguments @("test")
     }
-    "lint" {
-        Invoke-Step @("pnpm", "lint")
+    finally {
+      Pop-Location
     }
-    "build" {
-        Invoke-Step @("pnpm", "build")
+  }
+  "lint" {
+    Push-Location $RepoRoot
+    try {
+      Invoke-Step -FilePath "pnpm" -Arguments @("lint")
     }
-    "ngrok" {
-        $previousNgrokToken = $null
-        $hadPreviousNgrokToken = Test-Path Env:NGROK_AUTHTOKEN
-        if ($hadPreviousNgrokToken) {
-            $previousNgrokToken = $env:NGROK_AUTHTOKEN
-        }
-
-        try {
-            $env:NGROK_AUTHTOKEN = $NgrokAuthToken
-            if ([string]::IsNullOrWhiteSpace($NgrokUrl)) {
-                Invoke-Step @("ngrok", "http", "5173", "--authtoken=$NgrokAuthToken")
-            } else {
-                Invoke-Step @("ngrok", "http", "5173", "--authtoken=$NgrokAuthToken", "--url=$NgrokUrl")
-            }
-        } finally {
-            if ($hadPreviousNgrokToken) {
-                $env:NGROK_AUTHTOKEN = $previousNgrokToken
-            } else {
-                Remove-Item Env:NGROK_AUTHTOKEN -ErrorAction SilentlyContinue
-            }
-        }
+    finally {
+      Pop-Location
     }
-    default {
-        Write-Error "Target desconhecido: $Target"
-        Show-Help
-        exit 1
+  }
+  "build" {
+    Push-Location $RepoRoot
+    try {
+      Invoke-Step -FilePath "pnpm" -Arguments @("build")
     }
+    finally {
+      Pop-Location
+    }
+  }
+  default {
+    throw "Target desconhecido: '$Target'. Use '.\make.ps1 help'."
+  }
 }

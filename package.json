@@ -19,7 +19,8 @@
     "dev:reporting": "pnpm --filter reporting-service run dev",
     "dev:notification": "pnpm --filter notification-service run dev",
     "dev:api-docs": "pnpm --filter api-docs run dev",
-    "dev": "pnpm run dev:identity & pnpm run dev:compliance & pnpm run dev:integration & pnpm run dev:audit & pnpm run dev:risk & pnpm run dev:reporting & pnpm run dev:notification & pnpm run dev:api-docs & pnpm run dev:bff & pnpm run dev:frontend",
+    "dev:prepare": "pnpm --filter @lframework/shared run build && pnpm --filter identity-service run prisma:generate",
+    "dev": "pnpm run dev:prepare && (pnpm run dev:identity & pnpm run dev:compliance & pnpm run dev:integration & pnpm run dev:audit & pnpm run dev:risk & pnpm run dev:reporting & pnpm run dev:notification & pnpm run dev:api-docs & pnpm run dev:bff & pnpm run dev:frontend)",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",
     "load-test": "tsx scripts/load-test.ts"

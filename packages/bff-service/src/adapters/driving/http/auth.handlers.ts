@@ -100,6 +100,14 @@ export class AuthHandlers {
     void this.completeOAuthCallback(req, res, "github");
   };
 
+  googleExchange = (req: Request, res: Response): void => {
+    void this.completeOAuthExchange(req, res, "google");
+  };
+
+  githubExchange = (req: Request, res: Response): void => {
+    void this.completeOAuthExchange(req, res, "github");
+  };
+
   me = (req: Request, res: Response): void => {
     void this.getCurrentUser(req, res);
   };
@@ -237,6 +245,33 @@ export class AuthHandlers {
         shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl)
       );
       res.redirect(302, buildFrontendErrorRedirect(publicBaseUrl, provider, toErrorMessage(err, "OAuth callback failed")));
+    }
+  }
+
+  private async completeOAuthExchange(req: Request, res: Response, provider: OAuthProvider): Promise<void> {
+    const code = firstQueryValue(req.query.code) ?? firstBodyString(req.body, "code");
+    const state = firstQueryValue(req.query.state) ?? firstBodyString(req.body, "state");
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+
+    if (!code || !state) {
+      sendJsonError(res, 400, "Missing code/state on OAuth callback");
+      return;
+    }
+
+    try {
+      const accessToken = await this.deps.completeOAuthCallbackUseCase.execute(provider, code, state);
+      this.deps.cookieSessionService.writeSessionCookie(res, accessToken, secureCookie);
+      res.status(204).send();
+    } catch (err) {
+      logger.error({ err, provider }, "BFF failed to complete OAuth exchange");
+      this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+
+      if (err instanceof UpstreamHttpError && (err.statusCode === 400 || err.statusCode === 401 || err.statusCode === 403)) {
+        sendJsonError(res, err.statusCode, toErrorMessage(err, "OAuth callback failed"));
+        return;
+      }
+
+      sendJsonError(res, 502, toErrorMessage(err, "OAuth callback failed"));
     }
   }
 
@@ -1144,6 +1179,12 @@ function firstHeaderValue(value: unknown): string | undefined {
     const first = value[0];
     return typeof first === "string" ? first : undefined;
   }
+  return typeof value === "string" ? value : undefined;
+}
+
+function firstBodyString(body: unknown, key: string): string | undefined {
+  if (!body || typeof body !== "object") return undefined;
+  const value = (body as Record<string, unknown>)[key];
   return typeof value === "string" ? value : undefined;
 }
 

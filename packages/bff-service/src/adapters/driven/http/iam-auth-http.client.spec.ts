@@ -17,7 +17,7 @@ describe("IamAuthHttpClient", () => {
       iamAuthBasePath: "/identity/api/auth",
     });
 
-    const url = await client.getAuthorizationUrl("google", "https://app.example.com/bff/auth/google/callback");
+    const url = await client.getAuthorizationUrl("google", "https://app.example.com/login/google/callback");
 
     expect(url).toBe("https://oauth.example.com/auth");
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);

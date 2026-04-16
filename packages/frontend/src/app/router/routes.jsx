@@ -1,4 +1,4 @@
-import { Navigate, createHashRouter } from "react-router-dom";
+import { Navigate, createBrowserRouter } from "react-router-dom";
 import { AppShell } from "../layout/app-shell";
 import { PermissionGuard } from "../layout/permission-guard";
 import { OverviewPage } from "../../features/overview/pages/overview-page";
@@ -8,12 +8,21 @@ import { RiskPage } from "../../features/risk/pages/risk-page";
 import { GovernancePage } from "../../features/governance/pages/governance-page";
 import { AdminPage } from "../../features/admin/pages/admin-page";
 import { TeamsPage } from "../../features/teams/pages/teams-page";
+import { OAuthCallbackPage } from "../../features/auth/pages/oauth-callback-page";
 
 const withPermission = (requiredAny, element) => (
   <PermissionGuard requiredAny={requiredAny}>{element}</PermissionGuard>
 );
 
-export const router = createHashRouter([
+export const router = createBrowserRouter([
+  {
+    path: "/login/google/callback",
+    element: <OAuthCallbackPage provider="google" />,
+  },
+  {
+    path: "/login/github/callback",
+    element: <OAuthCallbackPage provider="github" />,
+  },
   {
     path: "/",
     element: <AppShell />,
@@ -32,5 +41,9 @@ export const router = createHashRouter([
       { path: "health", element: <OverviewPage /> },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
+  },
+  {
+    path: "*",
+    element: <Navigate to="/" replace />,
   },
 ]);

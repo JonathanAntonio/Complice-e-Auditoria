@@ -3,7 +3,7 @@
 Aplicação React (Vite + Ant Design) com arquitetura modular, consumindo apenas o BFF.
 
 - Porta padrão: `5173`
-- Base de integração: `/bff/*`
+- Base de integração pública: `/auth`, `/compliance`, `/audit`, `/risk`, `/reports`, `/notifications`, `/admin`, `/integrations`
 
 ## Scripts
 
@@ -38,7 +38,7 @@ src/
 
 ## Fluxos cobertos
 
-- OAuth e sessão (`/bff/auth/*`).
+- OAuth e sessão (`/auth/*`) com callback no frontend (`/login/{provider}/callback`).
 - Compliance: listar, criar e editar violações.
 - Auditoria: consulta de logs.
 - Retenção: consulta de execuções (audit/compliance).

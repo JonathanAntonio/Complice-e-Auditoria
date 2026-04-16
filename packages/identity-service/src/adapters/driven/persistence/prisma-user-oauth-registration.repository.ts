@@ -31,9 +31,17 @@ export class PrismaUserOAuthRegistrationPersistence implements IUserOAuthRegistr
     try {
       await this.prisma.$transaction(async (tx) => {
         await ensureAuthorizationRegistry(tx);
-        const roleId = await resolveRoleIdByCode(tx, user.primaryRole);
-        if (!roleId) {
-          throw new Error(`Role code not found for OAuth user registration: ${user.primaryRole}`);
+        const resolvedRoles = await Promise.all(
+          user.roles.map(async (role) => ({
+            roleId: await resolveRoleIdByCode(tx, role),
+            isPrimary: role === user.primaryRole,
+            roleCode: role,
+          }))
+        );
+        for (const role of resolvedRoles) {
+          if (!role.roleId) {
+            throw new Error(`Role code not found for OAuth user registration: ${role.roleCode}`);
+          }
         }
         await tx.$executeRaw`
           INSERT INTO "users" (
@@ -43,10 +51,12 @@ export class PrismaUserOAuthRegistrationPersistence implements IUserOAuthRegistr
             ${user.id}, ${user.email.value}, ${user.name}, ${user.authorizationVersion}, ${user.createdAt}
           )
         `;
-        await tx.$executeRaw`
-          INSERT INTO "user_roles" ("user_id", "role_id", "is_primary", "assigned_at")
-          VALUES (${user.id}, ${roleId}, true, NOW())
-        `;
+        for (const role of resolvedRoles) {
+          await tx.$executeRaw`
+            INSERT INTO "user_roles" ("user_id", "role_id", "is_primary", "assigned_at")
+            VALUES (${user.id}, ${role.roleId}, ${role.isPrimary}, NOW())
+          `;
+        }
         await tx.oAuthAccountModel.create({
           data: {
             userId: user.id,

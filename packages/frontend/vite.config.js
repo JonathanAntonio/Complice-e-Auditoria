@@ -23,12 +23,16 @@ export default defineConfig(({ mode }) => {
       host: "0.0.0.0",
       port: frontendPort,
       proxy: {
-        "/bff": {
-          target: bffUrl,
-          changeOrigin: false
-        }
+        "/auth": { target: bffUrl, changeOrigin: false },
+        "/compliance": { target: bffUrl, changeOrigin: false },
+        "/audit": { target: bffUrl, changeOrigin: false },
+        "/risk": { target: bffUrl, changeOrigin: false },
+        "/reports": { target: bffUrl, changeOrigin: false },
+        "/notifications": { target: bffUrl, changeOrigin: false },
+        "/admin": { target: bffUrl, changeOrigin: false },
+        "/integrations": { target: bffUrl, changeOrigin: false },
       },
-      allowedHosts: ["localhost", ".ngrok-free.app", ".ngrok.app"]
+      allowedHosts: ["localhost", ".ngrok-free.app", ".ngrok.app","rage-awhile-snowcap.ngrok-free.dev"]
     },
     preview: {
       host: "0.0.0.0",

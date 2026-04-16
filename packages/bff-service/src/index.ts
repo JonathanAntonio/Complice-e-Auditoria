@@ -4,8 +4,7 @@ import { logger } from "@lframework/shared";
 import { loadBffConfig } from "./app/config";
 import { createApp } from "./app/create-app";
 
-loadEnv({ path: path.resolve(process.cwd(), "../../.env") });
-loadEnv({ path: path.resolve(process.cwd(), ".env") });
+loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: true });
 
 const config = loadBffConfig(process.env);
 const app = createApp(config);

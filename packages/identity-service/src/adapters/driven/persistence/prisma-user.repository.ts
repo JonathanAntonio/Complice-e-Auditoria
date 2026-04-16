@@ -185,6 +185,13 @@ export class PrismaUserRepository implements IUserRepository {
     );
   }
 
+  async countUsers(): Promise<number> {
+    const rows = await this.prisma.$queryRaw<Array<{ total: number }>>`
+      SELECT COUNT(*)::int AS total FROM "users"
+    `;
+    return rows[0]?.total ?? 0;
+  }
+
   async list(query: ListUsersQueryDto): Promise<{ items: User[]; total: number }> {
     const whereParts: string[] = [];
     const values: unknown[] = [];

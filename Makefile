@@ -1,4 +1,6 @@
 SHELL := /bin/bash
+NGROK_AUTHTOKEN ?= 3CPFFE4q2RRHyNayNOLCm3Mp0tI_2fnYKa95PeDtoNEqgVZKH
+NGROK_URL ?= rage-awhile-snowcap.ngrok-free.dev
 
 .DEFAULT_GOAL := help
 
@@ -62,4 +64,8 @@ build:
 	pnpm build
 
 ngrok:
-	ngrok http 5173 --domain=apparent-driving-horse.ngrok-free.app
+	@if [ -n "$(NGROK_URL)" ]; then \
+		ngrok http 5173 --authtoken=$(NGROK_AUTHTOKEN) --url=$(NGROK_URL); \
+	else \
+		ngrok http 5173 --authtoken=$(NGROK_AUTHTOKEN); \
+	fi

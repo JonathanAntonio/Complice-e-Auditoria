@@ -33,7 +33,7 @@ export async function requestBffRisk(path, options = {}) {
   } = options;
 
   const hasBody = body !== undefined;
-  const response = await fetch(`/bff/risk${path}`, {
+  const response = await fetch(`/risk${path}`, {
     method,
     headers: hasBody
       ? { Accept: "application/json", "Content-Type": "application/json" }

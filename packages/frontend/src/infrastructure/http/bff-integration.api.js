@@ -33,7 +33,7 @@ export async function requestBffIntegration(path, options = {}) {
   } = options;
 
   const hasBody = body !== undefined;
-  const response = await fetch(`/bff/integrations${path}`, {
+  const response = await fetch(`/integrations${path}`, {
     method,
     headers: hasBody
       ? { Accept: "application/json", "Content-Type": "application/json" }

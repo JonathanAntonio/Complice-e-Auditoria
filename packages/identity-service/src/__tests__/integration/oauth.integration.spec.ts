@@ -1,7 +1,8 @@
 import path from "path";
 import { config as loadEnv } from "dotenv";
 const packageRoot = path.resolve(__dirname, "../../..");
-loadEnv({ path: path.join(packageRoot, ".env") });
+const monorepoRoot = path.resolve(packageRoot, "../..");
+loadEnv({ path: path.join(monorepoRoot, ".env") });
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import request from "supertest";
@@ -10,7 +11,7 @@ import { createContainer } from "../../container";
 import { createApp } from "../../app";
 import { createNoOpEventPublisher } from "./test-event-publisher";
 import type { IOAuthProvider, OAuthUserInfo } from "../../application/ports/oauth-provider.port";
-import { USER_ROLES, permissionsForRole } from "../../domain/types";
+import { USER_ROLES, USER_ROLE_VALUES, permissionsForRoles } from "../../domain/types";
 
 const databaseUrl =
   process.env.IDENTITY_DATABASE_URL ??
@@ -150,9 +151,9 @@ describe("OAuth integration", () => {
       user: {
         email: "oauth-new@example.com",
         name: "OAuth New User",
-        primaryRole: USER_ROLES.VISUALIZADOR,
-        roles: [USER_ROLES.VISUALIZADOR],
-        permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+        primaryRole: USER_ROLES.ADMINISTRADOR,
+        roles: USER_ROLE_VALUES,
+        permissions: permissionsForRoles(USER_ROLE_VALUES),
         authzVersion: 1,
         isNewUser: true,
       },

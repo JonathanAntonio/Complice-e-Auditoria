@@ -1,8 +1,7 @@
 import path from "path";
 import { config as loadEnv } from "dotenv";
 
-loadEnv({ path: path.resolve(process.cwd(), "../../.env") });
-loadEnv({ path: path.resolve(process.cwd(), ".env") });
+loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: true });
 
 import { createContainer } from "./container";
 import { createApp } from "./app";

@@ -33,7 +33,7 @@ export async function requestBffNotification(path, options = {}) {
   } = options;
 
   const hasBody = body !== undefined;
-  const response = await fetch(`/bff/notifications${path}`, {
+  const response = await fetch(`/notifications${path}`, {
     method,
     headers: hasBody
       ? { Accept: "application/json", "Content-Type": "application/json" }

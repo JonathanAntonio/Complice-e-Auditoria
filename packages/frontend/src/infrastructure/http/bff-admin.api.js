@@ -33,7 +33,7 @@ export async function requestBffAdmin(path, options = {}) {
   } = options;
 
   const hasBody = body !== undefined;
-  const response = await fetch(`/bff/admin${path}`, {
+  const response = await fetch(`/admin${path}`, {
     method,
     headers: hasBody
       ? { Accept: "application/json", "Content-Type": "application/json" }

@@ -5,7 +5,8 @@
 import path from "path";
 import { config as loadEnv } from "dotenv";
 const packageRoot = path.resolve(__dirname, "../../..");
-loadEnv({ path: path.join(packageRoot, ".env") });
+const monorepoRoot = path.resolve(packageRoot, "../..");
+loadEnv({ path: path.join(monorepoRoot, ".env") });
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
 import { createContainer } from "../../container";

@@ -4,7 +4,7 @@ import { UserAlreadyExistsError, InvalidEmailError } from "../errors";
 import { User } from "../../domain/entities/user.entity";
 import type { IUserRepository } from "../ports/user-repository.port";
 import type { IUserCreatedNotifier } from "../ports/user-created-notifier.port";
-import { USER_ROLES, permissionsForRole } from "../../domain/types";
+import { USER_ROLES, USER_ROLE_VALUES, permissionsForRole, permissionsForRoles } from "../../domain/types";
 
 describe("CreateUserUseCase", () => {
   let userRepository: IUserRepository;
@@ -16,6 +16,7 @@ describe("CreateUserUseCase", () => {
       saveUserAndOutbox: vi.fn().mockResolvedValue(undefined),
       findById: vi.fn(),
       findByEmail: vi.fn().mockResolvedValue(null),
+      countUsers: vi.fn().mockResolvedValue(1),
     };
     userCreatedNotifier = {
       notify: vi.fn().mockResolvedValue(undefined),
@@ -42,6 +43,24 @@ describe("CreateUserUseCase", () => {
     expect(userRepository.findByEmail).toHaveBeenCalledWith("user@example.com");
     expect(userRepository.saveUserAndOutbox).toHaveBeenCalled();
     expect(userCreatedNotifier.notify).toHaveBeenCalled();
+  });
+
+  it("deve conceder todas as permissões para o primeiro usuário cadastrado", async () => {
+    vi.mocked(userRepository.countUsers!).mockResolvedValue(0);
+    const useCase = new CreateUserUseCase(userRepository, userCreatedNotifier);
+    const dto = { email: "first@example.com", name: "First User" };
+
+    const result = await useCase.execute(dto);
+
+    expect(result).toMatchObject({
+      email: "first@example.com",
+      name: "First User",
+      primaryRole: USER_ROLES.ADMINISTRADOR,
+      roles: USER_ROLE_VALUES,
+      permissions: permissionsForRoles(USER_ROLE_VALUES),
+      authzVersion: 1,
+      isActive: true,
+    });
   });
 
   it("deve lançar UserAlreadyExistsError quando o email já existe", async () => {

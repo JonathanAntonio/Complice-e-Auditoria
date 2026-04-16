@@ -33,7 +33,7 @@ export async function requestBffReporting(path, options = {}) {
   } = options;
 
   const hasBody = body !== undefined;
-  const response = await fetch(`/bff/reports${path}`, {
+  const response = await fetch(`/reports${path}`, {
     method,
     headers: hasBody
       ? { Accept: "application/json", "Content-Type": "application/json" }
@@ -50,7 +50,7 @@ export async function downloadBffReportExport(exportId) {
     throw new Error("ID da exportação inválido.");
   }
 
-  const response = await fetch(`/bff/reports/exports/${encodeURIComponent(exportId.trim())}/download`, {
+  const response = await fetch(`/reports/exports/${encodeURIComponent(exportId.trim())}/download`, {
     method: "GET",
     headers: { Accept: "*/*" },
     credentials: "include",

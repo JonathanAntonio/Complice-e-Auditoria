@@ -1,4 +1,4 @@
-const BFF_AUTH_BASE = "/bff/auth";
+const BFF_AUTH_BASE = "/auth";
 
 function parseErrorPayload(payload, fallbackMessage) {
   if (payload && typeof payload === "object") {
@@ -40,4 +40,20 @@ export async function requestBffAuth(path, options = {}) {
   });
 
   return parseResponse(response, defaultErrorMessage);
+}
+
+export async function exchangeOAuthCallback(provider, code, state) {
+  const normalizedProvider = typeof provider === "string" ? provider.trim().toLowerCase() : "";
+  if (normalizedProvider !== "google" && normalizedProvider !== "github") {
+    throw new Error("Provedor OAuth inválido.");
+  }
+  if (typeof code !== "string" || code.length === 0 || typeof state !== "string" || state.length === 0) {
+    throw new Error("Parâmetros OAuth inválidos.");
+  }
+
+  const query = new URLSearchParams({ code, state });
+  return requestBffAuth(`/${normalizedProvider}/exchange?${query.toString()}`, {
+    method: "GET",
+    defaultErrorMessage: "Falha ao concluir login OAuth.",
+  });
 }

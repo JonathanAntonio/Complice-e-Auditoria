@@ -23,10 +23,9 @@ pnpm run dev   # http://localhost:3001
 pnpm test      # Vitest (use cases, DTOs, controllers)
 ```
 
-Para migrações e integração com PostgreSQL/Redis, copie `.env.example` para `.env` e ajuste as URLs. O Prisma usa `IDENTITY_DATABASE_URL` ao rodar `prisma migrate dev`.
+Para migrações e integração com PostgreSQL/Redis em dev, use o `.env` centralizado na raiz do monorepo. O Prisma usa `IDENTITY_DATABASE_URL` ao rodar `prisma migrate dev`.
 
 ```bash
-cp .env.example .env
 # Crie o banco (ex.: createdb lframework_identity) e suba Postgres/Redis (ex.: Docker)
 pnpm prisma:migrate
 pnpm test:integration   # testes de API; se o banco não estiver disponível, os testes são ignorados

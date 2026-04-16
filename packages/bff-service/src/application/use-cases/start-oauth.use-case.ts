@@ -5,7 +5,7 @@ export class StartOAuthUseCase {
   constructor(private readonly iamAuthClient: IIamAuthClient) {}
 
   async execute(provider: OAuthProvider, publicBaseUrl: string): Promise<string> {
-    const callbackUri = `${publicBaseUrl}/bff/auth/${provider}/callback`;
+    const callbackUri = `${publicBaseUrl}/login/${provider}/callback`;
     return this.iamAuthClient.getAuthorizationUrl(provider, callbackUri);
   }
 }

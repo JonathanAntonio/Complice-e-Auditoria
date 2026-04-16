@@ -13,7 +13,7 @@ describe("StartOAuthUseCase", () => {
     expect(result).toBe("https://oauth.example.com/auth");
     expect(iamAuthClient.getAuthorizationUrl).toHaveBeenCalledWith(
       "google",
-      "https://app.example.com/bff/auth/google/callback"
+      "https://app.example.com/login/google/callback"
     );
   });
 });

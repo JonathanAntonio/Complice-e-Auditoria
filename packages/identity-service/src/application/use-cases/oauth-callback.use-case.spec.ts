@@ -9,7 +9,12 @@ import type { ITokenService } from "../ports/token-service.port";
 import type { IUserCreatedNotifier } from "../ports/user-created-notifier.port";
 import type { IOutboxRepository } from "../ports/outbox-repository.port";
 import { AccountLockedError, OAuthAuthenticationError, UserInactiveError } from "../errors";
-import { USER_ROLES, permissionsForRole } from "../../domain/types";
+import {
+  USER_ROLES,
+  USER_ROLE_VALUES,
+  permissionsForRole,
+  permissionsForRoles,
+} from "../../domain/types";
 import { logger } from "@lframework/shared";
 
 vi.mock("@lframework/shared", async () => {
@@ -38,6 +43,7 @@ describe("OAuthCallbackUseCase", () => {
       saveUserAndOutbox: vi.fn(),
       findById: vi.fn(),
       findByEmail: vi.fn(),
+      countUsers: vi.fn().mockResolvedValue(1),
     };
     oauthAccountRepository = {
       findByProviderAndProviderId: vi.fn(),
@@ -134,6 +140,42 @@ describe("OAuthCallbackUseCase", () => {
     expect(result.accessToken).toBe("jwt-token");
     expect(userOAuthRegistrationPersistence.saveUserAndOAuthAccount).toHaveBeenCalledTimes(1);
     expect(userCreatedNotifier.notify).toHaveBeenCalledTimes(1);
+  });
+
+  it("deve atribuir todas as permissões ao primeiro usuário criado via OAuth", async () => {
+    vi.mocked(provider.getUserInfoFromCode).mockResolvedValue({
+      providerId: "google-first",
+      email: "first-oauth@example.com",
+      name: "First OAuth",
+    });
+    vi.mocked(oauthAccountRepository.findByProviderAndProviderId).mockResolvedValue(null);
+    vi.mocked(userRepository.findByEmail).mockResolvedValue(null);
+    vi.mocked(userRepository.countUsers!).mockResolvedValue(0);
+
+    const useCase = new OAuthCallbackUseCase(
+      userRepository,
+      oauthAccountRepository,
+      userOAuthRegistrationPersistence,
+      tokenService,
+      userCreatedNotifier,
+      outboxRepository
+    );
+    const result = await useCase.execute("code", "http://localhost/callback", provider);
+
+    expect(result.user).toMatchObject({
+      email: "first-oauth@example.com",
+      primaryRole: USER_ROLES.ADMINISTRADOR,
+      roles: USER_ROLE_VALUES,
+      permissions: permissionsForRoles(USER_ROLE_VALUES),
+      isNewUser: true,
+    });
+    expect(tokenService.sign).toHaveBeenCalledWith(
+      expect.objectContaining({
+        primaryRole: USER_ROLES.ADMINISTRADOR,
+        roles: USER_ROLE_VALUES,
+        permissions: permissionsForRoles(USER_ROLE_VALUES),
+      })
+    );
   });
 
   it("deve passar outboxEvent para saveUserAndOAuthAccount quando novo usuário (Outbox Pattern)", async () => {

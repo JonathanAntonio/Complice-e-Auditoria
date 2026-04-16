@@ -33,7 +33,7 @@ export async function requestBffCompliance(path, options = {}) {
   } = options;
 
   const hasBody = body !== undefined;
-  const response = await fetch(`/bff/compliance${path}`, {
+  const response = await fetch(`/compliance${path}`, {
     method,
     headers: hasBody
       ? { Accept: "application/json", "Content-Type": "application/json" }

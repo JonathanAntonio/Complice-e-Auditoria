@@ -31,7 +31,7 @@ export async function requestBffAudit(path, options = {}) {
     defaultErrorMessage = "Falha na comunicação com o BFF (audit).",
   } = options;
 
-  const response = await fetch(`/bff/audit${path}`, {
+  const response = await fetch(`/audit${path}`, {
     method,
     headers: { Accept: "application/json" },
     credentials: "include",

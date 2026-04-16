@@ -5,9 +5,8 @@ import { createApp } from "./app";
 import { logger } from "@lframework/shared";
 import { loadIdentityServiceConfig } from "./app/config";
 
-// Em monorepo, prioriza variáveis da raiz e usa .env do serviço como fallback.
-loadEnv({ path: path.resolve(process.cwd(), "../../.env") });
-loadEnv({ path: path.resolve(process.cwd(), ".env") });
+// Em dev no monorepo, usa apenas variáveis centralizadas no .env da raiz.
+loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: true });
 
 const config = loadIdentityServiceConfig(process.env);
 

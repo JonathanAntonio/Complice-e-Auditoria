@@ -118,33 +118,37 @@ export function createApp(config: BffConfig) {
 
   app.get("/health", handlers.health);
   app.get("/metrics", metrics.handler);
-  app.get("/bff/auth/google/start", handlers.googleStart);
-  app.get("/bff/auth/github/start", handlers.githubStart);
-  app.get("/bff/auth/google/callback", handlers.googleCallback);
-  app.get("/bff/auth/github/callback", handlers.githubCallback);
-  app.get("/bff/auth/me", handlers.me);
-  app.post("/bff/auth/logout", handlers.logout);
-  app.get("/bff/compliance/violations", handlers.listComplianceViolations);
-  app.post("/bff/compliance/violations", handlers.createComplianceViolation);
-  app.patch("/bff/compliance/violations/:violationId", handlers.updateComplianceViolation);
-  app.get("/bff/audit/logs", handlers.listAuditLogs);
-  app.get("/bff/audit/retention/runs", handlers.listAuditRetentionRuns);
-  app.get("/bff/compliance/retention/runs", handlers.listComplianceRetentionRuns);
-  app.get("/bff/risk/scores", handlers.listRiskScores);
-  app.get("/bff/risk/scores/:entityType/:entityId/history", handlers.getRiskScoreHistory);
-  app.post("/bff/risk/events", handlers.ingestRiskEvent);
-  app.post("/bff/reports/exports", handlers.createReportExport);
-  app.get("/bff/reports/exports/:id", handlers.getReportExport);
-  app.get("/bff/reports/exports/:id/download", handlers.downloadReportExport);
-  app.post("/bff/notifications/dispatch", handlers.dispatchNotification);
-  app.get("/bff/notifications/logs", handlers.listNotificationLogs);
-  app.get("/bff/admin/users", handlers.listAdminUsers);
-  app.get("/bff/admin/users/:userId", handlers.getAdminUser);
-  app.post("/bff/admin/users", handlers.createAdminUser);
-  app.put("/bff/admin/users/:userId/roles", handlers.updateAdminUserRoles);
-  app.patch("/bff/admin/users/:userId/security", handlers.updateAdminUserSecurity);
-  app.delete("/bff/admin/users/:userId", handlers.deactivateAdminUser);
-  app.post("/bff/integrations/events", handlers.publishIntegrationEvent);
+
+  // Public routes (frontend-facing)
+  app.get("/auth/google/start", handlers.googleStart);
+  app.get("/auth/github/start", handlers.githubStart);
+  app.get("/auth/google/exchange", handlers.googleExchange);
+  app.get("/auth/github/exchange", handlers.githubExchange);
+  app.post("/auth/google/exchange", handlers.googleExchange);
+  app.post("/auth/github/exchange", handlers.githubExchange);
+  app.get("/auth/me", handlers.me);
+  app.post("/auth/logout", handlers.logout);
+  app.get("/compliance/violations", handlers.listComplianceViolations);
+  app.post("/compliance/violations", handlers.createComplianceViolation);
+  app.patch("/compliance/violations/:violationId", handlers.updateComplianceViolation);
+  app.get("/audit/logs", handlers.listAuditLogs);
+  app.get("/audit/retention/runs", handlers.listAuditRetentionRuns);
+  app.get("/compliance/retention/runs", handlers.listComplianceRetentionRuns);
+  app.get("/risk/scores", handlers.listRiskScores);
+  app.get("/risk/scores/:entityType/:entityId/history", handlers.getRiskScoreHistory);
+  app.post("/risk/events", handlers.ingestRiskEvent);
+  app.post("/reports/exports", handlers.createReportExport);
+  app.get("/reports/exports/:id", handlers.getReportExport);
+  app.get("/reports/exports/:id/download", handlers.downloadReportExport);
+  app.post("/notifications/dispatch", handlers.dispatchNotification);
+  app.get("/notifications/logs", handlers.listNotificationLogs);
+  app.get("/admin/users", handlers.listAdminUsers);
+  app.get("/admin/users/:userId", handlers.getAdminUser);
+  app.post("/admin/users", handlers.createAdminUser);
+  app.put("/admin/users/:userId/roles", handlers.updateAdminUserRoles);
+  app.patch("/admin/users/:userId/security", handlers.updateAdminUserSecurity);
+  app.delete("/admin/users/:userId", handlers.deactivateAdminUser);
+  app.post("/integrations/events", handlers.publishIntegrationEvent);
 
   return app;
 }

@@ -7,7 +7,7 @@ import type { IUserCreatedNotifier } from "../ports/user-created-notifier.port";
 import type { CreateUserDto } from "../dtos/create-user.dto";
 import type { UserResponseDto } from "../dtos/user-response.dto";
 import { UserAlreadyExistsError, InvalidEmailError } from "../errors";
-import { DEFAULT_USER_ROLE } from "../../domain/types";
+import { DEFAULT_USER_ROLE, USER_ROLES, USER_ROLE_VALUES, type UserRole } from "../../domain/types";
 import { toUserResponseDto } from "../dtos/user-profile.mapper";
 
 export class CreateUserUseCase {
@@ -28,8 +28,9 @@ export class CreateUserUseCase {
       throw new UserAlreadyExistsError("User with this email already exists");
     }
 
+    const { primaryRole, roles } = await this.resolveInitialAccessProfile();
     const id = randomUUID();
-    const user = User.create(id, email, dto.name, DEFAULT_USER_ROLE, [DEFAULT_USER_ROLE]);
+    const user = User.create(id, email, dto.name, primaryRole, roles);
     await this.userRepository.saveUserAndOutbox(user, {
       eventName: USER_CREATED_EVENT,
       producer: "identity-service",
@@ -49,5 +50,23 @@ export class CreateUserUseCase {
     });
 
     return toUserResponseDto(user);
+  }
+
+  private async resolveInitialAccessProfile(): Promise<{ primaryRole: UserRole; roles: UserRole[] }> {
+    const totalUsers = this.userRepository.countUsers
+      ? await this.userRepository.countUsers()
+      : 1;
+
+    if (totalUsers === 0) {
+      return {
+        primaryRole: USER_ROLES.ADMINISTRADOR,
+        roles: [...USER_ROLE_VALUES],
+      };
+    }
+
+    return {
+      primaryRole: DEFAULT_USER_ROLE,
+      roles: [DEFAULT_USER_ROLE],
+    };
   }
 }

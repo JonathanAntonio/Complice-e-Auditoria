@@ -30,6 +30,7 @@ export { publishIntegrationEvent } from "./application/integration-events.servic
 
 export {
   clearAuthErrorFromQuery,
+  completeOAuthCallback,
   readAuthErrorFromQuery,
   startGithubOAuth,
   startGoogleOAuth,

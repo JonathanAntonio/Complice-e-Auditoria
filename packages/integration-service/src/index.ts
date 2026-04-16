@@ -2,8 +2,7 @@ import path from "path";
 import { config as loadEnv } from "dotenv";
 import type { Server } from "http";
 
-loadEnv({ path: path.resolve(process.cwd(), "../../.env") });
-loadEnv({ path: path.resolve(process.cwd(), ".env") });
+loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: true });
 
 import { logger } from "@lframework/shared";
 import { createContainer } from "./container";

@@ -1,8 +1,7 @@
 import path from "path";
 import { config as loadEnv } from "dotenv";
 
-loadEnv({ path: path.resolve(process.cwd(), "../../.env") });
-loadEnv({ path: path.resolve(process.cwd(), ".env") });
+loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: true });
 
 import { logger } from "@lframework/shared";
 import { createApp } from "./app";

@@ -19,6 +19,7 @@ import {
 } from "../security-audit";
 import { logger } from "@lframework/shared";
 import { toAuthUserDto } from "../dtos/user-profile.mapper";
+import { DEFAULT_USER_ROLE, USER_ROLES, USER_ROLE_VALUES, type UserRole } from "../../domain/types";
 
 export type OAuthCallbackResultDto = Omit<OAuthCallbackResponseDto, "expiresIn">;
 
@@ -107,8 +108,9 @@ export class OAuthCallbackUseCase {
 
     if (!user) {
       isNewUser = true;
+      const { primaryRole, roles } = await this.resolveInitialAccessProfile();
       const id = randomUUID();
-      user = User.create(id, email, userInfo.name);
+      user = User.create(id, email, userInfo.name, primaryRole, roles);
       await this.userOAuthRegistrationPersistence.saveUserAndOAuthAccount(
         user,
         provider.provider,
@@ -138,6 +140,24 @@ export class OAuthCallbackUseCase {
     }
 
     return await this.buildSuccessResult(user, isNewUser, baseAuditPayload, !isNewUser);
+  }
+
+  private async resolveInitialAccessProfile(): Promise<{ primaryRole: UserRole; roles: UserRole[] }> {
+    const totalUsers = this.userRepository.countUsers
+      ? await this.userRepository.countUsers()
+      : 1;
+
+    if (totalUsers === 0) {
+      return {
+        primaryRole: USER_ROLES.ADMINISTRADOR,
+        roles: [...USER_ROLE_VALUES],
+      };
+    }
+
+    return {
+      primaryRole: DEFAULT_USER_ROLE,
+      roles: [DEFAULT_USER_ROLE],
+    };
   }
 
   private async buildSuccessResult(

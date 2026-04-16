@@ -1,127 +1,158 @@
-# LFramework
+# Complice e Auditoria (CA)
 
-Framework de referência em TypeScript para projetos com **DDD**, **Arquitetura Hexagonal** e **Microserviços**. Pensado para escalar: monorepo, convenções fixas e núcleo compartilhado (`@lframework/shared`) com formato de erro, validação e schemas comuns.
+Monorepo de uma plataforma corporativa de **compliance e auditoria** com arquitetura de microsserviços, mensageria e frontend web.
 
-## Stack
+## Visão Geral
 
-- **TypeScript** (strict)
-- **Monorepo** (pnpm workspaces)
-- **PostgreSQL** (Prisma)
-- **Redis** (cache)
-- **RabbitMQ** (eventos entre serviços)
-- **Express** (API HTTP)
-- **Nginx** (API Gateway em Docker)
+O projeto cobre fluxos de:
+- auditoria de eventos
+- compliance e retenção
+- análise de risco
+- notificações
+- integração com sistemas externos
+- geração de relatórios
+- gateway/BFF para frontend
 
-## Estrutura do repositório
+Stack principal:
+- Node.js + TypeScript
+- pnpm workspace
+- PostgreSQL, Redis e RabbitMQ (Docker)
+- Nginx (gateway de desenvolvimento)
+- Prisma
+- Vite + React (frontend)
 
+## Estrutura do Monorepo
+
+```text
+packages/
+  api-docs/
+  audit-service/
+  bff-service/
+  compliance-service/
+  frontend/
+  identity-service/
+  integration-service/
+  notification-service/
+  reporting-service/
+  risk-analysis-service/
+  shared/
 ```
-LFramework/
-├── packages/
-│   ├── frontend/           # Frontend React (Vite) consumindo apenas o BFF
-│   ├── bff-service/        # Backend for Frontend (sessão HttpOnly + OAuth callback)
-│   ├── shared/             # Núcleo do framework: eventos, DTOs, HTTP helpers, schemas
-│   ├── identity-service/   # Microserviço de identidade (auth, usuários)
-│   ├── compliance-service/    # Microserviço de compliance (violações)
-│   ├── integration-service/# Microserviço de integrações (ingestão de eventos)
-│   ├── audit-service/      # Microserviço de auditoria (trilha de eventos)
-│   ├── risk-analysis-service/ # Microserviço de risco (pontuação por usuário/área/processo)
-│   ├── reporting-service/  # Microserviço de relatórios/exportações (CSV/PDF)
-│   ├── notification-service/ # Microserviço de notificações (email/webhook)
-│   └── api-docs/           # Swagger unificado (todos os microserviços)
-├── nginx/
-│   └── nginx.conf          # API Gateway (proxy reverso)
-├── ngrok.yml               # Túnel público único para frontend (entrada do sistema)
-├── docker-compose.yml      # Postgres, Redis, RabbitMQ, Nginx
-└── docs/                   # Documentação
-```
 
-Cada serviço segue **hexagonal + DDD**: `domain/`, `application/`, `adapters/` (driving/driven) e composição no `container`.
+## Pré-requisitos
 
-## Documentação
+- Node.js 18+
+- pnpm 9+
+- Docker + Docker Compose
+- (Opcional) `make` para Linux/macOS
+- (Opcional) PowerShell para usar `make.ps1` no Windows
 
-| Documento | Conteúdo |
-|-----------|----------|
-| [docs/VisaoGeralProjeto.md](docs/VisaoGeralProjeto.md) | Visão da arquitetura, fluxo orientado a eventos e componentes |
-| [docs/RequisitosCorp.md](docs/RequisitosCorp.md) | Requisitos corporativos funcionais e não funcionais |
-| [docs/RegrasDeNegocio.md](docs/RegrasDeNegocio.md) | Regras de negócio do domínio (RN-XXX) |
-| [docs/AnaliseRequisitos.md](docs/AnaliseRequisitos.md) | Priorização RF/RNF, stakeholders, casos de uso e riscos |
-| [docs/RBAC-IDENTITY-ROADMAP.md](docs/RBAC-IDENTITY-ROADMAP.md) | Evolução de autorização granular no identity-service |
-| [docs/CRONOGRAMA-1-MES.md](docs/CRONOGRAMA-1-MES.md) | Plano de execução por etapas |
-| [docs/DDE Jonathan.md](docs/DDE Jonathan.md) | Documento detalhado do projeto |
+## Primeiros Passos
 
-## Como rodar
+### Linux/macOS
 
 ```bash
-cp .env.example .env
-pnpm install
-pnpm docker:up
+make run
 ```
 
-Migrações (uma vez):
+Esse comando executa:
+1. instalação de dependências
+2. subida da infraestrutura Docker
+3. espera de healthcheck
+4. inicialização dos serviços em modo dev
+
+### Windows
+
+Use o script que substitui o `Makefile`:
+
+```powershell
+.\make.cmd run
+```
+
+Comandos equivalentes também funcionam, por exemplo:
+
+```powershell
+.\make.cmd install
+.\make.cmd infra-up
+.\make.cmd infra-wait
+.\make.cmd dev
+```
+
+## Comandos Principais
+
+### Com `make` (Linux/macOS)
 
 ```bash
-pnpm --filter identity-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
-pnpm --filter compliance-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
-pnpm --filter integration-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
-pnpm --filter audit-service exec prisma migrate dev --name init --schema=./prisma/schema.prisma
+make help
+make install
+make infra-up
+make infra-wait
+make infra-down
+make migrate
+make dev
+make run
+make test
+make lint
+make build
+make ngrok
 ```
 
-As migrações de cada serviço ficam em `packages/<service>/prisma/migrations`.
+### Com `make.cmd` (Windows)
 
-Serviços (em terminais separados ou ambos de uma vez):
-
-```bash
-pnpm dev:identity   # http://localhost:3001
-pnpm dev:compliance    # http://localhost:3002
-pnpm dev:integration # http://localhost:3003
-pnpm dev:audit      # http://localhost:3005
-pnpm dev:risk       # http://localhost:3006
-pnpm dev:reporting  # http://localhost:3007
-pnpm dev:notification # http://localhost:3008
-pnpm dev:api-docs   # http://localhost:3000
-pnpm dev:bff        # http://localhost:3004
-pnpm dev:frontend   # http://localhost:5173 (React + Vite)
-# ou: pnpm dev       # sobe todos
+```powershell
+.\make.cmd help
+.\make.cmd install
+.\make.cmd infra-up
+.\make.cmd infra-wait
+.\make.cmd infra-down
+.\make.cmd migrate
+.\make.cmd dev
+.\make.cmd run
+.\make.cmd test
+.\make.cmd lint
+.\make.cmd build
+.\make.cmd ngrok
 ```
 
-Com o gateway: **http://localhost:8080** (prefixos `/identity/`, `/compliance/`, `/integration/`, `/audit/`, `/risk/`, `/reporting/`, `/notification/` e Swagger unificado em `/api-docs/`).
-No frontend não há chamada direta para o gateway: todo tráfego de autenticação passa por `/bff/auth/*`.
-No frontend, use chamadas para **`/bff/auth/*`**. O BFF mantém sessão em cookie HttpOnly e conversa com IAM/Gateway internamente.
-Fluxo OAuth no frontend (entrada única): `/bff/auth/google/start`, `/bff/auth/github/start`, `/bff/auth/me` e `/bff/auth/logout`.
-Para dados protegidos de compliance via sessão HttpOnly, use `/bff/compliance/violations` (`GET` listagem e `POST` criação).
-Para logs de auditoria via sessão HttpOnly, use `/bff/audit/logs` (`GET` paginado).
+## Infraestrutura Local (Docker)
 
-## Ngrok (webhooks e demo)
+O `docker-compose.yml` sobe:
+- `lframework-postgres`
+- `lframework-redis`
+- `lframework-rabbitmq`
+- `lframework-nginx`
 
-Arquivo de config: `ngrok.yml` na raiz.
+Portas padrão:
+- PostgreSQL: `5432`
+- Redis: `6379`
+- RabbitMQ AMQP: `5672`
+- RabbitMQ Management: `15672`
+- Nginx gateway: `8080`
 
-Pré-requisito: o `ngrok.yml` usa `NGROK_AUTHTOKEN` no ambiente.
-Obtenha seu token em:
-`https://dashboard.ngrok.com/get-started/your-authtoken`
+## Migrações
 
-Defina a variável antes de iniciar:
+O alvo `migrate` executa Prisma migrations para:
+- `identity-service`
+- `compliance-service`
+- `integration-service`
+- `audit-service`
 
-```bash
-export NGROK_AUTHTOKEN=seu_token
-```
-
-```bash
-ngrok start --all --config ./ngrok.yml
-```
-
-Modelo recomendado para OAuth com um único túnel externo:
-- Expor apenas o frontend (Vite) por ngrok.
-- Configurar `BFF_PUBLIC_BASE_URL` para `https://<seu-dominio-ngrok>`.
-- Configurar `BASE_URL` para `https://<seu-dominio-ngrok>/identity`.
-
-## Testes
+## Testes e Qualidade
 
 ```bash
 pnpm test
+pnpm lint
+pnpm build
+pnpm test:e2e
 ```
 
-Roda Vitest em todos os pacotes (use cases, DTOs, controllers) e smoke tests das rotas de documentação (`/api-docs.json`, `/api-docs`, `/openapi.json`, `/`).
+## Documentação Adicional
 
-## Padrões
+- Visão funcional e arquitetural: `docs/VisaoGeralProjeto.md`
+- Runbook operacional: `docs/RunbookOperacaoSLO.md`
+- Diagramas: `docs/diagramas/`
 
-Ports & Adapters (Hexagonal), Repository, Inversão de dependência, DDD (entidade, value object, domain event), Use case, DTO, Publish-Subscribe (RabbitMQ). O shared expõe contrato de erro (`ErrorResponseDto`), helpers HTTP (`sendError`, `sendValidationError`) e schemas comuns (ex.: `nameSchema`) para manter consistência entre serviços à medida que o projeto escala.
+## Observações
+
+- O comando `dev` inicia múltiplos serviços em paralelo.
+- O alvo `ngrok` já está configurado para este projeto.
+- Se algum serviço falhar ao subir, confira logs locais e status dos containers com `docker ps`.

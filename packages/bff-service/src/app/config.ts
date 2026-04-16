@@ -4,6 +4,11 @@ export interface BffConfig {
   iamAuthBasePath: string;
   complianceBasePath: string;
   auditBasePath: string;
+  riskBasePath: string;
+  reportingBasePath: string;
+  notificationBasePath: string;
+  integrationBasePath: string;
+  integrationApiKey: string;
   explicitPublicBaseUrl: string | null;
   sessionCookieName: string;
   sessionMaxAgeSeconds: number;
@@ -13,9 +18,14 @@ export function loadBffConfig(env: NodeJS.ProcessEnv): BffConfig {
   return {
     port: parsePort(env.BFF_PORT, 3004),
     gatewayBaseUrl: normalizeBaseUrl(env.BFF_GATEWAY_URL ?? "http://localhost:8080"),
-    iamAuthBasePath: normalizeBasePath(env.BFF_IAM_AUTH_BASE_PATH ?? "/identity/api/auth"),
-    complianceBasePath: normalizeBasePath(env.BFF_COMPLIANCE_BASE_PATH ?? "/compliance/api"),
-    auditBasePath: normalizeBasePath(env.BFF_AUDIT_BASE_PATH ?? "/audit/api"),
+    iamAuthBasePath: normalizeBasePath(env.BFF_IAM_AUTH_BASE_PATH ?? "/identity/api/v1/auth"),
+    complianceBasePath: normalizeBasePath(env.BFF_COMPLIANCE_BASE_PATH ?? "/compliance/api/v1"),
+    auditBasePath: normalizeBasePath(env.BFF_AUDIT_BASE_PATH ?? "/audit/api/v1"),
+    riskBasePath: normalizeBasePath(env.BFF_RISK_BASE_PATH ?? "/risk/api/v1"),
+    reportingBasePath: normalizeBasePath(env.BFF_REPORTING_BASE_PATH ?? "/reporting/api/v1"),
+    notificationBasePath: normalizeBasePath(env.BFF_NOTIFICATION_BASE_PATH ?? "/notification/api/v1"),
+    integrationBasePath: normalizeBasePath(env.BFF_INTEGRATION_BASE_PATH ?? "/integration/api/v1"),
+    integrationApiKey: (env.BFF_INTEGRATION_API_KEY ?? "").trim(),
     explicitPublicBaseUrl: normalizeOptionalUrl(env.BFF_PUBLIC_BASE_URL),
     sessionCookieName: (env.BFF_SESSION_COOKIE_NAME ?? "complice_session").trim() || "complice_session",
     sessionMaxAgeSeconds: parsePositiveInt(env.BFF_SESSION_MAX_AGE_SECONDS, 604800),

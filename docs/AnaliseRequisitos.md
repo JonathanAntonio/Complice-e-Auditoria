@@ -32,7 +32,7 @@ O objetivo é detalhar, classificar e priorizar os requisitos funcionais e não 
 | RF01 | Cadastro, edição e exclusão de usuários | Gestão de Usuários | Must Have |
 | RF02 | Controle de perfis e permissões (RBAC) | Controle de Acesso | Must Have |
 | RF03 | Autenticação segura via JWT ou OAuth2 | Gestão de Usuários | Must Have |
-| RF04 | Recuperação de senha | Gestão de Usuários | Must Have |
+| RF04 | Recuperação de senha | Gestão de Usuários | Descontinuado (OAuth-only) |
 | RF05 | Controle de sessão com expiração configurável | Gestão de Usuários | Must Have |
 | RF06 | Autorização por papéis e módulos | Controle de Acesso | Must Have |
 | RF07 | Logs de acesso (login, logout, tentativas inválidas) | Controle de Acesso | Must Have |
@@ -49,6 +49,8 @@ O objetivo é detalhar, classificar e priorizar os requisitos funcionais e não 
 | RF18 | Integração bidirecional com ERPs e CRMs via API/Webhook | Integration Service | Must Have |
 | RF19 | Envio de alertas automáticos (e-mail, webhook) | Notification Service | Should Have |
 | RF20 | Machine Learning para detecção de padrões suspeitos | Risk Analysis | Could Have |
+
+> Nota de baseline (2026-04-08): o projeto opera em modo **OAuth-only**. Requisitos de senha/recuperação de senha foram descontinuados.
 
 ---
 

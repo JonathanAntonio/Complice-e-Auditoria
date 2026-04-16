@@ -24,7 +24,10 @@ LFramework/
 │   ├── compliance-service/    # Microserviço de compliance (violações)
 │   ├── integration-service/# Microserviço de integrações (ingestão de eventos)
 │   ├── audit-service/      # Microserviço de auditoria (trilha de eventos)
-│   └── api-docs/           # Swagger unificado (identity + compliance + integration + audit)
+│   ├── risk-analysis-service/ # Microserviço de risco (pontuação por usuário/área/processo)
+│   ├── reporting-service/  # Microserviço de relatórios/exportações (CSV/PDF)
+│   ├── notification-service/ # Microserviço de notificações (email/webhook)
+│   └── api-docs/           # Swagger unificado (todos os microserviços)
 ├── nginx/
 │   └── nginx.conf          # API Gateway (proxy reverso)
 ├── ngrok.yml               # Túnel público único para frontend (entrada do sistema)
@@ -72,13 +75,16 @@ pnpm dev:identity   # http://localhost:3001
 pnpm dev:compliance    # http://localhost:3002
 pnpm dev:integration # http://localhost:3003
 pnpm dev:audit      # http://localhost:3005
+pnpm dev:risk       # http://localhost:3006
+pnpm dev:reporting  # http://localhost:3007
+pnpm dev:notification # http://localhost:3008
 pnpm dev:api-docs   # http://localhost:3000
 pnpm dev:bff        # http://localhost:3004
 pnpm dev:frontend   # http://localhost:5173 (React + Vite)
 # ou: pnpm dev       # sobe todos
 ```
 
-Com o gateway: **http://localhost:8080** (prefixos `/identity/`, `/compliance/`, `/integration/`, `/audit/` e Swagger unificado em `/api-docs/`).
+Com o gateway: **http://localhost:8080** (prefixos `/identity/`, `/compliance/`, `/integration/`, `/audit/`, `/risk/`, `/reporting/`, `/notification/` e Swagger unificado em `/api-docs/`).
 No frontend não há chamada direta para o gateway: todo tráfego de autenticação passa por `/bff/auth/*`.
 No frontend, use chamadas para **`/bff/auth/*`**. O BFF mantém sessão em cookie HttpOnly e conversa com IAM/Gateway internamente.
 Fluxo OAuth no frontend (entrada única): `/bff/auth/google/start`, `/bff/auth/github/start`, `/bff/auth/me` e `/bff/auth/logout`.

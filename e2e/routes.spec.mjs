@@ -31,11 +31,11 @@ test.describe("Gateway route smoke tests (Playwright)", () => {
     expect(body).toHaveProperty("status");
   });
 
-  test("GET /catalog/health (proxied)", async ({ request }, testInfo) => {
-    const up = await isUp(request, "/catalog/health");
-    test.skip(!up, `Catalog indisponível em ${testInfo.project.use.baseURL}.`);
+  test("GET /compliance/health (proxied)", async ({ request }, testInfo) => {
+    const up = await isUp(request, "/compliance/health");
+    test.skip(!up, `Compliance indisponível em ${testInfo.project.use.baseURL}.`);
 
-    const res = await request.get("/catalog/health");
+    const res = await request.get("/compliance/health");
     expect(res.status()).toBe(200);
     expect(res.headers()["x-gateway"]).toBe("nginx");
     const body = await res.json();
@@ -73,13 +73,12 @@ test.describe("Gateway route smoke tests (Playwright)", () => {
     expect(registerRes.status()).toBe(400);
   });
 
-  test("Catalog: rotas autenticadas existem (401 esperado)", async ({ request }, testInfo) => {
-    const up = await isUp(request, "/catalog/health");
-    test.skip(!up, `Catalog indisponível em ${testInfo.project.use.baseURL}.`);
+  test("Compliance: rotas autenticadas existem (401 esperado)", async ({ request }, testInfo) => {
+    const up = await isUp(request, "/compliance/health");
+    test.skip(!up, `Compliance indisponível em ${testInfo.project.use.baseURL}.`);
 
-    await request.get("/catalog/api/items").then((r) => expect(r.status()).toBe(401));
-    await request.get("/catalog/api/items/test-permission").then((r) => expect(r.status()).toBe(401));
-    await request.post("/catalog/api/items", { data: {} }).then((r) => expect(r.status()).toBe(401));
+    await request.get("/compliance/api/violations").then((r) => expect(r.status()).toBe(401));
+    await request.get("/compliance/api/violations/test-permission").then((r) => expect(r.status()).toBe(401));
+    await request.post("/compliance/api/violations", { data: {} }).then((r) => expect(r.status()).toBe(401));
   });
 });
-

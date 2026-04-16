@@ -8,6 +8,7 @@ import {
   requestLoggingMiddleware,
   createErrorHandlerMiddleware,
   createHealthHandler,
+  createServiceMetrics,
 } from "@lframework/shared";
 import type { HttpErrorMapping } from "@lframework/shared";
 
@@ -33,11 +34,13 @@ export function createApp(
   options: CreateAppOptions = {}
 ): Express {
   const app = express();
+  const metrics = createServiceMetrics("identity-service");
   // When behind the API gateway (Nginx), trust X-Forwarded-For so express-rate-limit can identify clients correctly.
   app.set("trust proxy", 1);
   app.use(requestIdMiddleware);
   app.use(correlationIdMiddleware);
   app.use(requestLoggingMiddleware);
+  app.use(metrics.middleware);
 
   if (options.corsOrigin) {
     app.use(
@@ -61,7 +64,10 @@ export function createApp(
 
   app.use("/api", container.userRoutes);
   app.use("/api", container.authRoutes);
+  app.use("/api/v1", container.userRoutes);
+  app.use("/api/v1", container.authRoutes);
 
+  app.get("/metrics", metrics.handler);
   app.get("/health", createHealthHandler("identity-service"));
 
   app.use(

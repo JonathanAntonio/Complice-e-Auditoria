@@ -23,6 +23,7 @@ export class User {
     private _permissions: Permission[],
     private _authorizationVersion: number,
     private _isActive: boolean,
+    private _deactivatedAt: Date | null,
     private _failedLoginAttempts: number,
     private _blockedUntil: Date | null,
     private readonly _createdAt: Date
@@ -49,6 +50,7 @@ export class User {
       permissionsForRoles(normalizedRoles),
       1,
       true,
+      null,
       0,
       null,
       new Date()
@@ -65,6 +67,7 @@ export class User {
     permissions?: Permission[],
     authorizationVersion?: number,
     isActive?: boolean,
+    deactivatedAt?: Date | null,
     failedLoginAttempts?: number,
     blockedUntil?: Date | null
   ): User;
@@ -88,6 +91,7 @@ export class User {
     permissionsOrFailedLoginAttempts: Permission[] | number = permissionsForRoles([primaryRole]),
     authorizationVersionOrBlockedUntil: number | Date | null = 1,
     isActive = true,
+    deactivatedAt: Date | null = null,
     failedLoginAttempts = 0,
     blockedUntil: Date | null = null
   ): User {
@@ -131,6 +135,10 @@ export class User {
       throw new Error("Invalid active flag while reconstituting user");
     }
 
+    if (!User.isDateOrNull(deactivatedAt)) {
+      throw new Error("Invalid deactivatedAt while reconstituting user");
+    }
+
     if (!Number.isInteger(failedLoginAttempts) || failedLoginAttempts < 0) {
       throw new Error("Invalid failed authentication attempts while reconstituting user");
     }
@@ -151,6 +159,7 @@ export class User {
       [...permissionsOrFailedLoginAttempts],
       authorizationVersionOrBlockedUntil,
       isActive,
+      deactivatedAt,
       failedLoginAttempts,
       blockedUntil,
       createdAt
@@ -192,6 +201,7 @@ export class User {
       permissions,
       1,
       isActive,
+      null,
       failedLoginAttempts,
       blockedUntil,
       createdAt
@@ -234,6 +244,10 @@ export class User {
     return this._failedLoginAttempts;
   }
 
+  get deactivatedAt(): Date | null {
+    return this._deactivatedAt ? new Date(this._deactivatedAt.getTime()) : null;
+  }
+
   get blockedUntil(): Date | null {
     return this._blockedUntil ? new Date(this._blockedUntil.getTime()) : null;
   }
@@ -255,6 +269,7 @@ export class User {
       return;
     }
     this._isActive = isActive;
+    this._deactivatedAt = isActive ? null : new Date();
     this._authorizationVersion += 1;
   }
 
@@ -286,6 +301,10 @@ export class User {
   recordSuccessfulLogin(): void {
     this._failedLoginAttempts = 0;
     this._blockedUntil = null;
+  }
+
+  invalidateSessions(): void {
+    this._authorizationVersion += 1;
   }
 
   recordFailedLogin(at: Date, maxAttempts: number, lockDurationMs: number): void {

@@ -1,5 +1,5 @@
 import { createContainer as createAwilixContainer, asValue, asFunction } from "awilix";
-import { PrismaClient } from "../generated/prisma-client";
+import { PrismaClient } from "../../identity-service/generated/prisma-client";
 import Redis from "ioredis";
 import type { UserCreatedPayload } from "@lframework/shared";
 import type { ICacheService } from "@lframework/shared";
@@ -17,7 +17,10 @@ import { CreateItemUseCase } from "./application/use-cases/create-item.use-case"
 import { ListItemsUseCase } from "./application/use-cases/list-items.use-case";
 import { UpdateItemUseCase } from "./application/use-cases/update-item.use-case";
 import { HandleUserCreatedUseCase } from "./application/use-cases/handle-user-created.use-case";
+import { RunRetentionSweepUseCase } from "./application/use-cases/run-retention-sweep.use-case";
+import { ListRetentionRunsUseCase } from "./application/use-cases/list-retention-runs.use-case";
 import { ItemController } from "./adapters/driving/http/item.controller";
+import { RetentionRunsController } from "./adapters/driving/http/retention-runs.controller";
 import { createItemRoutes } from "./adapters/driving/http/routes";
 import { mapApplicationErrorToHttp } from "./adapters/driving/http/error-to-http.mapper";
 
@@ -51,7 +54,10 @@ interface ComplianceCradle {
   listItemsUseCase: ListItemsUseCase;
   updateItemUseCase: UpdateItemUseCase;
   handleUserCreatedUseCase: HandleUserCreatedUseCase;
+  runRetentionSweepUseCase: RunRetentionSweepUseCase;
+  listRetentionRunsUseCase: ListRetentionRunsUseCase;
   itemController: ItemController;
+  retentionRunsController: RetentionRunsController;
   tokenVerifier: JwtTokenVerifier;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
   requireItemsRead: ReturnType<typeof requirePermission>;
@@ -115,10 +121,20 @@ export function createContainer(config: ComplianceContainerConfig) {
       (cradle: ComplianceCradle) =>
         new HandleUserCreatedUseCase(cradle.replicatedUserStore, cradle.cache)
     ).singleton(),
+    runRetentionSweepUseCase: asFunction(
+      (cradle: ComplianceCradle) => new RunRetentionSweepUseCase(cradle.prisma)
+    ).singleton(),
+    listRetentionRunsUseCase: asFunction(
+      (cradle: ComplianceCradle) => new ListRetentionRunsUseCase(cradle.prisma)
+    ).singleton(),
 
     itemController: asFunction(
       (cradle: ComplianceCradle) =>
         new ItemController(cradle.createItemUseCase, cradle.listItemsUseCase, cradle.updateItemUseCase)
+    ).singleton(),
+    retentionRunsController: asFunction(
+      (cradle: ComplianceCradle) =>
+        new RetentionRunsController(cradle.listRetentionRunsUseCase)
     ).singleton(),
 
     tokenVerifier: asFunction(({ config }: { config: ComplianceContainerConfig }) => {
@@ -139,18 +155,21 @@ export function createContainer(config: ComplianceContainerConfig) {
     itemRoutes: asFunction(
       ({
         itemController,
+        retentionRunsController,
         authMiddleware,
         requireItemsRead,
         requireItemsCreate,
         requireComplianceTestAccess,
       }: {
         itemController: ItemController;
+        retentionRunsController: RetentionRunsController;
         authMiddleware: ReturnType<typeof createAuthMiddleware>;
         requireItemsRead: ReturnType<typeof requirePermission>;
         requireItemsCreate: ReturnType<typeof requirePermission>;
         requireComplianceTestAccess: ReturnType<typeof requirePermission>;
       }) => createItemRoutes(
         itemController,
+        retentionRunsController,
         authMiddleware,
         requireItemsRead,
         requireItemsCreate,
@@ -203,6 +222,13 @@ export function createContainer(config: ComplianceContainerConfig) {
       }
       await c.prisma.$disconnect();
       c.redis.disconnect();
+    },
+    async runRetentionSweep(
+      retentionDays: number,
+      batchSize: number,
+      scopedStatuses: Array<"resolvida" | "dispensada">
+    ) {
+      return c.runRetentionSweepUseCase.execute({ retentionDays, batchSize, scopedStatuses });
     },
   };
 }

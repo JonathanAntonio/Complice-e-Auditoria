@@ -8,6 +8,10 @@ export interface ComplianceServiceConfig {
   jwtSecret: string;
   baseUrl: string;
   corsOrigin?: string;
+  retentionSweepIntervalMs: number;
+  retentionMinDays: number;
+  retentionBatchSize: number;
+  retentionScopeStatuses: Array<"resolvida" | "dispensada">;
 }
 
 export function loadComplianceServiceConfig(env: NodeJS.ProcessEnv): ComplianceServiceConfig {
@@ -46,6 +50,30 @@ export function loadComplianceServiceConfig(env: NodeJS.ProcessEnv): ComplianceS
     : (env.RABBITMQ_URL ?? "amqp://lframework:lframework@localhost:5672");
   const jwtSecret = env.JWT_SECRET ?? (isProduction ? "" : "dev-secret-min-32-chars-for-jwt-signing");
   const baseUrl = env.BASE_URL ?? `http://localhost:${port}`;
+  const retentionSweepIntervalRaw = parseInt(env.COMPLIANCE_RETENTION_SWEEP_INTERVAL_MS ?? "3600000", 10);
+  const retentionSweepIntervalMs =
+    Number.isInteger(retentionSweepIntervalRaw) && retentionSweepIntervalRaw > 0
+      ? retentionSweepIntervalRaw
+      : 3600000;
+  const retentionMinDaysRaw = parseInt(env.COMPLIANCE_RETENTION_MIN_DAYS ?? "1825", 10);
+  const retentionMinDays =
+    Number.isInteger(retentionMinDaysRaw) && retentionMinDaysRaw >= 1825
+      ? retentionMinDaysRaw
+      : 1825;
+  const retentionBatchSizeRaw = parseInt(env.COMPLIANCE_RETENTION_BATCH_SIZE ?? "200", 10);
+  const retentionBatchSize =
+    Number.isInteger(retentionBatchSizeRaw) && retentionBatchSizeRaw > 0
+      ? retentionBatchSizeRaw
+      : 200;
+  const retentionScopeStatusesRaw = env.COMPLIANCE_RETENTION_SCOPE_STATUSES ?? "resolvida,dispensada";
+  const allowedStatuses = new Set<"resolvida" | "dispensada">(["resolvida", "dispensada"]);
+  const retentionScopeStatuses = retentionScopeStatusesRaw
+    .split(",")
+    .map((status) => status.trim())
+    .filter((status): status is "resolvida" | "dispensada" => allowedStatuses.has(status as "resolvida" | "dispensada"));
+  const normalizedRetentionScopeStatuses: Array<"resolvida" | "dispensada"> = retentionScopeStatuses.length
+    ? retentionScopeStatuses
+    : ["resolvida", "dispensada"];
 
   return {
     port,
@@ -55,5 +83,9 @@ export function loadComplianceServiceConfig(env: NodeJS.ProcessEnv): ComplianceS
     jwtSecret,
     baseUrl,
     corsOrigin: env.CORS_ORIGIN,
+    retentionSweepIntervalMs,
+    retentionMinDays,
+    retentionBatchSize,
+    retentionScopeStatuses: normalizedRetentionScopeStatuses,
   };
 }

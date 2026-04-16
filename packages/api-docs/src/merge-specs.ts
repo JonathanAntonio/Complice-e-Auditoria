@@ -1,6 +1,7 @@
 /**
  * Mescla specs OpenAPI 3 em uma única, prefixando schemas para evitar colisões.
- * Mantém múltiplos servers (Identity, Compliance, Integration, Audit) para o "Try it out" do Swagger.
+ * Mantém múltiplos servers (Identity, Compliance, Integration, Audit, Risk, Reporting, Notification)
+ * para o "Try it out" do Swagger.
  */
 
 export interface OpenApiSpec {
@@ -95,7 +96,7 @@ export function mergeOpenApiSpecs(specs: Array<{ spec: OpenApiSpec; prefix: stri
     info: {
       title: "LFramework API",
       version: "1.0.0",
-      description: "Documentação unificada: Identity, Compliance, Integration e Audit. Use o menu «Servers» para alternar o backend nas requisições.",
+      description: "Documentação unificada: Identity, Compliance, Integration, Audit, Risk Analysis, Reporting e Notification. Use o menu «Servers» para alternar o backend nas requisições.",
     },
     servers: mergedServers,
     components: {

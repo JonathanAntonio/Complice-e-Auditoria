@@ -54,6 +54,7 @@ export function createApp(
   }
 
   app.use("/api", container.integrationRoutes);
+  app.use("/api/v1", container.integrationRoutes);
   app.get("/metrics", container.metricsController.get);
   app.get("/health", createHealthHandler("integration-service"));
   app.use(createErrorHandlerMiddleware(mapIntegrationErrorToHttp));

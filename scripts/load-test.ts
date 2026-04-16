@@ -1,7 +1,7 @@
 /**
  * Indefinite load and functionality test script.
  * All traffic goes through the API Gateway (no direct microservice access).
- * Creates one main user at startup and keeps lists of created users and items to reuse in each cycle.
+ * Creates one main user at startup and keeps lists of created users and violations to reuse in each cycle.
  *
  * Usage:
  *   pnpm load-test
@@ -28,7 +28,7 @@ const ADMIN_EMAIL = process.env.LOAD_TEST_ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.LOAD_TEST_ADMIN_PASSWORD;
 
 const identity = (path: string) => `${GATEWAY_BASE_URL}/identity/${path.replace(/^\//, "")}`;
-const catalog = (path: string) => `${GATEWAY_BASE_URL}/catalog/${path.replace(/^\//, "")}`;
+const compliance = (path: string) => `${GATEWAY_BASE_URL}/compliance/${path.replace(/^\//, "")}`;
 
 interface Stats {
   cycle: number;
@@ -44,7 +44,7 @@ const stats: Stats = {
   latencies: [],
 };
 
-/** Main user created once and reused (login, me, catalog create). */
+/** Main user created once and reused (login, me, compliance create). */
 interface MainUser {
   email: string;
   password: string;
@@ -230,35 +230,34 @@ async function getUser(token: string, userId: string): Promise<boolean> {
   return ok;
 }
 
-/** GET /api/items via gateway. */
+/** GET /api/violations via gateway. */
 async function listItems(): Promise<boolean> {
-  const { status } = await fetchJson(catalog("/api/items"), { method: "GET" });
+  const { status } = await fetchJson(compliance("/api/violations"), { method: "GET" });
   const ok = status === 200;
   record(ok);
-  if (!ok) log("list items failed", { status });
+  if (!ok) log("list violations failed", { status });
   return ok;
 }
 
-/** POST /api/items via gateway; returns item id. */
-async function createItem(
+/** POST /api/violations via gateway; returns item id. */
+async function createViolation(
   token: string,
-  name: string,
-  priceAmount: number,
-  priceCurrency: string
+  title: string,
+  severity: "baixa" | "media" | "alta"
 ): Promise<string | null> {
-  const { status, body } = await fetchJson(catalog("/api/items"), {
+  const { status, body } = await fetchJson(compliance("/api/violations"), {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
-    body: JSON.stringify({ name, priceAmount, priceCurrency }),
+    body: JSON.stringify({ title, severity }),
   });
   if (status !== 201 || typeof body !== "object" || body === null) {
-    log("create item failed", { status, body });
+    log("create violation failed", { status, body });
     record(false);
     return null;
   }
   const b = body as { id?: string };
   if (typeof b.id !== "string") {
-    log("create item missing id", { body });
+    log("create violation missing id", { body });
     record(false);
     return null;
   }
@@ -271,7 +270,7 @@ async function healthCheck(): Promise<boolean> {
   const [gatewayRes, idRes, catRes] = await Promise.all([
     fetchWithTimeout(`${GATEWAY_BASE_URL}/health`),
     fetchWithTimeout(identity("/health")),
-    fetchWithTimeout(catalog("/health")),
+    fetchWithTimeout(compliance("/health")),
   ]);
   const ok = gatewayRes.ok && idRes.ok && catRes.ok;
   record(ok);
@@ -279,7 +278,7 @@ async function healthCheck(): Promise<boolean> {
     log("health check failed", {
       gateway: gatewayRes.status,
       identity: idRes.status,
-      catalog: catRes.status,
+      compliance: catRes.status,
     });
   return ok;
 }
@@ -345,11 +344,13 @@ async function runCycle(): Promise<void> {
   await me(currentToken);
   await listItems();
 
-  const itemId = await createItem(
+  const randomSeverity: "baixa" | "media" | "alta" = (["baixa", "media", "alta"] as const)[
+    Math.floor(Math.random() * 3)
+  ]!;
+  const itemId = await createViolation(
     currentToken,
-    `Item ${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-    Math.floor(Math.random() * 50000) + 100,
-    "BRL"
+    `Violação ${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    randomSeverity
   );
   if (itemId) state.createdItemIds.push(itemId);
 

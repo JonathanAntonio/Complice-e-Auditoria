@@ -1,12 +1,16 @@
-import { Prisma, PrismaClient } from "../../../../generated/prisma-client";
 import type { IReplicatedUserStore } from "../../../application/ports/replicated-user-store.port";
 import type { UserCreatedPayload } from "@lframework/shared";
+
+interface ComplianceDb {
+  $executeRawUnsafe(query: string, ...values: unknown[]): Promise<unknown>;
+  $queryRawUnsafe<T>(query: string, ...values: unknown[]): Promise<T>;
+}
 
 /**
  * Adapter: replicates user data from user.created events into local table (Data Replication).
  */
 export class PrismaReplicatedUserStore implements IReplicatedUserStore {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(private readonly prisma: ComplianceDb) {}
 
   async upsertFromUserCreated(payload: UserCreatedPayload): Promise<void> {
     const now = new Date();
@@ -20,50 +24,52 @@ export class PrismaReplicatedUserStore implements IReplicatedUserStore {
       occurredAt = now;
     }
 
-    const updated = await this.prisma.replicatedUserModel.updateMany({
-      where: {
-        id: payload.userId,
-        OR: [
-          { lastEventOccurredAt: { lte: occurredAt } },
-          { lastEventOccurredAt: null },
-        ],
-      },
-      data: {
-        email: payload.email,
-        name: payload.name,
-        lastEventAt: now,
-        lastEventOccurredAt: occurredAt,
-      },
-    });
+    const updated = await this.prisma.$executeRawUnsafe(
+      `
+      UPDATE "replicated_users"
+      SET
+        "email" = $2,
+        "name" = $3,
+        "last_event_at" = $4,
+        "last_event_occurred_at" = $5
+      WHERE "id" = $1
+        AND ("last_event_occurred_at" IS NULL OR "last_event_occurred_at" <= $5)
+      `,
+      payload.userId,
+      payload.email,
+      payload.name,
+      now,
+      occurredAt
+    );
 
-    if (updated.count === 0) {
-      const existing = await this.prisma.replicatedUserModel.findUnique({
-        where: { id: payload.userId },
-      });
-      if (!existing) {
-        try {
-          await this.prisma.replicatedUserModel.create({
-            data: {
-              id: payload.userId,
-              email: payload.email,
-              name: payload.name,
-              createdAt: occurredAt,
-              lastEventAt: now,
-              lastEventOccurredAt: occurredAt,
-            },
-          });
-        } catch (err) {
-          if (
-            err instanceof Prisma.PrismaClientKnownRequestError &&
-            err.code === "P2002"
-          ) {
-            // Benign race: another concurrent insert created the row; skip.
-            return;
-          }
-          throw err;
-        }
-      }
-      // else: row exists with newer lastEventOccurredAt — skip (stale/delayed event)
+    if (Number(updated) > 0) {
+      return;
     }
+
+    const existing = await this.prisma.$queryRawUnsafe<Array<{ id: string }>>(
+      `SELECT "id" FROM "replicated_users" WHERE "id" = $1 LIMIT 1`,
+      payload.userId
+    );
+
+    if (existing.length > 0) {
+      return;
+    }
+
+    await this.prisma.$executeRawUnsafe(
+      `
+      INSERT INTO "replicated_users" (
+        "id", "email", "name", "created_at", "last_event_at", "last_event_occurred_at"
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6
+      )
+      ON CONFLICT ("id") DO NOTHING
+      `,
+      payload.userId,
+      payload.email,
+      payload.name,
+      occurredAt,
+      now,
+      occurredAt
+    );
   }
 }

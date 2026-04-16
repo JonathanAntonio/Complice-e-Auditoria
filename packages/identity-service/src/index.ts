@@ -26,6 +26,27 @@ async function bootstrap() {
   await container.connectRabbitMQ();
   container.startOutboxRelay(config.outboxRelayIntervalMs);
 
+  let retentionSweepRunning = false;
+  const runRetentionSweep = async () => {
+    if (retentionSweepRunning) {
+      return;
+    }
+    retentionSweepRunning = true;
+    try {
+      await container.runInactiveUserAnonymization(
+        config.inactiveUserAnonymizationAfterDays,
+        config.inactiveUserAnonymizationBatchSize
+      );
+    } finally {
+      retentionSweepRunning = false;
+    }
+  };
+
+  void runRetentionSweep();
+  const retentionSweepTimer = setInterval(() => {
+    void runRetentionSweep();
+  }, config.retentionSweepIntervalMs);
+
   const app = createApp(container, {
     corsOrigin: config.corsOrigin,
     baseUrl: config.baseUrl,
@@ -37,10 +58,22 @@ async function bootstrap() {
 
   process.on("SIGTERM", async () => {
     try {
+      clearInterval(retentionSweepTimer);
       await container.disconnect();
       process.exit(0);
     } catch (err) {
       logger.error({ err }, "Disconnect failed on SIGTERM");
+      process.exit(1);
+    }
+  });
+
+  process.on("SIGINT", async () => {
+    try {
+      clearInterval(retentionSweepTimer);
+      await container.disconnect();
+      process.exit(0);
+    } catch (err) {
+      logger.error({ err }, "Disconnect failed on SIGINT");
       process.exit(1);
     }
   });

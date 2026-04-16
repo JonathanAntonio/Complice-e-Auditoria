@@ -4,6 +4,10 @@ import {
   parseAuditLogListResponseDto,
   type AuditLogsQueryDto,
 } from "../../../application/dtos/audit-log-response.dto";
+import {
+  parseRetentionRunListDto,
+  type RetentionRunsQueryDto,
+} from "../../../application/dtos/retention-run.dto";
 
 export interface AuditHttpClientConfig {
   gatewayBaseUrl: string;
@@ -20,6 +24,14 @@ export class AuditHttpClient implements IAuditLogsClient {
     });
 
     return parseAuditLogListResponseDto(payload);
+  }
+
+  async listAuditRetentionRuns(token: string, query: RetentionRunsQueryDto) {
+    const queryString = toRetentionQueryString(query);
+    const payload = await this.request<unknown>(`/audit/retention/runs${queryString ? `?${queryString}` : ""}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return parseRetentionRunListDto(payload);
   }
 
   private async request<T>(pathWithQuery: string, init: RequestInit = {}): Promise<T> {
@@ -54,6 +66,14 @@ function toQueryString(query: AuditLogsQueryDto): string {
   if (query.from) params.set("from", query.from);
   if (query.to) params.set("to", query.to);
 
+  return params.toString();
+}
+
+function toRetentionQueryString(query: RetentionRunsQueryDto): string {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", `${query.page}`);
+  if (query.pageSize) params.set("pageSize", `${query.pageSize}`);
+  if (query.status) params.set("status", query.status);
   return params.toString();
 }
 

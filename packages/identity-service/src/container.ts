@@ -17,10 +17,12 @@ import { GitHubOAuthProvider } from "./adapters/driven/auth/github-oauth.provide
 import type { IOAuthProvider } from "./application/ports/oauth-provider.port";
 import { CreateUserUseCase } from "./application/use-cases/create-user.use-case";
 import { GetUserByIdUseCase } from "./application/use-cases/get-user-by-id.use-case";
+import { ListUsersUseCase } from "./application/use-cases/list-users.use-case";
 import { AssignUserRolesUseCase } from "./application/use-cases/assign-user-role.use-case";
 import { GetCurrentUserUseCase } from "./application/use-cases/get-current-user.use-case";
 import { OAuthCallbackUseCase } from "./application/use-cases/oauth-callback.use-case";
 import { LogoutUseCase } from "./application/use-cases/logout.use-case";
+import { AnonymizeInactiveUsersUseCase } from "./application/use-cases/anonymize-inactive-users.use-case";
 import { UpdateUserSecurityUseCase } from "./application/use-cases/update-user-security.use-case";
 import { DeactivateUserUseCase } from "./application/use-cases/deactivate-user.use-case";
 import { UserController } from "./adapters/driving/http/user.controller";
@@ -77,9 +79,11 @@ interface IdentityCradle {
   userCreatedNotifier: UserCreatedNotifierAdapter;
   createUserUseCase: CreateUserUseCase;
   getUserByIdUseCase: GetUserByIdUseCase;
+  listUsersUseCase: ListUsersUseCase;
   getCurrentUserUseCase: GetCurrentUserUseCase;
   oauthCallbackUseCase: OAuthCallbackUseCase;
   logoutUseCase: LogoutUseCase;
+  anonymizeInactiveUsersUseCase: AnonymizeInactiveUsersUseCase;
   assignUserRolesUseCase: AssignUserRolesUseCase;
   updateUserSecurityUseCase: UpdateUserSecurityUseCase;
   deactivateUserUseCase: DeactivateUserUseCase;
@@ -87,6 +91,7 @@ interface IdentityCradle {
   authController: AuthController;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
   requireUsersCreate: ReturnType<typeof requirePermissionWithAudit>;
+  requireUsersReadAny: ReturnType<typeof requirePermissionWithAudit>;
   requireUsersRead: ReturnType<typeof requireSelfOrPermissionWithAudit>;
   requireRolesAssign: ReturnType<typeof requirePermissionWithAudit>;
   requireUsersUpdate: ReturnType<typeof requirePermissionWithAudit>;
@@ -184,6 +189,10 @@ export function createContainer(config: ContainerConfig) {
       (cradle: IdentityCradle) =>
         new GetUserByIdUseCase(cradle.userRepository, cradle.cache)
     ).singleton(),
+    listUsersUseCase: asFunction(
+      (cradle: IdentityCradle) =>
+        new ListUsersUseCase(cradle.userRepository)
+    ).singleton(),
 
     getCurrentUserUseCase: asFunction(
       (cradle: IdentityCradle) =>
@@ -219,7 +228,11 @@ export function createContainer(config: ContainerConfig) {
 
     logoutUseCase: asFunction(
       (cradle: IdentityCradle) =>
-        new LogoutUseCase(cradle.outboxRepository)
+        new LogoutUseCase(cradle.userRepository, cradle.outboxRepository)
+    ).singleton(),
+    anonymizeInactiveUsersUseCase: asFunction(
+      (cradle: IdentityCradle) =>
+        new AnonymizeInactiveUsersUseCase(cradle.prisma, cradle.outboxRepository)
     ).singleton(),
 
     userController: asFunction(
@@ -228,6 +241,7 @@ export function createContainer(config: ContainerConfig) {
           cradle.createUserUseCase,
           cradle.getUserByIdUseCase,
           cradle.assignUserRolesUseCase,
+          cradle.listUsersUseCase,
           cradle.updateUserSecurityUseCase,
           cradle.deactivateUserUseCase
         )
@@ -255,6 +269,10 @@ export function createContainer(config: ContainerConfig) {
     requireUsersCreate: asFunction(
       ({ outboxRepository }: { outboxRepository: IOutboxRepository }) =>
         requirePermissionWithAudit(outboxRepository, PERMISSIONS.USERS_CREATE, "POST /api/users")
+    ).singleton(),
+    requireUsersReadAny: asFunction(
+      ({ outboxRepository }: { outboxRepository: IOutboxRepository }) =>
+        requirePermissionWithAudit(outboxRepository, PERMISSIONS.USERS_READ_ANY, "GET /api/users")
     ).singleton(),
 
     requireUsersRead: asFunction(
@@ -299,6 +317,7 @@ export function createContainer(config: ContainerConfig) {
         userController,
         authMiddleware,
         requireUsersCreate,
+        requireUsersReadAny,
         requireUsersRead,
         requireRolesAssign,
         requireUsersUpdate,
@@ -307,6 +326,7 @@ export function createContainer(config: ContainerConfig) {
         userController: UserController;
         authMiddleware: ReturnType<typeof createAuthMiddleware>;
         requireUsersCreate: ReturnType<typeof requirePermissionWithAudit>;
+        requireUsersReadAny: ReturnType<typeof requirePermissionWithAudit>;
         requireUsersRead: ReturnType<typeof requireSelfOrPermissionWithAudit>;
         requireRolesAssign: ReturnType<typeof requirePermissionWithAudit>;
         requireUsersUpdate: ReturnType<typeof requirePermissionWithAudit>;
@@ -315,6 +335,7 @@ export function createContainer(config: ContainerConfig) {
         userController,
         authMiddleware,
         requireUsersCreate,
+        requireUsersReadAny,
         requireUsersRead,
         requireRolesAssign,
         requireUsersUpdate,
@@ -362,6 +383,9 @@ export function createContainer(config: ContainerConfig) {
       if (ep.disconnect) await ep.disconnect();
       await c.prisma.$disconnect();
       c.redis.disconnect();
+    },
+    async runInactiveUserAnonymization(retentionDays: number, batchSize: number): Promise<void> {
+      await c.anonymizeInactiveUsersUseCase.execute({ retentionDays, batchSize });
     },
   };
 }

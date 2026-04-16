@@ -98,7 +98,7 @@ export class OAuthCallbackUseCase {
         throw new OAuthAuthenticationError("OAuth authentication failed");
       }
       await this.assertUserCanAuthenticate(user, baseAuditPayload);
-      return await this.buildSuccessResult(user, false, baseAuditPayload);
+      return await this.buildSuccessResult(user, false, baseAuditPayload, true);
     }
 
     const email = Email.create(userInfo.email);
@@ -137,14 +137,20 @@ export class OAuthCallbackUseCase {
       await this.oauthAccountRepository.save(user.id, provider.provider, userInfo.providerId);
     }
 
-    return await this.buildSuccessResult(user, isNewUser, baseAuditPayload);
+    return await this.buildSuccessResult(user, isNewUser, baseAuditPayload, !isNewUser);
   }
 
   private async buildSuccessResult(
     user: User,
     isNewUser: boolean,
-    baseAuditPayload: Record<string, unknown>
+    baseAuditPayload: Record<string, unknown>,
+    rotateSession: boolean
   ): Promise<OAuthCallbackResultDto> {
+    if (rotateSession) {
+      user.invalidateSessions();
+      await this.userRepository.save(user);
+    }
+
     await this.appendAuditEventSafely(
       SECURITY_AUDIT_EVENTS.LOGIN_SUCCEEDED,
       {

@@ -54,6 +54,44 @@ export function createAuditOpenApi(baseUrl: string) {
             total: { type: "integer", minimum: 0 },
           },
         },
+        RetentionRunItem: {
+          type: "object",
+          required: [
+            "id",
+            "startedAt",
+            "status",
+            "retentionDays",
+            "cutoffAt",
+            "scannedCount",
+            "eligibleCount",
+            "monitorOnlyCount",
+          ],
+          properties: {
+            id: { type: "string", format: "uuid" },
+            startedAt: { type: "string", format: "date-time" },
+            finishedAt: { type: ["string", "null"], format: "date-time" },
+            status: { type: "string", enum: ["running", "success", "failed"] },
+            retentionDays: { type: "integer", minimum: 1 },
+            cutoffAt: { type: "string", format: "date-time" },
+            scannedCount: { type: "integer", minimum: 0 },
+            eligibleCount: { type: "integer", minimum: 0 },
+            monitorOnlyCount: { type: "integer", minimum: 0 },
+            errorMessage: { type: ["string", "null"] },
+          },
+        },
+        RetentionRunListResponse: {
+          type: "object",
+          required: ["items", "page", "pageSize", "total"],
+          properties: {
+            items: {
+              type: "array",
+              items: { $ref: "#/components/schemas/RetentionRunItem" },
+            },
+            page: { type: "integer", minimum: 1 },
+            pageSize: { type: "integer", minimum: 1 },
+            total: { type: "integer", minimum: 0 },
+          },
+        },
         ErrorResponse: {
           type: "object",
           required: ["error", "message"],
@@ -85,6 +123,36 @@ export function createAuditOpenApi(baseUrl: string) {
               content: {
                 "application/json": {
                   schema: { $ref: "#/components/schemas/AuditLogListResponse" },
+                },
+              },
+            },
+            "401": {
+              description: "Unauthorized",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+            },
+            "403": {
+              description: "Forbidden",
+              content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+            },
+          },
+        },
+      },
+      "/api/audit/retention/runs": {
+        get: {
+          summary: "List retention runs",
+          description: "Exige autenticação JWT e permissão audit.logs.read.any ou audit.logs.read.scoped.",
+          security: [{ bearerAuth: [] }],
+          parameters: [
+            { name: "page", in: "query", schema: { type: "integer", minimum: 1, default: 1 } },
+            { name: "pageSize", in: "query", schema: { type: "integer", minimum: 1, maximum: 100, default: 20 } },
+            { name: "status", in: "query", schema: { type: "string", enum: ["running", "success", "failed"] } },
+          ],
+          responses: {
+            "200": {
+              description: "Retention runs list",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/RetentionRunListResponse" },
                 },
               },
             },

@@ -11,7 +11,7 @@ help:
 	@echo "  make infra-wait  - aguarda infraestrutura ficar saudável (healthcheck)"
 	@echo "  make infra-down  - derruba infraestrutura Docker"
 	@echo "  make migrate     - executa migrações dos serviços"
-	@echo "  make dev         - sobe identity, compliance, integration, audit, api-docs, bff e frontend"
+	@echo "  make dev         - sobe identity, compliance, integration, audit, risk, reporting, notification, api-docs, bff e frontend"
 	@echo "  make run         - instala deps, sobe infra e inicia todos os serviços"
 	@echo "  make test        - roda testes"
 	@echo "  make lint        - roda lint"

@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import { asyncHandler } from "@lframework/shared";
 import { ItemController } from "./item.controller";
+import { RetentionRunsController } from "./retention-runs.controller";
 import { validateCreateItem, validateUpdateItem } from "./item.validation";
 
 /**
@@ -9,6 +10,7 @@ import { validateCreateItem, validateUpdateItem } from "./item.validation";
  */
 export function createItemRoutes(
   controller: ItemController,
+  retentionRunsController: RetentionRunsController,
   authMiddleware: (req: Request, res: Response, next: NextFunction) => void,
   requireItemsRead: (req: Request, res: Response, next: NextFunction) => void,
   requireItemsCreate: (req: Request, res: Response, next: NextFunction) => void,
@@ -35,6 +37,12 @@ export function createItemRoutes(
     requireItemsCreate,
     validateUpdateItem,
     asyncHandler(controller.update.bind(controller))
+  );
+  router.get(
+    "/retention/runs",
+    authMiddleware,
+    requireItemsRead,
+    asyncHandler(retentionRunsController.list.bind(retentionRunsController))
   );
   return router;
 }

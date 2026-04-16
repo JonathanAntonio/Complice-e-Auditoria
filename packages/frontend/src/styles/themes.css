@@ -1,0 +1,5 @@
+body {
+  background: var(--app-bg);
+  color: var(--ink);
+  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+}

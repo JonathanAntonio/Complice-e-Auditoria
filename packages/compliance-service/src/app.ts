@@ -8,8 +8,10 @@ import {
   requestLoggingMiddleware,
   createErrorHandlerMiddleware,
   createHealthHandler,
+  createServiceMetrics,
 } from "@lframework/shared";
 import type { HttpErrorMapping } from "@lframework/shared";
+import type { ServiceMetrics } from "@lframework/shared";
 
 export interface ComplianceAppContainer {
   itemRoutes: Router;
@@ -21,6 +23,7 @@ export interface CreateAppOptions {
   corsOrigin?: string;
   /** When set, enables API docs and OpenAPI spec at /api-docs and /api-docs.json. */
   baseUrl?: string;
+  onMetricsReady?: (metrics: ServiceMetrics) => void;
 }
 
 /**
@@ -32,9 +35,12 @@ export function createApp(
   options: CreateAppOptions = {}
 ): Express {
   const app = express();
+  const metrics = createServiceMetrics("compliance-service");
+  options.onMetricsReady?.(metrics);
   app.use(requestIdMiddleware);
   app.use(correlationIdMiddleware);
   app.use(requestLoggingMiddleware);
+  app.use(metrics.middleware);
 
   if (options.corsOrigin) {
     const origins = options.corsOrigin.split(",").map((s) => s.trim()).filter(Boolean);
@@ -58,7 +64,9 @@ export function createApp(
   }
 
   app.use("/api", container.itemRoutes);
+  app.use("/api/v1", container.itemRoutes);
 
+  app.get("/metrics", metrics.handler);
   app.get("/health", createHealthHandler("compliance-service"));
 
   const errorMapper = (err: unknown): HttpErrorMapping =>

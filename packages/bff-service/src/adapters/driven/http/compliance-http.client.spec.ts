@@ -23,7 +23,16 @@ describe("ComplianceHttpClient", () => {
     const violations = await client.listViolations("token");
 
     expect(violations).toEqual([
-      { id: "v-1", title: "Acesso indevido", severity: "alta", status: "aberta", createdAt: "2026-01-01T00:00:00.000Z" },
+      {
+        id: "v-1",
+        title: "Acesso indevido",
+        severity: "alta",
+        status: "aberta",
+        resolvedAt: null,
+        dismissedAt: null,
+        retentionUntil: null,
+        createdAt: "2026-01-01T00:00:00.000Z",
+      },
     ]);
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);
   });
@@ -63,6 +72,9 @@ describe("ComplianceHttpClient", () => {
       title: "Título atualizado",
       severity: "media",
       status: "aberta",
+      resolvedAt: null,
+      dismissedAt: null,
+      retentionUntil: null,
       createdAt: "2026-01-01T00:00:00.000Z",
     });
     expect(globalThis.fetch).toHaveBeenCalledTimes(1);

@@ -5,7 +5,7 @@ loadEnv({ path: path.resolve(process.cwd(), "../../.env") });
 loadEnv({ path: path.resolve(process.cwd(), ".env") });
 
 import type { Server } from "http";
-import { logger } from "@lframework/shared";
+import { logger, type ServiceMetrics } from "@lframework/shared";
 import { createContainer } from "./container";
 import { createApp } from "./app";
 import { loadAuditServiceConfig } from "./app/config";
@@ -30,10 +30,44 @@ async function bootstrap() {
   const container = createContainer(config);
   await container.startConsumer();
 
+  let metricsRef: ServiceMetrics | null = null;
   const app = createApp(container, {
     baseUrl: config.baseUrl,
     corsOrigin: config.corsOrigin,
+    onMetricsReady: (metrics) => {
+      metricsRef = metrics;
+    },
   });
+
+  let retentionSweepRunning = false;
+  const runRetentionSweep = async () => {
+    if (retentionSweepRunning) {
+      return;
+    }
+    retentionSweepRunning = true;
+    try {
+      const result = await container.runRetentionSweep(
+        config.retentionMinDays,
+        config.retentionBatchSize,
+        config.retentionScopeSourceServices
+      );
+      metricsRef?.recordGauge("audit_retention_last_run_timestamp_seconds", Math.floor(Date.now() / 1000));
+      metricsRef?.recordGauge("audit_retention_last_run_scanned_total", result.scannedCount);
+      metricsRef?.recordGauge("audit_retention_last_run_eligible_total", result.eligibleCount);
+      metricsRef?.recordGauge("audit_retention_last_run_monitor_only_total", result.monitorOnlyCount);
+      metricsRef?.recordGauge("audit_retention_last_run_success", 1);
+    } catch (err) {
+      logger.error({ err }, "Audit retention sweep failed");
+      metricsRef?.recordGauge("audit_retention_last_run_timestamp_seconds", Math.floor(Date.now() / 1000));
+      metricsRef?.recordGauge("audit_retention_last_run_success", 0);
+    } finally {
+      retentionSweepRunning = false;
+    }
+  };
+  void runRetentionSweep();
+  const retentionSweepTimer = setInterval(() => {
+    void runRetentionSweep();
+  }, config.retentionSweepIntervalMs);
 
   const server = app.listen(config.port, () => {
     logger.info(`Audit service listening on http://localhost:${config.port}`);
@@ -43,6 +77,7 @@ async function bootstrap() {
   const shutdown = async (signal: "SIGTERM" | "SIGINT") => {
     if (shuttingDown) return;
     shuttingDown = true;
+    clearInterval(retentionSweepTimer);
 
     try {
       await closeServer(server);

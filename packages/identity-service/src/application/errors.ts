@@ -52,3 +52,11 @@ export class AuthorizationError extends AppError {
     Object.setPrototypeOf(this, AuthorizationError.prototype);
   }
 }
+
+export class InvalidSessionError extends AppError {
+  override name = "InvalidSessionError";
+  constructor(message = "Invalid session") {
+    super(message);
+    Object.setPrototypeOf(this, InvalidSessionError.prototype);
+  }
+}

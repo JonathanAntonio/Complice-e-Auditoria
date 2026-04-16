@@ -4,7 +4,18 @@ import type { OAuthProvider } from "../../../domain/oauth";
 import { UpstreamHttpError } from "../../../application/errors/upstream-http.error";
 import { parseCreateComplianceViolationDto } from "../../../application/dtos/create-compliance-violation.dto";
 import { parseUpdateComplianceViolationDto } from "../../../application/dtos/update-compliance-violation.dto";
+import { parsePublishIntegrationEventDto } from "../../../application/dtos/publish-integration-event.dto";
+import {
+  parseAdminCreateUserInputDto,
+  parseAdminUpdateUserRolesInputDto,
+  parseAdminUpdateUserSecurityInputDto,
+  parseAdminUsersQueryDto,
+} from "../../../application/dtos/admin-user.dto";
 import { parseAuditLogsQueryDto } from "../../../application/dtos/audit-log-response.dto";
+import { parseRetentionRunsQueryDto } from "../../../application/dtos/retention-run.dto";
+import { parseRiskEventInputDto, parseRiskScoreHistoryQueryDto, parseRiskScoresQueryDto } from "../../../application/dtos/risk-score.dto";
+import { parseCreateReportExportDto } from "../../../application/dtos/report-export.dto";
+import { parseDispatchNotificationDto } from "../../../application/dtos/notification.dto";
 import { StartOAuthUseCase } from "../../../application/use-cases/start-oauth.use-case";
 import { CompleteOAuthCallbackUseCase } from "../../../application/use-cases/complete-oauth-callback.use-case";
 import { GetCurrentUserUseCase } from "../../../application/use-cases/get-current-user.use-case";
@@ -13,6 +24,24 @@ import { CreateComplianceViolationUseCase } from "../../../application/use-cases
 import { ListComplianceViolationsUseCase } from "../../../application/use-cases/list-compliance-violations.use-case";
 import { UpdateComplianceViolationUseCase } from "../../../application/use-cases/update-compliance-violation.use-case";
 import { ListAuditLogsUseCase } from "../../../application/use-cases/list-audit-logs.use-case";
+import { ListAuditRetentionRunsUseCase } from "../../../application/use-cases/list-audit-retention-runs.use-case";
+import { ListComplianceRetentionRunsUseCase } from "../../../application/use-cases/list-compliance-retention-runs.use-case";
+import { ListRiskScoresUseCase } from "../../../application/use-cases/list-risk-scores.use-case";
+import { GetRiskScoreHistoryUseCase } from "../../../application/use-cases/get-risk-score-history.use-case";
+import { IngestRiskEventUseCase } from "../../../application/use-cases/ingest-risk-event.use-case";
+import { CreateReportExportUseCase } from "../../../application/use-cases/create-report-export.use-case";
+import { GetReportExportUseCase } from "../../../application/use-cases/get-report-export.use-case";
+import { DownloadReportExportUseCase } from "../../../application/use-cases/download-report-export.use-case";
+import { DispatchNotificationUseCase } from "../../../application/use-cases/dispatch-notification.use-case";
+import { ListNotificationLogsUseCase } from "../../../application/use-cases/list-notification-logs.use-case";
+import { ListAdminUsersUseCase } from "../../../application/use-cases/list-admin-users.use-case";
+import { GetAdminUserUseCase } from "../../../application/use-cases/get-admin-user.use-case";
+import { CreateAdminUserUseCase } from "../../../application/use-cases/create-admin-user.use-case";
+import { UpdateAdminUserRolesUseCase } from "../../../application/use-cases/update-admin-user-roles.use-case";
+import { UpdateAdminUserSecurityUseCase } from "../../../application/use-cases/update-admin-user-security.use-case";
+import { DeactivateAdminUserUseCase } from "../../../application/use-cases/deactivate-admin-user.use-case";
+import { PublishIntegrationEventUseCase } from "../../../application/use-cases/publish-integration-event.use-case";
+import { IntegrationAuditHttpClient } from "../../driven/http/integration-audit-http.client";
 import { CookieSessionService } from "./cookie-session.service";
 import { resolvePublicBaseUrl, shouldUseSecureCookie } from "./public-base-url.resolver";
 import { sendJsonError, toErrorMessage } from "./error-response";
@@ -26,6 +55,24 @@ export interface AuthHandlersDeps {
   updateComplianceViolationUseCase: UpdateComplianceViolationUseCase;
   listComplianceViolationsUseCase: ListComplianceViolationsUseCase;
   listAuditLogsUseCase: ListAuditLogsUseCase;
+  listAuditRetentionRunsUseCase: ListAuditRetentionRunsUseCase;
+  listComplianceRetentionRunsUseCase: ListComplianceRetentionRunsUseCase;
+  listRiskScoresUseCase: ListRiskScoresUseCase;
+  getRiskScoreHistoryUseCase: GetRiskScoreHistoryUseCase;
+  ingestRiskEventUseCase: IngestRiskEventUseCase;
+  createReportExportUseCase: CreateReportExportUseCase;
+  getReportExportUseCase: GetReportExportUseCase;
+  downloadReportExportUseCase: DownloadReportExportUseCase;
+  dispatchNotificationUseCase: DispatchNotificationUseCase;
+  listNotificationLogsUseCase: ListNotificationLogsUseCase;
+  listAdminUsersUseCase: ListAdminUsersUseCase;
+  getAdminUserUseCase: GetAdminUserUseCase;
+  createAdminUserUseCase: CreateAdminUserUseCase;
+  updateAdminUserRolesUseCase: UpdateAdminUserRolesUseCase;
+  updateAdminUserSecurityUseCase: UpdateAdminUserSecurityUseCase;
+  deactivateAdminUserUseCase: DeactivateAdminUserUseCase;
+  publishIntegrationEventUseCase: PublishIntegrationEventUseCase;
+  integrationAuditPublisher: IntegrationAuditHttpClient;
   cookieSessionService: CookieSessionService;
   explicitPublicBaseUrl: string | null;
 }
@@ -75,6 +122,74 @@ export class AuthHandlers {
 
   listAuditLogs = (req: Request, res: Response): void => {
     void this.handleListAuditLogs(req, res);
+  };
+
+  listAuditRetentionRuns = (req: Request, res: Response): void => {
+    void this.handleListAuditRetentionRuns(req, res);
+  };
+
+  listComplianceRetentionRuns = (req: Request, res: Response): void => {
+    void this.handleListComplianceRetentionRuns(req, res);
+  };
+
+  listRiskScores = (req: Request, res: Response): void => {
+    void this.handleListRiskScores(req, res);
+  };
+
+  getRiskScoreHistory = (req: Request, res: Response): void => {
+    void this.handleGetRiskScoreHistory(req, res);
+  };
+
+  ingestRiskEvent = (req: Request, res: Response): void => {
+    void this.handleIngestRiskEvent(req, res);
+  };
+
+  createReportExport = (req: Request, res: Response): void => {
+    void this.handleCreateReportExport(req, res);
+  };
+
+  getReportExport = (req: Request, res: Response): void => {
+    void this.handleGetReportExport(req, res);
+  };
+
+  downloadReportExport = (req: Request, res: Response): void => {
+    void this.handleDownloadReportExport(req, res);
+  };
+
+  dispatchNotification = (req: Request, res: Response): void => {
+    void this.handleDispatchNotification(req, res);
+  };
+
+  listNotificationLogs = (req: Request, res: Response): void => {
+    void this.handleListNotificationLogs(req, res);
+  };
+
+  listAdminUsers = (req: Request, res: Response): void => {
+    void this.handleListAdminUsers(req, res);
+  };
+
+  getAdminUser = (req: Request, res: Response): void => {
+    void this.handleGetAdminUser(req, res);
+  };
+
+  createAdminUser = (req: Request, res: Response): void => {
+    void this.handleCreateAdminUser(req, res);
+  };
+
+  updateAdminUserRoles = (req: Request, res: Response): void => {
+    void this.handleUpdateAdminUserRoles(req, res);
+  };
+
+  updateAdminUserSecurity = (req: Request, res: Response): void => {
+    void this.handleUpdateAdminUserSecurity(req, res);
+  };
+
+  deactivateAdminUser = (req: Request, res: Response): void => {
+    void this.handleDeactivateAdminUser(req, res);
+  };
+
+  publishIntegrationEvent = (req: Request, res: Response): void => {
+    void this.handlePublishIntegrationEvent(req, res);
   };
 
   private async startOAuth(req: Request, res: Response, provider: OAuthProvider): Promise<void> {
@@ -172,6 +287,7 @@ export class AuthHandlers {
       sendJsonError(res, 401, "Não autenticado");
       return;
     }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
 
     try {
       const items = await this.deps.listComplianceViolationsUseCase.execute(token);
@@ -201,6 +317,7 @@ export class AuthHandlers {
       sendJsonError(res, 401, "Não autenticado");
       return;
     }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
 
     const parsedBody = parseCreateComplianceViolationDto(req.body);
     if (!parsedBody) {
@@ -242,6 +359,7 @@ export class AuthHandlers {
       sendJsonError(res, 401, "Não autenticado");
       return;
     }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
 
     if (!violationId) {
       sendJsonError(res, 400, "ID inválido para edição de violação");
@@ -292,6 +410,7 @@ export class AuthHandlers {
       sendJsonError(res, 401, "Não autenticado");
       return;
     }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
 
     try {
       const query = parseAuditLogsQueryDto(req.query);
@@ -311,6 +430,698 @@ export class AuthHandlers {
       sendJsonError(res, 502, "Audit service unavailable");
     }
   }
+
+  private async handleListAuditRetentionRuns(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!tokenHasAnyPermission(token, ["risk.scores.read", "reports.read"])) {
+      sendJsonError(res, 403, "Sem permissão para visualizar pontuações de risco");
+      return;
+    }
+
+    try {
+      const query = parseRetentionRunsQueryDto(req.query);
+      const logs = await this.deps.listAuditRetentionRunsUseCase.execute(token, query);
+      res.json(logs);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para visualizar runs de retenção de auditoria");
+        return;
+      }
+      logger.error({ err }, "BFF failed to list audit retention runs");
+      sendJsonError(res, 502, "Audit service unavailable");
+    }
+  }
+
+  private async handleListComplianceRetentionRuns(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+
+    try {
+      const query = parseRetentionRunsQueryDto(req.query);
+      const logs = await this.deps.listComplianceRetentionRunsUseCase.execute(token, query);
+      res.json(logs);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para visualizar runs de retenção de compliance");
+        return;
+      }
+      logger.error({ err }, "BFF failed to list compliance retention runs");
+      sendJsonError(res, 502, "Compliance service unavailable");
+    }
+  }
+
+  private async handleListRiskScores(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+
+    try {
+      const query = parseRiskScoresQueryDto(req.query);
+      const result = await this.deps.listRiskScoresUseCase.execute(token, query);
+      res.json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para visualizar pontuações de risco");
+        return;
+      }
+      logger.error({ err }, "BFF failed to list risk scores");
+      sendJsonError(res, 502, "Risk service unavailable");
+    }
+  }
+
+  private async handleGetRiskScoreHistory(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    const entityTypeRaw = typeof req.params.entityType === "string" ? req.params.entityType.trim().toLowerCase() : "";
+    const entityId = typeof req.params.entityId === "string" ? req.params.entityId.trim() : "";
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!tokenHasAnyPermission(token, ["risk.scores.read", "reports.read"])) {
+      sendJsonError(res, 403, "Sem permissão para visualizar histórico de risco");
+      return;
+    }
+    if (!entityId || (entityTypeRaw !== "user" && entityTypeRaw !== "area" && entityTypeRaw !== "process")) {
+      sendJsonError(res, 400, "Parâmetros inválidos para histórico de risco");
+      return;
+    }
+
+    try {
+      const query = parseRiskScoreHistoryQueryDto(req.query);
+      const result = await this.deps.getRiskScoreHistoryUseCase.execute(
+        token,
+        entityTypeRaw,
+        entityId,
+        query
+      );
+      res.json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para visualizar histórico de risco");
+        return;
+      }
+      logger.error({ err }, "BFF failed to get risk score history");
+      sendJsonError(res, 502, "Risk service unavailable");
+    }
+  }
+
+  private async handleIngestRiskEvent(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!tokenHasPermission(token, "system.settings.manage")) {
+      sendJsonError(res, 403, "Sem permissão para registrar evento de risco");
+      return;
+    }
+
+    const payload = parseRiskEventInputDto(req.body);
+    if (!payload) {
+      sendJsonError(res, 400, "Payload inválido para evento de risco");
+      return;
+    }
+
+    try {
+      const result = await this.deps.ingestRiskEventUseCase.execute(token, payload);
+      await this.publishBestEffortAuditEvent(req, "bff.risk.event.ingested", {
+        actorId: extractActorIdFromToken(token),
+        entityUserId: payload.userId,
+        area: payload.area,
+        processType: payload.processType,
+        severity: payload.severity,
+        accepted: result.accepted,
+      });
+      res.status(202).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para registrar evento de risco");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 400) {
+        sendJsonError(res, 400, "Payload inválido para evento de risco");
+        return;
+      }
+      logger.error({ err }, "BFF failed to ingest risk event");
+      sendJsonError(res, 502, "Risk service unavailable");
+    }
+  }
+
+  private async handleCreateReportExport(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+
+    const parsedBody = parseCreateReportExportDto(req.body);
+    if (!parsedBody) {
+      sendJsonError(res, 400, "Payload inválido para exportação");
+      return;
+    }
+
+    try {
+      const created = await this.deps.createReportExportUseCase.execute(token, parsedBody);
+      await this.publishCriticalAuditEvent(req, "bff.reports.export.requested", {
+        actorId: extractActorIdFromToken(token),
+        exportId: created.id,
+        scope: created.scope,
+        format: created.format,
+        status: created.status,
+      });
+      res.status(201).json(created);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para gerar exportação");
+        return;
+      }
+      logger.error({ err }, "BFF failed to create report export");
+      sendJsonError(res, 502, "Reporting service unavailable");
+    }
+  }
+
+  private async handleGetReportExport(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    const id = typeof req.params.id === "string" ? req.params.id.trim() : "";
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!id) {
+      sendJsonError(res, 400, "ID inválido de exportação");
+      return;
+    }
+
+    try {
+      const result = await this.deps.getReportExportUseCase.execute(token, id);
+      res.status(200).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 404) {
+        sendJsonError(res, 404, "Exportação não encontrada");
+        return;
+      }
+      logger.error({ err }, "BFF failed to get report export");
+      sendJsonError(res, 502, "Reporting service unavailable");
+    }
+  }
+
+  private async handleDownloadReportExport(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    const id = typeof req.params.id === "string" ? req.params.id.trim() : "";
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!id) {
+      sendJsonError(res, 400, "ID inválido de exportação");
+      return;
+    }
+
+    try {
+      const result = await this.deps.downloadReportExportUseCase.execute(token, id);
+      await this.publishCriticalAuditEvent(req, "bff.reports.export.downloaded", {
+        actorId: extractActorIdFromToken(token),
+        exportId: id,
+        contentType: result.contentType,
+      });
+      res.setHeader("Content-Type", result.contentType);
+      res.setHeader("Content-Disposition", result.contentDisposition);
+      res.status(200).send(result.body);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 404) {
+        sendJsonError(res, 404, "Exportação não encontrada");
+        return;
+      }
+      logger.error({ err }, "BFF failed to download report export");
+      sendJsonError(res, 502, "Reporting service unavailable");
+    }
+  }
+
+  private async handleDispatchNotification(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+
+    const parsedBody = parseDispatchNotificationDto(req.body);
+    if (!parsedBody) {
+      sendJsonError(res, 400, "Payload inválido para envio de notificação");
+      return;
+    }
+
+    try {
+      await this.publishCriticalAuditEvent(req, "bff.notifications.dispatch.requested", {
+        actorId: extractActorIdFromToken(token),
+        channel: parsedBody.channel,
+        recipient: parsedBody.recipient,
+        severity: parsedBody.severity,
+      });
+      const result = await this.deps.dispatchNotificationUseCase.execute(token, parsedBody);
+      await this.publishCriticalAuditEvent(req, "bff.notifications.dispatch.completed", {
+        actorId: extractActorIdFromToken(token),
+        notificationId: result.id,
+        status: result.status,
+        channel: result.channel,
+        recipient: result.recipient,
+      });
+      res.status(202).json(result);
+    } catch (err) {
+      await this.publishBestEffortAuditEvent(req, "bff.notifications.dispatch.failed", {
+        actorId: extractActorIdFromToken(token),
+        channel: parsedBody.channel,
+        recipient: parsedBody.recipient,
+        severity: parsedBody.severity,
+        error: toErrorMessage(err, "notification_dispatch_failed"),
+      });
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para enviar notificação");
+        return;
+      }
+      logger.error({ err }, "BFF failed to dispatch notification");
+      sendJsonError(res, 502, "Notification service unavailable");
+    }
+  }
+
+  private async handleListNotificationLogs(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+
+    try {
+      const result = await this.deps.listNotificationLogsUseCase.execute(token);
+      res.status(200).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para visualizar notificações");
+        return;
+      }
+      logger.error({ err }, "BFF failed to list notification logs");
+      sendJsonError(res, 502, "Notification service unavailable");
+    }
+  }
+
+  private async handleListAdminUsers(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+
+    try {
+      const query = parseAdminUsersQueryDto(req.query);
+      const result = await this.deps.listAdminUsersUseCase.execute(token, query);
+      res.status(200).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para listar usuários");
+        return;
+      }
+      logger.error({ err }, "BFF failed to list users");
+      sendJsonError(res, 502, "Identity service unavailable");
+    }
+  }
+
+  private async handleGetAdminUser(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    const userId = typeof req.params.userId === "string" ? req.params.userId.trim() : "";
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!userId) {
+      sendJsonError(res, 400, "ID de usuário inválido");
+      return;
+    }
+
+    try {
+      const result = await this.deps.getAdminUserUseCase.execute(token, userId);
+      res.status(200).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para visualizar usuário");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 404) {
+        sendJsonError(res, 404, "Usuário não encontrado");
+        return;
+      }
+      logger.error({ err }, "BFF failed to get user details");
+      sendJsonError(res, 502, "Identity service unavailable");
+    }
+  }
+
+  private async handleCreateAdminUser(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+
+    let input;
+    try {
+      input = parseAdminCreateUserInputDto(req.body);
+    } catch {
+      sendJsonError(res, 400, "Payload inválido para criação de usuário");
+      return;
+    }
+
+    try {
+      const result = await this.deps.createAdminUserUseCase.execute(token, input);
+      res.status(201).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para criar usuários");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 409) {
+        sendJsonError(res, 409, "Usuário com este e-mail já existe");
+        return;
+      }
+      logger.error({ err }, "BFF failed to create user");
+      sendJsonError(res, 502, "Identity service unavailable");
+    }
+  }
+
+  private async handleUpdateAdminUserRoles(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    const userId = typeof req.params.userId === "string" ? req.params.userId.trim() : "";
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!userId) {
+      sendJsonError(res, 400, "ID de usuário inválido");
+      return;
+    }
+
+    let input;
+    try {
+      input = parseAdminUpdateUserRolesInputDto(req.body);
+    } catch {
+      sendJsonError(res, 400, "Payload inválido para atualização de cargos");
+      return;
+    }
+
+    try {
+      const result = await this.deps.updateAdminUserRolesUseCase.execute(token, userId, input);
+      res.status(200).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para atualizar cargos");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 404) {
+        sendJsonError(res, 404, "Usuário não encontrado");
+        return;
+      }
+      logger.error({ err }, "BFF failed to update user roles");
+      sendJsonError(res, 502, "Identity service unavailable");
+    }
+  }
+
+  private async handleUpdateAdminUserSecurity(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    const userId = typeof req.params.userId === "string" ? req.params.userId.trim() : "";
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!userId) {
+      sendJsonError(res, 400, "ID de usuário inválido");
+      return;
+    }
+
+    let input;
+    try {
+      input = parseAdminUpdateUserSecurityInputDto(req.body);
+    } catch {
+      sendJsonError(res, 400, "Payload inválido para atualização de segurança");
+      return;
+    }
+
+    try {
+      const result = await this.deps.updateAdminUserSecurityUseCase.execute(token, userId, input);
+      res.status(200).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para atualizar segurança do usuário");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 404) {
+        sendJsonError(res, 404, "Usuário não encontrado");
+        return;
+      }
+      logger.error({ err }, "BFF failed to update user security");
+      sendJsonError(res, 502, "Identity service unavailable");
+    }
+  }
+
+  private async handleDeactivateAdminUser(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    const userId = typeof req.params.userId === "string" ? req.params.userId.trim() : "";
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!userId) {
+      sendJsonError(res, 400, "ID de usuário inválido");
+      return;
+    }
+
+    try {
+      const result = await this.deps.deactivateAdminUserUseCase.execute(token, userId);
+      res.status(200).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para desativar usuários");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 404) {
+        sendJsonError(res, 404, "Usuário não encontrado");
+        return;
+      }
+      logger.error({ err }, "BFF failed to deactivate user");
+      sendJsonError(res, 502, "Identity service unavailable");
+    }
+  }
+
+  private async handlePublishIntegrationEvent(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!tokenHasPermission(token, "system.settings.manage")) {
+      sendJsonError(res, 403, "Sem permissão para publicar evento de integração");
+      return;
+    }
+
+    const payload = parsePublishIntegrationEventDto(req.body);
+    if (!payload) {
+      sendJsonError(res, 400, "Payload inválido para evento de integração");
+      return;
+    }
+
+    try {
+      const result = await this.deps.publishIntegrationEventUseCase.execute(payload);
+      await this.publishBestEffortAuditEvent(req, "bff.integration.event.published", {
+        actorId: extractActorIdFromToken(token),
+        type: payload.type,
+        accepted: result.accepted,
+        duplicate: result.duplicate,
+        sourceEventId: result.eventId,
+      });
+      res.status(202).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        sendJsonError(res, 502, "Integration service unavailable");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 400) {
+        sendJsonError(res, 400, "Payload inválido para evento de integração");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 429) {
+        sendJsonError(res, 429, "Limite de envio de eventos excedido");
+        return;
+      }
+      logger.error({ err }, "BFF failed to publish integration event");
+      sendJsonError(res, 502, "Integration service unavailable");
+    }
+  }
+
+  private async ensureSessionActive(
+    token: string,
+    _req: Request,
+    res: Response,
+    secureCookie: boolean
+  ): Promise<boolean> {
+    try {
+      await this.deps.getCurrentUserUseCase.execute(token);
+      return true;
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return false;
+      }
+      logger.error({ err }, "BFF failed to validate active session");
+      sendJsonError(res, 502, "Identity service unavailable");
+      return false;
+    }
+  }
+
+  private async publishCriticalAuditEvent(
+    req: Request,
+    type: string,
+    payload: Record<string, unknown>
+  ): Promise<void> {
+    const headers = (req.headers ?? {}) as Record<string, unknown>;
+    const correlationId = firstHeaderValue(headers["x-correlation-id"]) ?? firstHeaderValue(headers["x-request-id"]);
+    await this.deps.integrationAuditPublisher.publish(type, payload, correlationId);
+  }
+
+  private async publishBestEffortAuditEvent(
+    req: Request,
+    type: string,
+    payload: Record<string, unknown>
+  ): Promise<void> {
+    try {
+      await this.publishCriticalAuditEvent(req, type, payload);
+    } catch (err) {
+      logger.warn({ err, type }, "BFF failed to publish best-effort audit event");
+    }
+  }
 }
 
 function buildFrontendErrorRedirect(publicBaseUrl: string, provider: OAuthProvider, errorMessage: string): string {
@@ -326,4 +1137,41 @@ function firstQueryValue(value: unknown): string | undefined {
     return typeof first === "string" ? first : undefined;
   }
   return typeof value === "string" ? value : undefined;
+}
+
+function firstHeaderValue(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    const first = value[0];
+    return typeof first === "string" ? first : undefined;
+  }
+  return typeof value === "string" ? value : undefined;
+}
+
+function extractActorIdFromToken(token: string): string | null {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return null;
+    const payloadRaw = Buffer.from(parts[1], "base64url").toString("utf8");
+    const payload = JSON.parse(payloadRaw) as { sub?: unknown };
+    return typeof payload.sub === "string" ? payload.sub : null;
+  } catch {
+    return null;
+  }
+}
+
+function tokenHasPermission(token: string, permission: string): boolean {
+  try {
+    const parts = token.split(".");
+    if (parts.length < 2) return false;
+    const payloadRaw = Buffer.from(parts[1], "base64url").toString("utf8");
+    const payload = JSON.parse(payloadRaw) as { permissions?: unknown };
+    if (!Array.isArray(payload.permissions)) return false;
+    return payload.permissions.includes(permission);
+  } catch {
+    return false;
+  }
+}
+
+function tokenHasAnyPermission(token: string, permissions: string[]): boolean {
+  return permissions.some((permission) => tokenHasPermission(token, permission));
 }

@@ -27,9 +27,9 @@ const argon2 = require("argon2");
 
 // Use compiled JS to avoid TS imports in Playwright.
 const {
-  ensureAuthorizationCatalog,
+  ensureAuthorizationRegistry,
   resolveRoleIdByCode,
-} = require("../packages/identity-service/dist/adapters/driven/persistence/authorization-catalog.js");
+} = require("../packages/identity-service/dist/adapters/driven/persistence/authorization-registry.js");
 const { USER_ROLES } = require("../packages/identity-service/dist/domain/types.js");
 
 async function isUp(request, pathName) {
@@ -50,7 +50,7 @@ async function ensureAdminSeeded() {
   const prisma = new IdentityPrismaClient({ datasources: { db: { url: databaseUrl } } });
   await prisma.$connect();
   try {
-    await ensureAuthorizationCatalog(prisma);
+    await ensureAuthorizationRegistry(prisma);
 
     const adminRoleId = await resolveRoleIdByCode(prisma, USER_ROLES.ADMINISTRADOR);
 
@@ -91,8 +91,8 @@ test.describe("Gateway real-usage E2E (Playwright)", () => {
     test.skip(!gatewayUp, `Gateway indisponível em ${testInfo.project.use.baseURL}. Suba docker + serviços antes de rodar.`);
 
     const identityUp = await isUp(request, "/identity/health");
-    const catalogUp = await isUp(request, "/catalog/health");
-    test.skip(!identityUp || !catalogUp, "Identity ou Catalog indisponível (precisa dos serviços rodando).");
+    const complianceUp = await isUp(request, "/compliance/health");
+    test.skip(!identityUp || !complianceUp, "Identity ou Compliance indisponível (precisa dos serviços rodando).");
 
     // Seed admin (real permissions)
     const { email: adminEmail, password: adminPassword } = await ensureAdminSeeded();
@@ -128,19 +128,19 @@ test.describe("Gateway real-usage E2E (Playwright)", () => {
     });
     expect(meRes.status()).toBe(200);
 
-    // Catalog: normal user can read, cannot create/test
-    const itemsRes = await request.get("/catalog/api/items", {
+    // Compliance: normal user can read, cannot create/test
+    const violationsRes = await request.get("/compliance/api/violations", {
       headers: { authorization: `Bearer ${userToken}` },
     });
-    expect(itemsRes.status()).toBe(200);
+    expect(violationsRes.status()).toBe(200);
 
-    const forbiddenCreateRes = await request.post("/catalog/api/items", {
+    const forbiddenCreateRes = await request.post("/compliance/api/violations", {
       headers: { authorization: `Bearer ${userToken}` },
-      data: { name: `Item ${runId}`, priceAmount: 1234, priceCurrency: "BRL" },
+      data: { title: `Violação ${runId}`, severity: "alta" },
     });
     expect(forbiddenCreateRes.status()).toBe(403);
 
-    const forbiddenTestRes = await request.get("/catalog/api/items/test-permission", {
+    const forbiddenTestRes = await request.get("/compliance/api/violations/test-permission", {
       headers: { authorization: `Bearer ${userToken}` },
     });
     expect(forbiddenTestRes.status()).toBe(403);
@@ -178,14 +178,14 @@ test.describe("Gateway real-usage E2E (Playwright)", () => {
     });
     expect(setRolesRes.status()).toBe(200);
 
-    // Catalog: admin can create + access test route
-    const adminCreateItemRes = await request.post("/catalog/api/items", {
+    // Compliance: admin can create + access test route
+    const adminCreateViolationRes = await request.post("/compliance/api/violations", {
       headers: { authorization: `Bearer ${adminToken}` },
-      data: { name: `Admin Item ${runId}`, priceAmount: 555, priceCurrency: "BRL" },
+      data: { title: `Violação Admin ${runId}`, severity: "media" },
     });
-    expect(adminCreateItemRes.status()).toBe(201);
+    expect(adminCreateViolationRes.status()).toBe(201);
 
-    const adminTestRes = await request.get("/catalog/api/items/test-permission", {
+    const adminTestRes = await request.get("/compliance/api/violations/test-permission", {
       headers: { authorization: `Bearer ${adminToken}` },
     });
     expect(adminTestRes.status()).toBe(200);

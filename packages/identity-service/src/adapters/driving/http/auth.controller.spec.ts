@@ -71,7 +71,7 @@ describe("AuthController", () => {
       await controller.me(req, res, next);
 
       expect(res.json).toHaveBeenCalledWith(mockUser);
-      expect(getCurrentUserUseCase.execute).toHaveBeenCalledWith("user-1");
+      expect(getCurrentUserUseCase.execute).toHaveBeenCalledWith("user-1", undefined);
     });
 
     it("deve retornar 404 quando usuário não encontrado", async () => {
@@ -261,7 +261,7 @@ describe("AuthController", () => {
 
       await controller.logout(req, res, next);
 
-      expect(logoutUseCase.execute).toHaveBeenCalledWith("user-1", {
+      expect(logoutUseCase.execute).toHaveBeenCalledWith("user-1", undefined, {
         ipAddress: "127.0.0.1",
         requestId: "req-1",
         correlationId: "req-1",

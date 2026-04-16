@@ -6,6 +6,10 @@ import {
   parseComplianceViolationListResponseDto,
   parseComplianceViolationResponseDto,
 } from "../../../application/dtos/compliance-item-response.dto";
+import {
+  parseRetentionRunListDto,
+  type RetentionRunsQueryDto,
+} from "../../../application/dtos/retention-run.dto";
 
 export interface ComplianceHttpClientConfig {
   gatewayBaseUrl: string;
@@ -20,6 +24,14 @@ export class ComplianceHttpClient implements IComplianceViolationsClient {
       headers: { Authorization: `Bearer ${token}` },
     });
     return parseComplianceViolationListResponseDto(payload);
+  }
+
+  async listRetentionRuns(token: string, query: RetentionRunsQueryDto) {
+    const queryString = toRetentionQueryString(query);
+    const payload = await this.request<unknown>(`/retention/runs${queryString ? `?${queryString}` : ""}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return parseRetentionRunListDto(payload);
   }
 
   async createViolation(token: string, payload: CreateComplianceViolationDto) {
@@ -86,4 +98,12 @@ function payloadMessage(payload: unknown, fallback: string): string {
   }
   if (typeof payload === "string" && payload.length > 0) return payload;
   return fallback;
+}
+
+function toRetentionQueryString(query: RetentionRunsQueryDto): string {
+  const params = new URLSearchParams();
+  if (query.page) params.set("page", `${query.page}`);
+  if (query.pageSize) params.set("pageSize", `${query.pageSize}`);
+  if (query.status) params.set("status", query.status);
+  return params.toString();
 }

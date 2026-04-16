@@ -13,16 +13,38 @@ const CreateViolationBodySchema = z.object({
   severity: z.enum(["baixa", "media", "alta"]).optional().default("media"),
 }).openapi("CreateViolationBody");
 const UpdateViolationBodySchema = z.object({
-  title: z.string().min(3).max(120),
-  severity: z.enum(["baixa", "media", "alta"]).optional().default("media"),
+  title: z.string().min(3).max(120).optional(),
+  severity: z.enum(["baixa", "media", "alta"]).optional(),
+  status: z.enum(["aberta", "em_analise", "resolvida", "dispensada"]).optional(),
 }).openapi("UpdateViolationBody");
 const ViolationResponseSchema = z.object({
   id: z.string(),
   title: z.string(),
   severity: z.enum(["baixa", "media", "alta"]),
-  status: z.literal("aberta"),
+  status: z.enum(["aberta", "em_analise", "resolvida", "dispensada"]),
+  resolvedAt: z.string().nullable(),
+  dismissedAt: z.string().nullable(),
+  retentionUntil: z.string().nullable(),
   createdAt: z.string(),
 }).openapi("ViolationResponse");
+const RetentionRunResponseSchema = z.object({
+  id: z.string(),
+  startedAt: z.string(),
+  finishedAt: z.string().nullable(),
+  status: z.enum(["running", "success", "failed"]),
+  retentionDays: z.number().int(),
+  cutoffAt: z.string(),
+  scannedCount: z.number().int(),
+  eligibleCount: z.number().int(),
+  monitorOnlyCount: z.number().int(),
+  errorMessage: z.string().nullable(),
+}).openapi("RetentionRunResponse");
+const RetentionRunListResponseSchema = z.object({
+  items: z.array(RetentionRunResponseSchema),
+  page: z.number().int(),
+  pageSize: z.number().int(),
+  total: z.number().int(),
+}).openapi("RetentionRunListResponse");
 
 const registry = new OpenAPIRegistry();
 
@@ -41,6 +63,29 @@ registry.registerPath({
           schema: z.array(ViolationResponseSchema),
         },
       },
+    },
+    401: { description: "Não autenticado", content: { "application/json": { schema: ErrorSchema } } },
+    403: { description: "Sem permissão", content: { "application/json": { schema: ErrorSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/api/retention/runs",
+  summary: "Listar execuções de retenção (monitor-only)",
+  tags: ["Retention"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    query: z.object({
+      page: z.coerce.number().int().positive().optional(),
+      pageSize: z.coerce.number().int().min(1).max(100).optional(),
+      status: z.enum(["running", "success", "failed"]).optional(),
+    }),
+  },
+  responses: {
+    200: {
+      description: "Lista paginada de runs de retenção",
+      content: { "application/json": { schema: RetentionRunListResponseSchema } },
     },
     401: { description: "Não autenticado", content: { "application/json": { schema: ErrorSchema } } },
     403: { description: "Sem permissão", content: { "application/json": { schema: ErrorSchema } } },

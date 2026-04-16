@@ -7,6 +7,10 @@ export interface AuditServiceConfig {
   jwtSecret: string;
   baseUrl: string;
   corsOrigin?: string;
+  retentionSweepIntervalMs: number;
+  retentionMinDays: number;
+  retentionBatchSize: number;
+  retentionScopeSourceServices: string[];
 }
 
 export function loadAuditServiceConfig(env: NodeJS.ProcessEnv): AuditServiceConfig {
@@ -30,6 +34,26 @@ export function loadAuditServiceConfig(env: NodeJS.ProcessEnv): AuditServiceConf
     process.exit(1);
   }
 
+  const retentionSweepIntervalRaw = parseInt(env.AUDIT_RETENTION_SWEEP_INTERVAL_MS ?? "3600000", 10);
+  const retentionSweepIntervalMs =
+    Number.isInteger(retentionSweepIntervalRaw) && retentionSweepIntervalRaw > 0
+      ? retentionSweepIntervalRaw
+      : 3600000;
+  const retentionMinDaysRaw = parseInt(env.AUDIT_RETENTION_MIN_DAYS ?? "1825", 10);
+  const retentionMinDays =
+    Number.isInteger(retentionMinDaysRaw) && retentionMinDaysRaw >= 1825
+      ? retentionMinDaysRaw
+      : 1825;
+  const retentionBatchSizeRaw = parseInt(env.AUDIT_RETENTION_BATCH_SIZE ?? "1000", 10);
+  const retentionBatchSize =
+    Number.isInteger(retentionBatchSizeRaw) && retentionBatchSizeRaw > 0
+      ? retentionBatchSizeRaw
+      : 1000;
+  const retentionScopeSourceServices = (env.AUDIT_RETENTION_SCOPE_SOURCE_SERVICES ?? "")
+    .split(",")
+    .map((service) => service.trim())
+    .filter((service) => service.length > 0);
+
   return {
     port,
     databaseUrl: isProduction
@@ -41,5 +65,9 @@ export function loadAuditServiceConfig(env: NodeJS.ProcessEnv): AuditServiceConf
     jwtSecret: env.JWT_SECRET,
     baseUrl: env.AUDIT_BASE_URL ?? `http://localhost:${port}`,
     corsOrigin: env.CORS_ORIGIN,
+    retentionSweepIntervalMs,
+    retentionMinDays,
+    retentionBatchSize,
+    retentionScopeSourceServices,
   };
 }

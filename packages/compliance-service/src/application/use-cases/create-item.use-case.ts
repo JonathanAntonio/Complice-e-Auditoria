@@ -27,6 +27,10 @@ export class CreateItemUseCase {
         name: item.name,
         priceAmount: item.price.amount,
         priceCurrency: item.price.currency,
+        status: item.status,
+        resolvedAt: item.resolvedAt?.toISOString() ?? null,
+        dismissedAt: item.dismissedAt?.toISOString() ?? null,
+        retentionUntil: item.retentionUntil?.toISOString() ?? null,
         createdAt: item.createdAt.toISOString(),
       };
       return result;

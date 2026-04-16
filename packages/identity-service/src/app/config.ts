@@ -12,6 +12,9 @@ export interface IdentityServiceConfig {
   googleOAuth?: { clientId: string; clientSecret: string };
   githubOAuth?: { clientId: string; clientSecret: string };
   outboxRelayIntervalMs: number;
+  retentionSweepIntervalMs: number;
+  inactiveUserAnonymizationAfterDays: number;
+  inactiveUserAnonymizationBatchSize: number;
 }
 
 export function loadIdentityServiceConfig(env: NodeJS.ProcessEnv): IdentityServiceConfig {
@@ -74,6 +77,21 @@ export function loadIdentityServiceConfig(env: NodeJS.ProcessEnv): IdentityServi
     Number.isInteger(outboxRelayIntervalRaw) && outboxRelayIntervalRaw > 0
       ? outboxRelayIntervalRaw
       : 2000;
+  const retentionSweepIntervalRaw = parseInt(env.RETENTION_SWEEP_INTERVAL_MS ?? "3600000", 10);
+  const retentionSweepIntervalMs =
+    Number.isInteger(retentionSweepIntervalRaw) && retentionSweepIntervalRaw > 0
+      ? retentionSweepIntervalRaw
+      : 3600000;
+  const inactiveUserAnonymizationAfterDaysRaw = parseInt(env.INACTIVE_USER_ANONYMIZATION_AFTER_DAYS ?? "730", 10);
+  const inactiveUserAnonymizationAfterDays =
+    Number.isInteger(inactiveUserAnonymizationAfterDaysRaw) && inactiveUserAnonymizationAfterDaysRaw >= 730
+      ? inactiveUserAnonymizationAfterDaysRaw
+      : 730;
+  const inactiveUserAnonymizationBatchSizeRaw = parseInt(env.INACTIVE_USER_ANONYMIZATION_BATCH_SIZE ?? "100", 10);
+  const inactiveUserAnonymizationBatchSize =
+    Number.isInteger(inactiveUserAnonymizationBatchSizeRaw) && inactiveUserAnonymizationBatchSizeRaw > 0
+      ? inactiveUserAnonymizationBatchSizeRaw
+      : 100;
 
   logger.info(
     {
@@ -96,6 +114,9 @@ export function loadIdentityServiceConfig(env: NodeJS.ProcessEnv): IdentityServi
     googleOAuth,
     githubOAuth,
     outboxRelayIntervalMs,
+    retentionSweepIntervalMs,
+    inactiveUserAnonymizationAfterDays,
+    inactiveUserAnonymizationBatchSize,
   };
 }
 

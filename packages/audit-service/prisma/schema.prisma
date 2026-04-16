@@ -26,3 +26,18 @@ model AuditLogModel {
   @@index([severity])
   @@map("audit_logs")
 }
+
+model AuditRetentionRunModel {
+  id               String   @id @default(uuid())
+  startedAt        DateTime @default(now()) @map("started_at")
+  finishedAt       DateTime? @map("finished_at")
+  status           String
+  retentionDays    Int      @map("retention_days")
+  cutoffAt         DateTime @map("cutoff_at")
+  scannedCount     Int      @default(0) @map("scanned_count")
+  eligibleCount    Int      @default(0) @map("eligible_count")
+  monitorOnlyCount Int      @default(0) @map("monitor_only_count")
+  errorMessage     String?  @map("error_message")
+
+  @@map("audit_retention_runs")
+}

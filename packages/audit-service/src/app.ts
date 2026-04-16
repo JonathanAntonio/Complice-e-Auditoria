@@ -7,7 +7,9 @@ import {
   requestLoggingMiddleware,
   createErrorHandlerMiddleware,
   createHealthHandler,
+  createServiceMetrics,
   type HttpErrorMapping,
+  type ServiceMetrics,
 } from "@lframework/shared";
 import { createAuditOpenApi } from "./openapi";
 
@@ -19,14 +21,18 @@ export interface AuditAppContainer {
 export interface CreateAuditAppOptions {
   corsOrigin?: string;
   baseUrl?: string;
+  onMetricsReady?: (metrics: ServiceMetrics) => void;
 }
 
 export function createApp(container: AuditAppContainer, options: CreateAuditAppOptions = {}): Express {
   const app = express();
+  const metrics = createServiceMetrics("audit-service");
+  options.onMetricsReady?.(metrics);
   app.set("trust proxy", 1);
   app.use(requestIdMiddleware);
   app.use(correlationIdMiddleware);
   app.use(requestLoggingMiddleware);
+  app.use(metrics.middleware);
 
   if (options.corsOrigin) {
     const origins = options.corsOrigin.split(",").map((value) => value.trim()).filter(Boolean);
@@ -42,6 +48,8 @@ export function createApp(container: AuditAppContainer, options: CreateAuditAppO
   }
 
   app.use("/api", container.auditRoutes);
+  app.use("/api/v1", container.auditRoutes);
+  app.get("/metrics", metrics.handler);
   app.get("/health", createHealthHandler("audit-service"));
 
   const errorMapper = (err: unknown): HttpErrorMapping =>

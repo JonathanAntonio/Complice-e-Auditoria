@@ -18,7 +18,7 @@ As regras estão organizadas por domínio funcional do sistema.
 | RN-004 | O bloqueio de conta por tentativas inválidas deve gerar um **registro de auditoria** e, se configurado, um alerta ao administrador. |
 | RN-005 | A sessão do usuário deve ser invalidada automaticamente após o tempo de inatividade configurado, exigindo novo login. |
 | RN-006 | Não é permitido mais de uma sessão ativa simultânea para o mesmo usuário, salvo configuração explícita do administrador. |
-| RN-007 | A recuperação de senha deve ocorrer exclusivamente por canal seguro (e-mail com link de uso único e expiração de 30 minutos). |
+| RN-007 | Regra descontinuada no baseline OAuth-only (não há recuperação de senha local). |
 | RN-008 | Toda ação de login, logout, bloqueio e recuperação de senha deve ser registrada no log de auditoria. |
 
 ---

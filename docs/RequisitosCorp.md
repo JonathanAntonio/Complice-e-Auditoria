@@ -15,7 +15,7 @@ Além dos requisitos tradicionais, este sistema também deve seguir uma arquitet
 - Cadastro, edição e exclusão de usuários
 - Controle de perfis e permissões (RBAC)
 - Autenticação segura (JWT ou OAuth2)
-- Recuperação de senha
+- Recuperação de senha (descontinuado no baseline OAuth-only)
 - Controle de sessão
 
 ### 2.2 Controle de Acesso
@@ -255,3 +255,5 @@ Para que o sistema seja considerado verdadeiramente corporativo e moderno, ele d
 - Ser escalável, seguro e resiliente
 
 Esse conjunto de características posiciona o sistema no padrão de arquitetura utilizada por empresas de médio e grande porte.
+
+> Baseline vigente (2026-04-08): autenticação por OAuth2/JWT, sem fluxo local de senha.

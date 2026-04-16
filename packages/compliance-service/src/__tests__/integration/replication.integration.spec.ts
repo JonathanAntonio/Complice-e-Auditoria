@@ -42,7 +42,7 @@ describe("Data replication integration", () => {
     }
     try {
       await container.prisma.$connect();
-      await container.prisma.replicatedUserModel.deleteMany({});
+      await container.prisma.$executeRawUnsafe(`DELETE FROM "replicated_users"`);
       dbAvailable = true;
     } catch (err) {
       dbAvailable = false;
@@ -60,7 +60,7 @@ describe("Data replication integration", () => {
 
   beforeEach(async () => {
     if (!dbAvailable) return;
-    await container.prisma.replicatedUserModel.deleteMany({});
+    await container.prisma.$executeRawUnsafe(`DELETE FROM "replicated_users"`);
   });
 
   it("upserts replicated user when HandleUserCreatedUseCase receives payload", async ({ skip }) => {
@@ -75,9 +75,16 @@ describe("Data replication integration", () => {
 
     await container.handleUserCreatedUseCase.execute(payload);
 
-    const row = await container.prisma.replicatedUserModel.findUnique({
-      where: { id: payload.userId },
-    });
+    const row = (await container.prisma.$queryRawUnsafe<Array<{
+      id: string;
+      email: string;
+      name: string;
+      createdAt: Date;
+      lastEventAt: Date;
+    }>>(
+      `SELECT "id", "email", "name", "created_at" AS "createdAt", "last_event_at" AS "lastEventAt" FROM "replicated_users" WHERE "id" = $1 LIMIT 1`,
+      payload.userId
+    ))[0] ?? null;
     expect(row).not.toBeNull();
     expect(row!.email).toBe(payload.email);
     expect(row!.name).toBe(payload.name);
@@ -104,9 +111,15 @@ describe("Data replication integration", () => {
     };
     await container.handleUserCreatedUseCase.execute(payload2);
 
-    const row = await container.prisma.replicatedUserModel.findUnique({
-      where: { id: "repl-user-2" },
-    });
+    const row = (await container.prisma.$queryRawUnsafe<Array<{
+      id: string;
+      email: string;
+      name: string;
+      createdAt: Date;
+    }>>(
+      `SELECT "id", "email", "name", "created_at" AS "createdAt" FROM "replicated_users" WHERE "id" = $1 LIMIT 1`,
+      "repl-user-2"
+    ))[0] ?? null;
     expect(row).not.toBeNull();
     expect(row!.email).toBe("updated@example.com");
     expect(row!.name).toBe("Updated Name");

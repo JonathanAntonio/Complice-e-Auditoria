@@ -37,6 +37,10 @@ describe("ListItemsUseCase", () => {
       name: "Item A",
       priceAmount: 100,
       priceCurrency: "BRL",
+      status: "aberta",
+      resolvedAt: null,
+      dismissedAt: null,
+      retentionUntil: null,
       createdAt: "2025-01-01T00:00:00.000Z",
     });
     expect(result[1]).toEqual({
@@ -44,6 +48,10 @@ describe("ListItemsUseCase", () => {
       name: "Item B",
       priceAmount: 200,
       priceCurrency: "BRL",
+      status: "aberta",
+      resolvedAt: null,
+      dismissedAt: null,
+      retentionUntil: null,
       createdAt: "2025-01-02T00:00:00.000Z",
     });
     expect(cache.get).toHaveBeenCalledWith("violations:list", expect.anything());
@@ -52,7 +60,17 @@ describe("ListItemsUseCase", () => {
 
   it("deve retornar do cache quando existir", async () => {
     const cached = [
-      { id: "c-1", name: "Cached", priceAmount: 50, priceCurrency: "BRL", createdAt: "2025-01-01T00:00:00.000Z" },
+      {
+        id: "c-1",
+        name: "Cached",
+        priceAmount: 50,
+        priceCurrency: "BRL",
+        status: "aberta",
+        resolvedAt: null,
+        dismissedAt: null,
+        retentionUntil: null,
+        createdAt: "2025-01-01T00:00:00.000Z",
+      },
     ];
     vi.mocked(cache.get).mockResolvedValue(cached);
 

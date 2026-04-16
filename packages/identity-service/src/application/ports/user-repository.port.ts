@@ -1,5 +1,6 @@
 import type { User } from "../../domain/entities/user.entity";
 import type { OutboxEvent } from "./outbox-writer.port";
+import type { ListUsersQueryDto } from "../dtos/list-users-query.dto";
 
 /**
  * Port (driven): persistence abstraction for User.
@@ -11,4 +12,5 @@ export interface IUserRepository {
   saveUserAndOutbox(user: User, outboxEvent: OutboxEvent): Promise<void>;
   findById(id: string): Promise<User | null>;
   findByEmail(email: string): Promise<User | null>;
+  list?(query: ListUsersQueryDto): Promise<{ items: User[]; total: number }>;
 }

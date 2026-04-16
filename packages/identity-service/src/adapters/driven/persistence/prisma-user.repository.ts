@@ -4,6 +4,7 @@ import { logger } from "@lframework/shared";
 import { User } from "../../../domain/entities/user.entity";
 import type { IUserRepository } from "../../../application/ports/user-repository.port";
 import type { OutboxEvent } from "../../../application/ports/outbox-writer.port";
+import type { ListUsersQueryDto } from "../../../application/dtos/list-users-query.dto";
 import { UserAlreadyExistsError } from "../../../application/errors";
 import {
   PERMISSION_VALUES,
@@ -70,17 +71,18 @@ export class PrismaUserRepository implements IUserRepository {
         await tx.$executeRaw`
           INSERT INTO "users" (
             "id", "email", "name", "authorization_version", "is_active",
-            "failed_login_attempts", "blocked_until", "created_at"
+            "deactivated_at", "failed_login_attempts", "blocked_until", "created_at"
           )
           VALUES (
             ${user.id}, ${user.email.value}, ${user.name}, ${user.authorizationVersion},
-            ${user.isActive}, ${user.failedLoginAttempts}, ${user.blockedUntil}, ${user.createdAt}
+            ${user.isActive}, ${user.deactivatedAt}, ${user.failedLoginAttempts}, ${user.blockedUntil}, ${user.createdAt}
           )
           ON CONFLICT ("id") DO UPDATE SET
             "email" = EXCLUDED."email",
             "name" = EXCLUDED."name",
             "authorization_version" = EXCLUDED."authorization_version",
             "is_active" = EXCLUDED."is_active",
+            "deactivated_at" = EXCLUDED."deactivated_at",
             "failed_login_attempts" = EXCLUDED."failed_login_attempts",
             "blocked_until" = EXCLUDED."blocked_until"
         `;
@@ -102,17 +104,18 @@ export class PrismaUserRepository implements IUserRepository {
         await tx.$executeRaw`
           INSERT INTO "users" (
             "id", "email", "name", "authorization_version", "is_active",
-            "failed_login_attempts", "blocked_until", "created_at"
+            "deactivated_at", "failed_login_attempts", "blocked_until", "created_at"
           )
           VALUES (
             ${user.id}, ${user.email.value}, ${user.name}, ${user.authorizationVersion},
-            ${user.isActive}, ${user.failedLoginAttempts}, ${user.blockedUntil}, ${user.createdAt}
+            ${user.isActive}, ${user.deactivatedAt}, ${user.failedLoginAttempts}, ${user.blockedUntil}, ${user.createdAt}
           )
           ON CONFLICT ("id") DO UPDATE SET
             "email" = EXCLUDED."email",
             "name" = EXCLUDED."name",
             "authorization_version" = EXCLUDED."authorization_version",
             "is_active" = EXCLUDED."is_active",
+            "deactivated_at" = EXCLUDED."deactivated_at",
             "failed_login_attempts" = EXCLUDED."failed_login_attempts",
             "blocked_until" = EXCLUDED."blocked_until"
         `;
@@ -142,6 +145,7 @@ export class PrismaUserRepository implements IUserRepository {
         u."name",
         u."authorization_version" AS "authorizationVersion",
         u."is_active" AS "isActive",
+        u."deactivated_at" AS "deactivatedAt",
         u."failed_login_attempts" AS "failedLoginAttempts",
         u."blocked_until" AS "blockedUntil",
         u."created_at" AS "createdAt"
@@ -165,6 +169,7 @@ export class PrismaUserRepository implements IUserRepository {
         u."name",
         u."authorization_version" AS "authorizationVersion",
         u."is_active" AS "isActive",
+        u."deactivated_at" AS "deactivatedAt",
         u."failed_login_attempts" AS "failedLoginAttempts",
         u."blocked_until" AS "blockedUntil",
         u."created_at" AS "createdAt"
@@ -178,6 +183,62 @@ export class PrismaUserRepository implements IUserRepository {
       await this.findRolesByUserId(row.id),
       await this.findPermissionsByUserId(row.id)
     );
+  }
+
+  async list(query: ListUsersQueryDto): Promise<{ items: User[]; total: number }> {
+    const whereParts: string[] = [];
+    const values: unknown[] = [];
+
+    if (query.search) {
+      values.push(`%${query.search.toLowerCase()}%`);
+      whereParts.push(`(LOWER(u."name") LIKE $${values.length} OR LOWER(u."email") LIKE $${values.length})`);
+    }
+
+    const whereSql = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
+    const offset = (query.page - 1) * query.pageSize;
+
+    const countRows = await this.prisma.$queryRawUnsafe<Array<{ total: number }>>(
+      `SELECT COUNT(*)::int AS total FROM "users" u ${whereSql}`,
+      ...values
+    );
+    const total = countRows[0]?.total ?? 0;
+
+    values.push(query.pageSize);
+    const takeIndex = values.length;
+    values.push(offset);
+    const skipIndex = values.length;
+
+    const rows = await this.prisma.$queryRawUnsafe<Array<UserRow>>(
+      `
+      SELECT
+        u."id",
+        u."email",
+        u."name",
+        u."authorization_version" AS "authorizationVersion",
+        u."is_active" AS "isActive",
+        u."deactivated_at" AS "deactivatedAt",
+        u."failed_login_attempts" AS "failedLoginAttempts",
+        u."blocked_until" AS "blockedUntil",
+        u."created_at" AS "createdAt"
+      FROM "users" u
+      ${whereSql}
+      ORDER BY u."created_at" DESC
+      LIMIT $${takeIndex}
+      OFFSET $${skipIndex}
+      `,
+      ...values
+    );
+
+    const items = await Promise.all(
+      rows.map(async (row) =>
+        this.toDomainUser(
+          row,
+          await this.findRolesByUserId(row.id),
+          await this.findPermissionsByUserId(row.id)
+        ))
+    );
+
+    return { items, total };
   }
 
   private async findRolesByUserId(userId: string): Promise<Array<{ code: UserRole; isPrimary: boolean }>> {
@@ -231,6 +292,7 @@ export class PrismaUserRepository implements IUserRepository {
       permissions,
       row.authorizationVersion,
       row.isActive,
+      row.deactivatedAt,
       row.failedLoginAttempts,
       row.blockedUntil
     );
@@ -287,6 +349,7 @@ interface UserRow {
   name: string;
   authorizationVersion: number;
   isActive: boolean;
+  deactivatedAt: Date | null;
   failedLoginAttempts: number;
   blockedUntil: Date | null;
   createdAt: Date;

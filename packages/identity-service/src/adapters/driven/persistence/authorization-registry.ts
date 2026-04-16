@@ -42,6 +42,7 @@ const PERMISSION_NAMES: Record<Permission, string> = {
   [PERMISSIONS.COMPLIANCE_RULES_UPDATE]: "Atualizar regras de compliance",
   [PERMISSIONS.COMPLIANCE_RULES_DEACTIVATE]: "Desativar regras de compliance",
   [PERMISSIONS.DASHBOARD_READ]: "Ler dashboard",
+  [PERMISSIONS.RISK_SCORES_READ]: "Ler pontuações de risco",
   [PERMISSIONS.REPORTS_READ]: "Ler relatórios",
   [PERMISSIONS.REPORTS_EXPORT]: "Exportar relatórios",
   [PERMISSIONS.INTEGRATIONS_READ]: "Ler integrações",

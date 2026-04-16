@@ -12,12 +12,19 @@ export function createUserRoutes(
   controller: UserController,
   authMiddleware: (req: Request, res: Response, next: NextFunction) => void,
   requireUsersCreate: (req: Request, res: Response, next: NextFunction) => Promise<void>,
+  requireUsersReadAny: (req: Request, res: Response, next: NextFunction) => Promise<void>,
   requireUsersRead: (req: Request, res: Response, next: NextFunction) => Promise<void>,
   requireRolesAssign: (req: Request, res: Response, next: NextFunction) => Promise<void>,
   requireUsersUpdate: (req: Request, res: Response, next: NextFunction) => Promise<void>,
   requireUsersDeactivate: (req: Request, res: Response, next: NextFunction) => Promise<void>
 ): Router {
   const router = Router();
+  router.get(
+    "/users",
+    authMiddleware,
+    asyncHandler(requireUsersReadAny),
+    asyncHandler(controller.list.bind(controller))
+  );
   router.post(
     "/users",
     authMiddleware,

@@ -63,6 +63,9 @@ describe("ItemController", () => {
           title: "Item A",
           severity: "baixa",
           status: "aberta",
+          resolvedAt: null,
+          dismissedAt: null,
+          retentionUntil: null,
           createdAt: "2025-01-01T00:00:00.000Z",
         },
       ]);
@@ -125,6 +128,9 @@ describe("ItemController", () => {
         title: "Produto",
         severity: "alta",
         status: "aberta",
+        resolvedAt: null,
+        dismissedAt: null,
+        retentionUntil: null,
         createdAt: "2025-01-01T00:00:00.000Z",
       });
       expect(createItemUseCase.execute).toHaveBeenCalledWith({

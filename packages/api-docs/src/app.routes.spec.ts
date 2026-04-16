@@ -43,6 +43,24 @@ describe("api-docs routes", () => {
         servers: [{ url: "http://localhost:3005" }],
         paths: { "/api/audit/logs": { get: { responses: { "200": { description: "OK" } } } } },
       };
+      const riskSpec = {
+        openapi: "3.0.0",
+        info: { title: "Risk", version: "1.0.0" },
+        servers: [{ url: "http://localhost:3006" }],
+        paths: { "/api/v1/risk/scores": { get: { responses: { "200": { description: "OK" } } } } },
+      };
+      const reportingSpec = {
+        openapi: "3.0.0",
+        info: { title: "Reporting", version: "1.0.0" },
+        servers: [{ url: "http://localhost:3007" }],
+        paths: { "/api/v1/reports/exports": { post: { responses: { "201": { description: "Created" } } } } },
+      };
+      const notificationSpec = {
+        openapi: "3.0.0",
+        info: { title: "Notification", version: "1.0.0" },
+        servers: [{ url: "http://localhost:3008" }],
+        paths: { "/api/v1/notifications/dispatch": { post: { responses: { "202": { description: "Accepted" } } } } },
+      };
 
       const body = url.includes("identity")
         ? identitySpec
@@ -50,7 +68,13 @@ describe("api-docs routes", () => {
           ? complianceSpec
           : url.includes("integration")
             ? integrationSpec
-            : auditSpec;
+            : url.includes("audit")
+              ? auditSpec
+              : url.includes("risk")
+                ? riskSpec
+                : url.includes("reporting")
+                  ? reportingSpec
+                  : notificationSpec;
       return { ok: true, status: 200, json: async () => body };
     };
 
@@ -59,6 +83,9 @@ describe("api-docs routes", () => {
       complianceSpecUrl: "http://compliance.test/api-docs.json",
       integrationSpecUrl: "http://integration.test/api-docs.json",
       auditSpecUrl: "http://audit.test/api-docs.json",
+      riskSpecUrl: "http://risk.test/api-docs.json",
+      reportingSpecUrl: "http://reporting.test/api-docs.json",
+      notificationSpecUrl: "http://notification.test/api-docs.json",
       fetchFn: fakeFetch as unknown as typeof fetch,
     });
 
@@ -73,6 +100,9 @@ describe("api-docs routes", () => {
     expect(res.body.paths).toHaveProperty("/api/violations");
     expect(res.body.paths).toHaveProperty("/api/integrations/events");
     expect(res.body.paths).toHaveProperty("/api/audit/logs");
+    expect(res.body.paths).toHaveProperty("/api/v1/risk/scores");
+    expect(res.body.paths).toHaveProperty("/api/v1/reports/exports");
+    expect(res.body.paths).toHaveProperty("/api/v1/notifications/dispatch");
   });
 
   it("returns 502 with hint when upstream specs are unavailable", async ({ skip }) => {
@@ -86,6 +116,9 @@ describe("api-docs routes", () => {
       complianceSpecUrl: "http://compliance.test/api-docs.json",
       integrationSpecUrl: "http://integration.test/api-docs.json",
       auditSpecUrl: "http://audit.test/api-docs.json",
+      riskSpecUrl: "http://risk.test/api-docs.json",
+      reportingSpecUrl: "http://reporting.test/api-docs.json",
+      notificationSpecUrl: "http://notification.test/api-docs.json",
       fetchFn: failingFetch as unknown as typeof fetch,
     });
 
@@ -104,6 +137,9 @@ describe("api-docs routes", () => {
       complianceSpecUrl: "http://compliance.test/api-docs.json",
       integrationSpecUrl: "http://integration.test/api-docs.json",
       auditSpecUrl: "http://audit.test/api-docs.json",
+      riskSpecUrl: "http://risk.test/api-docs.json",
+      reportingSpecUrl: "http://reporting.test/api-docs.json",
+      notificationSpecUrl: "http://notification.test/api-docs.json",
       fetchFn: (async () => ({ ok: true, status: 200, json: async () => ({}) })) as unknown as typeof fetch,
     });
 

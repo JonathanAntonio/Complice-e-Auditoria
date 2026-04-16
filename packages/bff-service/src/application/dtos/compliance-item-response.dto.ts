@@ -2,7 +2,10 @@ export interface ComplianceViolationResponseDto {
   id: string;
   title: string;
   severity: "baixa" | "media" | "alta";
-  status: "aberta";
+  status: "aberta" | "em_analise" | "resolvida" | "dispensada";
+  resolvedAt: string | null;
+  dismissedAt: string | null;
+  retentionUntil: string | null;
   createdAt: string;
 }
 
@@ -26,7 +29,10 @@ export function parseComplianceViolationResponseDto(raw: unknown): ComplianceVio
     id: payload.id,
     title: payload.title,
     severity: payload.severity as ComplianceViolationResponseDto["severity"],
-    status: "aberta",
+    status: payload.status as ComplianceViolationResponseDto["status"],
+    resolvedAt: typeof payload.resolvedAt === "string" ? payload.resolvedAt : null,
+    dismissedAt: typeof payload.dismissedAt === "string" ? payload.dismissedAt : null,
+    retentionUntil: typeof payload.retentionUntil === "string" ? payload.retentionUntil : null,
     createdAt: payload.createdAt,
   };
 }

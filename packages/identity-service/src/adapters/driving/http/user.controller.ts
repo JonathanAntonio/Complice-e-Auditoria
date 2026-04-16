@@ -2,10 +2,12 @@ import { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { CreateUserUseCase } from "../../../application/use-cases/create-user.use-case";
 import { GetUserByIdUseCase } from "../../../application/use-cases/get-user-by-id.use-case";
+import { ListUsersUseCase } from "../../../application/use-cases/list-users.use-case";
 import { AssignUserRolesUseCase } from "../../../application/use-cases/assign-user-role.use-case";
 import type { UpdateUserSecurityUseCase } from "../../../application/use-cases/update-user-security.use-case";
 import type { DeactivateUserUseCase } from "../../../application/use-cases/deactivate-user.use-case";
 import type { CreateUserDto } from "../../../application/dtos/create-user.dto";
+import { parseListUsersQuery } from "../../../application/dtos/list-users-query.dto";
 import {
   assignUserRoleSchema,
   assignUserRolesSchema,
@@ -29,6 +31,7 @@ export class UserController {
     private readonly createUserUseCase: CreateUserUseCase,
     private readonly getUserByIdUseCase: GetUserByIdUseCase,
     private readonly assignUserRolesUseCase: AssignUserRolesUseCase,
+    private readonly listUsersUseCase?: ListUsersUseCase,
     private readonly updateUserSecurityUseCase?: UpdateUserSecurityUseCase,
     private readonly deactivateUserUseCase?: DeactivateUserUseCase
   ) {}
@@ -39,6 +42,25 @@ export class UserController {
       const dto: CreateUserDto = authReq.body;
       const result = await this.createUserUseCase.execute(dto);
       res.status(201).json(result);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const authReq = req as AuthenticatedRequest;
+      if (!authReq.userId) {
+        sendError(res, 403, "Forbidden");
+        return;
+      }
+      if (!this.listUsersUseCase) {
+        sendError(res, 503, "User list is not available");
+        return;
+      }
+      const query = parseListUsersQuery(authReq.query);
+      const result = await this.listUsersUseCase.execute(query);
+      res.status(200).json(result);
     } catch (err) {
       next(err);
     }

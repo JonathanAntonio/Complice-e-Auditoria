@@ -73,7 +73,7 @@ export class AuthController {
   me = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const authReq = req as AuthenticatedRequest;
-      const user = await this.getCurrentUserUseCase.execute(authReq.userId);
+      const user = await this.getCurrentUserUseCase.execute(authReq.userId, authReq.authzVersion);
       if (!user) {
         sendError(res, 404, "User not found");
         return;
@@ -96,7 +96,7 @@ export class AuthController {
         return;
       }
 
-      await this.logoutUseCase.execute(authReq.userId, this.buildAuditContext(req));
+      await this.logoutUseCase.execute(authReq.userId, authReq.authzVersion, this.buildAuditContext(req));
       res.status(204).send();
     } catch (err) {
       next(err);

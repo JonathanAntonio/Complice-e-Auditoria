@@ -14,6 +14,7 @@ model UserModel {
   name                String
   authorizationVersion Int                 @default(1) @map("authorization_version")
   isActive            Boolean              @default(true) @map("is_active")
+  deactivatedAt       DateTime?            @map("deactivated_at")
   failedLoginAttempts Int                  @default(0) @map("failed_login_attempts")
   blockedUntil        DateTime?            @map("blocked_until")
   createdAt           DateTime             @default(now()) @map("created_at")

@@ -1,7 +1,13 @@
-/**
- * Tipos canônicos de domínio do compliance.
- * Colocar aqui tipos compartilhados entre entidades, value objects e use cases
- * quando forem usados em mais de um lugar (ex.: CategoryCode, ItemStatus).
- * Por enquanto o domínio não define tipos além das entidades e value objects.
- */
-export {};
+export const VIOLATION_STATUS = {
+  ABERTA: "aberta",
+  EM_ANALISE: "em_analise",
+  RESOLVIDA: "resolvida",
+  DISPENSADA: "dispensada",
+} as const;
+
+export type ViolationStatus = (typeof VIOLATION_STATUS)[keyof typeof VIOLATION_STATUS];
+
+export const FINAL_VIOLATION_STATUSES: ReadonlyArray<ViolationStatus> = [
+  VIOLATION_STATUS.RESOLVIDA,
+  VIOLATION_STATUS.DISPENSADA,
+];

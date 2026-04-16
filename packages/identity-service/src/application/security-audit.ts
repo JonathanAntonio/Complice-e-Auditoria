@@ -16,6 +16,7 @@ export const SECURITY_AUDIT_EVENTS = {
   ROLE_CHANGED: "identity.auth.role_changed",
   USER_SECURITY_CHANGED: "identity.auth.user_security_changed",
   USER_DEACTIVATED: "identity.auth.user_deactivated",
+  USER_DATA_ANONYMIZED: "identity.data.user_anonymized",
 } as const;
 
 export type SecurityAuditEventName =

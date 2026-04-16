@@ -51,7 +51,7 @@ describe("Compliance API integration", () => {
 
     try {
       await container.prisma.$connect();
-      await container.prisma.itemModel.deleteMany({});
+      await container.prisma.$executeRawUnsafe(`DELETE FROM "items"`);
       dbAvailable = true;
     } catch {
       dbAvailable = false;
@@ -64,7 +64,7 @@ describe("Compliance API integration", () => {
 
   beforeEach(async () => {
     if (!dbAvailable) return;
-    await container.prisma.itemModel.deleteMany({});
+    await container.prisma.$executeRawUnsafe(`DELETE FROM "items"`);
   });
 
   function validToken(

@@ -1,6 +1,5 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../generated/prisma-client"
 }
 
 datasource db {
@@ -8,13 +7,26 @@ datasource db {
   url      = env("COMPLIANCE_DATABASE_URL")
 }
 
+enum ViolationStatus {
+  aberta
+  em_analise
+  resolvida
+  dispensada
+}
+
 model ItemModel {
   id          String   @id @default(uuid())
   name        String
   priceAmount Int      @map("price_amount")
   priceCurrency String @map("price_currency") @default("BRL")
+  status      ViolationStatus @default(aberta)
+  resolvedAt  DateTime? @map("resolved_at")
+  dismissedAt DateTime? @map("dismissed_at")
+  retentionUntil DateTime? @map("retention_until")
   createdAt   DateTime @map("created_at")
 
+  @@index([status])
+  @@index([retentionUntil])
   @@map("items")
 }
 
@@ -28,4 +40,19 @@ model ReplicatedUserModel {
   lastEventOccurredAt  DateTime? @map("last_event_occurred_at")
 
   @@map("replicated_users")
+}
+
+model ComplianceRetentionRunModel {
+  id              String   @id @default(uuid())
+  startedAt       DateTime @default(now()) @map("started_at")
+  finishedAt      DateTime? @map("finished_at")
+  status          String
+  retentionDays   Int      @map("retention_days")
+  cutoffAt        DateTime @map("cutoff_at")
+  scannedCount    Int      @default(0) @map("scanned_count")
+  eligibleCount   Int      @default(0) @map("eligible_count")
+  monitorOnlyCount Int     @default(0) @map("monitor_only_count")
+  errorMessage    String?  @map("error_message")
+
+  @@map("compliance_retention_runs")
 }

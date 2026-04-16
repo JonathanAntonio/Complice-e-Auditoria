@@ -46,7 +46,7 @@ export class RunRetentionSweepUseCase {
       INSERT INTO "compliance_retention_runs" (
         "id", "status", "retention_days", "cutoff_at", "started_at"
       ) VALUES (
-        $1::uuid, $2, $3, $4::timestamptz, NOW()
+        $1, $2, $3, $4::timestamptz, NOW()
       )
       `,
       runId,
@@ -88,7 +88,7 @@ export class RunRetentionSweepUseCase {
           `
           UPDATE "items"
           SET "retention_until" = $2
-          WHERE "id" = $1::uuid
+          WHERE "id" = $1
           `,
           row.id,
           desiredRetentionUntil
@@ -104,7 +104,7 @@ export class RunRetentionSweepUseCase {
           "scanned_count" = $3,
           "eligible_count" = $4,
           "monitor_only_count" = $5
-        WHERE "id" = $1::uuid
+        WHERE "id" = $1
       `,
         runId,
         "success",
@@ -132,7 +132,7 @@ export class RunRetentionSweepUseCase {
           "finished_at" = NOW(),
           "status" = $2,
           "error_message" = $3
-        WHERE "id" = $1::uuid
+        WHERE "id" = $1
       `,
         runId,
         "failed",

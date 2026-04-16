@@ -41,7 +41,7 @@ export class RunAuditRetentionSweepUseCase {
     await this.db.$executeRawUnsafe(
       `
       CREATE TABLE IF NOT EXISTS "audit_retention_runs" (
-        "id" UUID PRIMARY KEY,
+        "id" TEXT PRIMARY KEY,
         "started_at" TIMESTAMP(3) NOT NULL DEFAULT NOW(),
         "finished_at" TIMESTAMP(3),
         "status" TEXT NOT NULL,
@@ -76,7 +76,7 @@ export class RunAuditRetentionSweepUseCase {
       `
       INSERT INTO "audit_retention_runs" (
         "id", "status", "retention_days", "cutoff_at", "started_at"
-      ) VALUES ($1::uuid, $2, $3, $4::timestamptz, NOW())
+      ) VALUES ($1, $2, $3, $4::timestamptz, NOW())
       `,
       runId,
       "running",
@@ -127,7 +127,7 @@ export class RunAuditRetentionSweepUseCase {
           "scanned_count" = $3,
           "eligible_count" = $4,
           "monitor_only_count" = $5
-        WHERE "id" = $1::uuid
+        WHERE "id" = $1
         `,
         runId,
         "success",
@@ -155,7 +155,7 @@ export class RunAuditRetentionSweepUseCase {
           "finished_at" = NOW(),
           "status" = $2,
           "error_message" = $3
-        WHERE "id" = $1::uuid
+        WHERE "id" = $1
         `,
         runId,
         "failed",

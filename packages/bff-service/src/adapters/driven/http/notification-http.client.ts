@@ -1,12 +1,12 @@
 import { UpstreamHttpError } from "../../../application/errors/upstream-http.error";
-import type { INotificationClient } from "../../../application/ports/notification-client.port";
+import type { INotificationClient } from "../../../application/ports";
 import {
   parseNotificationDispatchResultDto,
   parseNotificationLogsListDto,
   type DispatchNotificationDto,
   type NotificationDispatchResultDto,
   type NotificationLogsListDto,
-} from "../../../application/dtos/notification.dto";
+} from "../../../application/dtos";
 
 export interface NotificationHttpClientConfig {
   gatewayBaseUrl: string;

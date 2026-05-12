@@ -1,7 +1,7 @@
 import { randomUUID } from "crypto";
 import { PrismaClient, type Prisma } from "../../../../generated/prisma-client";
-import type { IOutboxRepository } from "../../../application/ports/outbox-repository.port";
-import type { OutboxEvent } from "../../../application/ports/outbox-writer.port";
+import type { IOutboxRepository } from "../../../application/ports";
+import type { OutboxEvent } from "../../../application/ports";
 import { toEnvelope } from "./outbox-envelope";
 
 export class PrismaOutboxRepository implements IOutboxRepository {

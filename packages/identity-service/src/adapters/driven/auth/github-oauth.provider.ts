@@ -1,4 +1,4 @@
-import type { IOAuthProvider, OAuthUserInfo } from "../../../application/ports/oauth-provider.port";
+import type { IOAuthProvider, OAuthUserInfo } from "../../../application/ports";
 import { logger } from "@lframework/shared";
 import { z } from "zod";
 import { fetchWithTimeoutAndRetry } from "./fetch-with-timeout";

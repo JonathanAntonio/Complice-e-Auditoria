@@ -1,8 +1,8 @@
 import { randomUUID } from "crypto";
 import { PrismaClient } from "../../../../generated/prisma-client";
-import type { IUserOAuthRegistrationPersistence } from "../../../application/ports/user-oauth-registration-persistence.port";
-import type { OAuthProvider } from "../../../application/ports/oauth-account-repository.port";
-import type { OutboxEvent } from "../../../application/ports/outbox-writer.port";
+import type { IUserOAuthRegistrationPersistence } from "../../../application/ports";
+import type { OAuthProvider } from "../../../application/ports";
+import type { OutboxEvent } from "../../../application/ports";
 import { User } from "../../../domain/entities/user.entity";
 import { UserAlreadyExistsError } from "../../../application/errors";
 import {

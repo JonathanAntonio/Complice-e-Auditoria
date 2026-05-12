@@ -14,10 +14,12 @@ import {
 import { PrismaClient } from "../generated/prisma-client";
 import type { AuditServiceConfig } from "./app/config";
 import { PrismaAuditLogRepository } from "./adapters/driven/persistence/prisma-audit-log.repository";
-import { ListAuditLogsUseCase } from "./application/use-cases/list-audit-logs.use-case";
-import { ListRetentionRunsUseCase } from "./application/use-cases/list-retention-runs.use-case";
-import { IngestAuditEventUseCase } from "./application/use-cases/ingest-audit-event.use-case";
-import { RunAuditRetentionSweepUseCase } from "./application/use-cases/run-retention-sweep.use-case";
+import {
+  IngestAuditEventUseCase,
+  ListAuditLogsUseCase,
+  ListRetentionRunsUseCase,
+  RunAuditRetentionSweepUseCase,
+} from "./application/use-cases";
 import { AuditLogsController } from "./adapters/driving/http/audit-logs.controller";
 import { createAuditRoutes } from "./adapters/driving/http/routes";
 import { mapAuditErrorToHttp } from "./adapters/driving/http/error-to-http.mapper";

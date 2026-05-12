@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { ItemController } from "./item.controller";
-import type { CreateItemUseCase } from "../../../application/use-cases/create-item.use-case";
-import type { ListItemsUseCase } from "../../../application/use-cases/list-items.use-case";
-import type { UpdateItemUseCase } from "../../../application/use-cases/update-item.use-case";
+import type { CreateItemUseCase } from "../../../application/use-cases";
+import type { ListItemsUseCase } from "../../../application/use-cases";
+import type { UpdateItemUseCase } from "../../../application/use-cases";
 import type { Response } from "express";
 import type { NextFunction } from "express";
 import { mapApplicationErrorToHttp } from "./error-to-http.mapper";

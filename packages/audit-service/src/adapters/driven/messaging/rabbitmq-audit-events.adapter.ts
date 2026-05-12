@@ -8,7 +8,7 @@ import {
   QUEUE_AUDIT_EVENTS,
   type EventEnvelopeV1,
 } from "@lframework/shared";
-import type { IngestAuditEventUseCase } from "../../../application/use-cases/ingest-audit-event.use-case";
+import type { IngestAuditEventUseCase } from "../../../application/use-cases";
 
   type AmqpConnection = Awaited<ReturnType<typeof amqp.connect>>;
 

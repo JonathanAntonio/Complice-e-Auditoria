@@ -1,15 +1,15 @@
 import { UpstreamHttpError } from "../../../application/errors/upstream-http.error";
-import type { IComplianceViolationsClient } from "../../../application/ports/compliance-violations-client.port";
-import type { CreateComplianceViolationDto } from "../../../application/dtos/create-compliance-violation.dto";
-import type { UpdateComplianceViolationDto } from "../../../application/dtos/update-compliance-violation.dto";
+import type { IComplianceViolationsClient } from "../../../application/ports";
+import type { CreateComplianceViolationDto } from "../../../application/dtos";
+import type { UpdateComplianceViolationDto } from "../../../application/dtos";
 import {
   parseComplianceViolationListResponseDto,
   parseComplianceViolationResponseDto,
-} from "../../../application/dtos/compliance-item-response.dto";
+} from "../../../application/dtos";
 import {
   parseRetentionRunListDto,
   type RetentionRunsQueryDto,
-} from "../../../application/dtos/retention-run.dto";
+} from "../../../application/dtos";
 
 export interface ComplianceHttpClientConfig {
   gatewayBaseUrl: string;

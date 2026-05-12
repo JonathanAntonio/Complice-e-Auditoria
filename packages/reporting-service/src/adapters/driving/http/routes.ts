@@ -52,7 +52,7 @@ export function createReportingRoutes(service: ExportJobsService): Router {
 
     const rendered = service.renderContent(job);
     res.setHeader("Content-Type", rendered.mimeType);
-    res.setHeader("Content-Disposition", `attachment; filename=\"${rendered.filename}\"`);
+    res.setHeader("Content-Disposition", `attachment; filename="${rendered.filename}"`);
     res.status(200).send(rendered.content);
   });
 

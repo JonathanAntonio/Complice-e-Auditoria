@@ -17,25 +17,25 @@ import { PrismaOAuthAccountRepository } from "./adapters/driven/persistence/pris
 import { PrismaOutboxRepository } from "./adapters/driven/persistence/prisma-outbox.repository";
 import { RabbitMqEventPublisherAdapter } from "./adapters/driven/messaging/rabbitmq-event-publisher.adapter";
 import { OutboxRelayAdapter } from "./adapters/driven/messaging/outbox-relay.adapter";
-import type { IEventPublisher } from "./application/ports/event-publisher.port";
-import type { IOutboxRepository } from "./application/ports/outbox-repository.port";
+import type { IEventPublisher, IOutboxRepository, IOAuthProvider } from "./application/ports";
 import { UserCreatedNotifierAdapter } from "./adapters/driven/notifiers/user-created-notifier.adapter";
 import { JwtTokenService } from "./adapters/driven/auth/jwt-token.service";
 import { GoogleOAuthProvider } from "./adapters/driven/auth/google-oauth.provider";
 import { GitHubOAuthProvider } from "./adapters/driven/auth/github-oauth.provider";
 import { BcryptPasswordHasher } from "./adapters/driven/auth/bcrypt-password-hasher.adapter";
-import type { IOAuthProvider } from "./application/ports/oauth-provider.port";
-import { CreateUserUseCase } from "./application/use-cases/create-user.use-case";
-import { GetUserByIdUseCase } from "./application/use-cases/get-user-by-id.use-case";
-import { ListUsersUseCase } from "./application/use-cases/list-users.use-case";
-import { AssignUserRolesUseCase } from "./application/use-cases/assign-user-role.use-case";
-import { GetCurrentUserUseCase } from "./application/use-cases/get-current-user.use-case";
-import { OAuthCallbackUseCase } from "./application/use-cases/oauth-callback.use-case";
-import { LoginUseCase } from "./application/use-cases/login.use-case";
-import { LogoutUseCase } from "./application/use-cases/logout.use-case";
-import { AnonymizeInactiveUsersUseCase } from "./application/use-cases/anonymize-inactive-users.use-case";
-import { UpdateUserSecurityUseCase } from "./application/use-cases/update-user-security.use-case";
-import { DeactivateUserUseCase } from "./application/use-cases/deactivate-user.use-case";
+import {
+  AnonymizeInactiveUsersUseCase,
+  AssignUserRolesUseCase,
+  CreateUserUseCase,
+  DeactivateUserUseCase,
+  GetCurrentUserUseCase,
+  GetUserByIdUseCase,
+  ListUsersUseCase,
+  LoginUseCase,
+  LogoutUseCase,
+  OAuthCallbackUseCase,
+  UpdateUserSecurityUseCase,
+} from "./application/use-cases";
 import { UserController } from "./adapters/driving/http/user.controller";
 import { AuthController } from "./adapters/driving/http/auth.controller";
 import { createAuthMiddleware } from "@lframework/shared";

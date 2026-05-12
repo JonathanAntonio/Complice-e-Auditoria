@@ -1,13 +1,13 @@
 import { UpstreamHttpError } from "../../../application/errors/upstream-http.error";
-import type { IAuditLogsClient } from "../../../application/ports/audit-logs-client.port";
+import type { IAuditLogsClient } from "../../../application/ports";
 import {
   parseAuditLogListResponseDto,
   type AuditLogsQueryDto,
-} from "../../../application/dtos/audit-log-response.dto";
+} from "../../../application/dtos";
 import {
   parseRetentionRunListDto,
   type RetentionRunsQueryDto,
-} from "../../../application/dtos/retention-run.dto";
+} from "../../../application/dtos";
 
 export interface AuditHttpClientConfig {
   gatewayBaseUrl: string;
@@ -34,7 +34,7 @@ export class AuditHttpClient implements IAuditLogsClient {
     return parseRetentionRunListDto(payload);
   }
 
-  async ingestFrontendAuditLog(payload: any) {
+  async ingestFrontendAuditLog(payload: unknown) {
     await this.request<unknown>(`/audit/logs`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

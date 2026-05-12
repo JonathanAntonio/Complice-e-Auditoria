@@ -4,5 +4,5 @@ import type { RetentionRunListDto, RetentionRunsQueryDto } from "../dtos/retenti
 export interface IAuditLogsClient {
   listAuditLogs(token: string, query: AuditLogsQueryDto): Promise<AuditLogListDto>;
   listAuditRetentionRuns(token: string, query: RetentionRunsQueryDto): Promise<RetentionRunListDto>;
-  ingestFrontendAuditLog(payload: any): Promise<void>;
+  ingestFrontendAuditLog(payload: unknown): Promise<void>;
 }

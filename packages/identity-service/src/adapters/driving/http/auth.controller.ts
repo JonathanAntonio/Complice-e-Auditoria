@@ -1,22 +1,21 @@
 import { Request, Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "@lframework/shared";
-import type { GetCurrentUserUseCase } from "../../../application/use-cases/get-current-user.use-case";
-import type { OAuthCallbackUseCase } from "../../../application/use-cases/oauth-callback.use-case";
-import type { LoginUseCase } from "../../../application/use-cases/login.use-case";
-import type { CreateUserUseCase } from "../../../application/use-cases/create-user.use-case";
-import type { LogoutUseCase } from "../../../application/use-cases/logout.use-case";
-import type { IOAuthProvider } from "../../../application/ports/oauth-provider.port";
-import type { ITokenService } from "../../../application/ports/token-service.port";
+import type {
+  CreateUserUseCase,
+  GetCurrentUserUseCase,
+  LoginUseCase,
+  LogoutUseCase,
+  OAuthCallbackUseCase,
+} from "../../../application/use-cases";
+import type { IOAuthProvider, ITokenService } from "../../../application/ports";
 import type { ICacheService } from "@lframework/shared";
-import type { OAuthCallbackResponseDto } from "../../../application/dtos/oauth-callback-response.dto";
 import {
+  createUserSchema,
   oauthAuthorizationUrlQuerySchema,
-} from "../../../application/dtos/oauth-authorization-url-query.dto";
-import {
   oauthCallbackQuerySchema,
-} from "../../../application/dtos/oauth-callback-query.dto";
+  type OAuthCallbackResponseDto,
+} from "../../../application/dtos";
 import { loginSchema } from "./auth.validation";
-import { createUserSchema } from "../../../application/dtos/create-user.dto";
 import { formatExpiresIn } from "./utils/format-expires-in";
 import {
   createOAuthAuthorizationUrl,

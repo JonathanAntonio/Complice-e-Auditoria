@@ -2,7 +2,7 @@ import {
   createEventEnvelopeV1,
   type EventEnvelopeV1,
 } from "@lframework/shared";
-import type { OutboxEvent } from "../../../application/ports/outbox-writer.port";
+import type { OutboxEvent } from "../../../application/ports";
 
 function readCorrelationId(event: OutboxEvent): string | undefined {
   if (event.correlationId && event.correlationId.trim().length > 0) {

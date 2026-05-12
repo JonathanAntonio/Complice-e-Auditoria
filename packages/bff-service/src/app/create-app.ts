@@ -14,34 +14,36 @@ import { ReportingHttpClient } from "../adapters/driven/http/reporting-http.clie
 import { NotificationHttpClient } from "../adapters/driven/http/notification-http.client";
 import { IntegrationAuditHttpClient } from "../adapters/driven/http/integration-audit-http.client";
 import { CookieSessionService } from "../adapters/driving/http/cookie-session.service";
-import { StartOAuthUseCase } from "../application/use-cases/start-oauth.use-case";
-import { CompleteOAuthCallbackUseCase } from "../application/use-cases/complete-oauth-callback.use-case";
-import { GetCurrentUserUseCase } from "../application/use-cases/get-current-user.use-case";
-import { LogoutUseCase } from "../application/use-cases/logout.use-case";
-import { LoginUseCase } from "../application/use-cases/login.use-case";
-import { RegisterUseCase } from "../application/use-cases/register.use-case";
-import { CreateComplianceViolationUseCase } from "../application/use-cases/create-compliance-violation.use-case";
-import { ListComplianceViolationsUseCase } from "../application/use-cases/list-compliance-violations.use-case";
-import { UpdateComplianceViolationUseCase } from "../application/use-cases/update-compliance-violation.use-case";
-import { ListAuditLogsUseCase } from "../application/use-cases/list-audit-logs.use-case";
-import { ListAuditRetentionRunsUseCase } from "../application/use-cases/list-audit-retention-runs.use-case";
-import { ListComplianceRetentionRunsUseCase } from "../application/use-cases/list-compliance-retention-runs.use-case";
-import { ListRiskScoresUseCase } from "../application/use-cases/list-risk-scores.use-case";
-import { GetRiskScoreHistoryUseCase } from "../application/use-cases/get-risk-score-history.use-case";
-import { IngestRiskEventUseCase } from "../application/use-cases/ingest-risk-event.use-case";
-import { CreateReportExportUseCase } from "../application/use-cases/create-report-export.use-case";
-import { GetReportExportUseCase } from "../application/use-cases/get-report-export.use-case";
-import { DownloadReportExportUseCase } from "../application/use-cases/download-report-export.use-case";
-import { DispatchNotificationUseCase } from "../application/use-cases/dispatch-notification.use-case";
-import { ListNotificationLogsUseCase } from "../application/use-cases/list-notification-logs.use-case";
-import { ListAdminUsersUseCase } from "../application/use-cases/list-admin-users.use-case";
-import { GetAdminUserUseCase } from "../application/use-cases/get-admin-user.use-case";
-import { CreateAdminUserUseCase } from "../application/use-cases/create-admin-user.use-case";
-import { UpdateAdminUserRolesUseCase } from "../application/use-cases/update-admin-user-roles.use-case";
-import { UpdateAdminUserSecurityUseCase } from "../application/use-cases/update-admin-user-security.use-case";
-import { DeactivateAdminUserUseCase } from "../application/use-cases/deactivate-admin-user.use-case";
-import { PublishIntegrationEventUseCase } from "../application/use-cases/publish-integration-event.use-case";
-import { IngestFrontendAuditLogUseCase } from "../application/use-cases/ingest-frontend-audit-log.use-case";
+import {
+  CompleteOAuthCallbackUseCase,
+  CreateAdminUserUseCase,
+  CreateComplianceViolationUseCase,
+  CreateReportExportUseCase,
+  DeactivateAdminUserUseCase,
+  DispatchNotificationUseCase,
+  DownloadReportExportUseCase,
+  GetAdminUserUseCase,
+  GetCurrentUserUseCase,
+  GetReportExportUseCase,
+  GetRiskScoreHistoryUseCase,
+  IngestFrontendAuditLogUseCase,
+  IngestRiskEventUseCase,
+  ListAdminUsersUseCase,
+  ListAuditLogsUseCase,
+  ListAuditRetentionRunsUseCase,
+  ListComplianceRetentionRunsUseCase,
+  ListComplianceViolationsUseCase,
+  ListNotificationLogsUseCase,
+  ListRiskScoresUseCase,
+  LoginUseCase,
+  LogoutUseCase,
+  PublishIntegrationEventUseCase,
+  RegisterUseCase,
+  StartOAuthUseCase,
+  UpdateAdminUserRolesUseCase,
+  UpdateAdminUserSecurityUseCase,
+  UpdateComplianceViolationUseCase,
+} from "../application/use-cases";
 import { AuthHandlers } from "../adapters/driving/http/auth.handlers";
 
 export function createApp(config: BffConfig) {

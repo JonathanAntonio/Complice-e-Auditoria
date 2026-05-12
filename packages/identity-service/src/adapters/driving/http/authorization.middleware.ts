@@ -6,7 +6,7 @@ import {
   sendError,
   type AuthenticatedRequest,
 } from "@lframework/shared";
-import type { IOutboxRepository } from "../../../application/ports/outbox-repository.port";
+import type { IOutboxRepository } from "../../../application/ports";
 import {
   createSecurityAuditEvent,
   SECURITY_AUDIT_EVENTS,

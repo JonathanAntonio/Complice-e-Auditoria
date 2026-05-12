@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { GetMetricsUseCase } from "../../../application/use-cases/get-metrics.use-case";
+import { GetMetricsUseCase } from "../../../application/use-cases";
 
 export class MetricsController {
   constructor(private readonly getMetricsUseCase: GetMetricsUseCase) {}

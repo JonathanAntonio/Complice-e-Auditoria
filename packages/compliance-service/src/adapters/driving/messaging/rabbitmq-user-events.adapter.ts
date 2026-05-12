@@ -1,6 +1,6 @@
 import amqp from "amqplib";
 import type { UserCreatedPayload, EventEnvelopeV1 } from "@lframework/shared";
-import type { IEventConsumer } from "../../../application/ports/event-consumer.port";
+import type { IEventConsumer } from "../../../application/ports";
 import { RabbitMqUserCreatedConsumer } from "./rabbitmq-user-created.consumer";
 import { RabbitMqDomainEventsConsumer } from "./rabbitmq-domain-events.consumer";
 

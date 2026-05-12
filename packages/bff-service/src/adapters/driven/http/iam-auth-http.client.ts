@@ -1,5 +1,5 @@
 import { UpstreamHttpError } from "../../../application/errors/upstream-http.error";
-import type { IIamAuthClient } from "../../../application/ports/iam-auth-client.port";
+import type { IIamAuthClient } from "../../../application/ports";
 import type { OAuthAuthResponse, OAuthProvider } from "../../../domain/oauth";
 import type {
   AdminCreateUserInputDto,
@@ -8,9 +8,9 @@ import type {
   AdminUsersListDto,
   AdminUsersQueryDto,
   AdminUserDto,
-} from "../../../application/dtos/admin-user.dto";
-import { parseAdminUserDto, parseAdminUsersListDto } from "../../../application/dtos/admin-user.dto";
-import type { LoginInputDto, RegisterInputDto, AuthResponseDto } from "../../../application/dtos/auth.dto";
+} from "../../../application/dtos";
+import { parseAdminUserDto, parseAdminUsersListDto } from "../../../application/dtos";
+import type { LoginInputDto, RegisterInputDto, AuthResponseDto } from "../../../application/dtos";
 
 export interface IamAuthHttpClientConfig {
   gatewayBaseUrl: string;

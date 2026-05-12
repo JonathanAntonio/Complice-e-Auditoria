@@ -1,5 +1,5 @@
 import { UpstreamHttpError } from "../../../application/errors/upstream-http.error";
-import type { IRiskScoresClient } from "../../../application/ports/risk-scores-client.port";
+import type { IRiskScoresClient } from "../../../application/ports";
 import {
   parseRiskEventIngestResultDto,
   type RiskEventIngestResultDto,
@@ -10,7 +10,7 @@ import {
   parseRiskScoresListDto,
   type RiskScoresListDto,
   type RiskScoresQueryDto,
-} from "../../../application/dtos/risk-score.dto";
+} from "../../../application/dtos";
 
 export interface RiskHttpClientConfig {
   gatewayBaseUrl: string;

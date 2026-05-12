@@ -1,5 +1,5 @@
 import { Item } from "../../../domain/entities/item.entity";
-import type { IItemRepository } from "../../../application/ports/item-repository.port";
+import type { IItemRepository } from "../../../application/ports";
 import type { ViolationStatus } from "../../../domain/types";
 
 interface ComplianceDb {

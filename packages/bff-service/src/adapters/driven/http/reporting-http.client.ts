@@ -1,11 +1,11 @@
 import { UpstreamHttpError } from "../../../application/errors/upstream-http.error";
-import type { IReportingClient } from "../../../application/ports/reporting-client.port";
+import type { IReportingClient } from "../../../application/ports";
 import {
   parseReportExportJobDto,
   type CreateReportExportDto,
   type ReportDownloadDto,
   type ReportExportJobDto,
-} from "../../../application/dtos/report-export.dto";
+} from "../../../application/dtos";
 
 export interface ReportingHttpClientConfig {
   gatewayBaseUrl: string;
@@ -55,7 +55,7 @@ export class ReportingHttpClient implements IReportingClient {
 
     return {
       contentType: response.headers.get("content-type") ?? "application/octet-stream",
-      contentDisposition: response.headers.get("content-disposition") ?? `attachment; filename=\"report-${id}\"`,
+      contentDisposition: response.headers.get("content-disposition") ?? `attachment; filename="report-${id}"`,
       body,
     };
   }

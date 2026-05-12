@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import type { IOAuthProvider } from "../../../../application/ports/oauth-provider.port";
+import type { IOAuthProvider } from "../../../../application/ports";
 import type { ICacheService } from "@lframework/shared";
 
 const OAUTH_STATE_TTL_SECONDS = 600; // 10 min

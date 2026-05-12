@@ -1,4 +1,4 @@
-import type { IItemsListCacheInvalidator } from "../../../application/ports/items-list-cache-invalidator.port";
+import type { IItemsListCacheInvalidator } from "../../../application/ports";
 import type { ICacheService } from "@lframework/shared";
 
 const ITEMS_LIST_KEY = "violations:list";

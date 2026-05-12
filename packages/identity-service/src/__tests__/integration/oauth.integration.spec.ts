@@ -10,7 +10,7 @@ import type { ICacheService } from "@lframework/shared";
 import { createContainer } from "../../container";
 import { createApp } from "../../app";
 import { createNoOpEventPublisher } from "./test-event-publisher";
-import type { IOAuthProvider, OAuthUserInfo } from "../../application/ports/oauth-provider.port";
+import type { IOAuthProvider, OAuthUserInfo } from "../../application/ports";
 import { USER_ROLES, USER_ROLE_VALUES, permissionsForRoles } from "../../domain/types";
 
 const databaseUrl =

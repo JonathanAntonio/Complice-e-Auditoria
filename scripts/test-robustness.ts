@@ -8,6 +8,20 @@ async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
+type IntegrationResponse = {
+  accepted?: boolean;
+  duplicate?: boolean;
+};
+
+type ComplianceItem = {
+  title?: string;
+};
+
 async function runRobustnessTests() {
   console.log(`🛡️ Iniciando Testes de Robustez (Segurança e Idempotência)...`);
 
@@ -24,8 +38,8 @@ async function runRobustnessTests() {
     } else {
       console.error(`❌ FALHA: O sistema permitiu acesso ou retornou status inesperado: ${response.status}`);
     }
-  } catch (err: any) {
-    console.error("❌ Erro no teste de segurança:", err.message);
+  } catch (err: unknown) {
+    console.error("❌ Erro no teste de segurança:", getErrorMessage(err));
   }
 
   // --- TESTE 2: IDEMPOTÊNCIA (DUPLICIDADE) ---
@@ -51,7 +65,7 @@ async function runRobustnessTests() {
       headers: { "Content-Type": "application/json", "x-api-key": API_KEY },
       body: JSON.stringify(eventPayload)
     });
-    const data1: any = await res1.json();
+    const data1 = (await res1.json()) as IntegrationResponse;
     console.log(`  > Resposta 1: Accepted=${data1.accepted}, Duplicate=${data1.duplicate}`);
 
     // Segundo envio (imediato)
@@ -61,7 +75,7 @@ async function runRobustnessTests() {
       headers: { "Content-Type": "application/json", "x-api-key": API_KEY },
       body: JSON.stringify(eventPayload)
     });
-    const data2: any = await res2.json();
+    const data2 = (await res2.json()) as IntegrationResponse;
     console.log(`  > Resposta 2: Accepted=${data2.accepted}, Duplicate=${data2.duplicate}`);
 
     if (data2.duplicate === true) {
@@ -74,8 +88,9 @@ async function runRobustnessTests() {
     console.log("  > Aguardando processamento (5s) para validar no Compliance...");
     await sleep(5000);
     const compRes = await fetch(COMPLIANCE_URL);
-    const items: any = await compRes.json();
-    const violations = items.filter((i: any) => i.title.includes(duplicateEventId));
+    const payload: unknown = await compRes.json();
+    const items = Array.isArray(payload) ? (payload as ComplianceItem[]) : [];
+    const violations = items.filter((i) => typeof i.title === "string" && i.title.includes(duplicateEventId));
 
     if (violations.length === 1) {
       console.log(`✅ SUCESSO: Apenas 1 violação foi criada no banco de dados.`);
@@ -83,8 +98,8 @@ async function runRobustnessTests() {
       console.error(`❌ FALHA: Foram encontradas ${violations.length} violações para o mesmo evento.`);
     }
 
-  } catch (err: any) {
-    console.error("❌ Erro no teste de idempotência:", err.message);
+  } catch (err: unknown) {
+    console.error("❌ Erro no teste de idempotência:", getErrorMessage(err));
   }
 
   console.log("\n🏁 Testes de Robustez Finalizados.");

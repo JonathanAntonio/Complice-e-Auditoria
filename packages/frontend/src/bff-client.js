@@ -29,7 +29,6 @@ export {
   deactivateAdminUser,
 } from "./application/admin-users.service";
 export { publishIntegrationEvent } from "./application/integration-events.service";
-export { sendFrontendAuditEvent } from "./application/frontend-audit.service";
 
 export {
   clearAuthErrorFromQuery,

@@ -1,4 +1,4 @@
-import type { IMetricsReader } from "../../../application/ports/metrics-reader.port";
+import type { IMetricsReader } from "../../../application/ports";
 import { IntegrationMetrics } from "../../../application/metrics";
 
 export class PrometheusMetricsReaderAdapter implements IMetricsReader {

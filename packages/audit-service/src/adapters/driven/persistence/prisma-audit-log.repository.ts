@@ -1,10 +1,21 @@
 import type { EventEnvelopeV1 } from "@lframework/shared";
-import type { IAuditLogRepository } from "../../../application/ports/audit-log-repository.port";
-import type { AuditLogListResponseDto } from "../../../application/dtos/audit-log-response.dto";
-import type { ListAuditLogsQueryDto } from "../../../application/dtos/list-audit-logs-query.dto";
-import type { ListRetentionRunsQueryDto } from "../../../application/dtos/list-retention-runs-query.dto";
-import type { RetentionRunListResponseDto } from "../../../application/dtos/retention-run-response.dto";
+import type { IAuditLogRepository } from "../../../application/ports";
+import type {
+  AuditLogListResponseDto,
+  ListAuditLogsQueryDto,
+  ListRetentionRunsQueryDto,
+  RetentionRunListResponseDto,
+} from "../../../application/dtos";
 import { PrismaClient } from "../../../../generated/prisma-client";
+type AuditLogWhereInput = NonNullable<Parameters<PrismaClient["auditLogModel"]["count"]>[0]>["where"];
+type AuditRetentionRunWhereInput = NonNullable<Parameters<PrismaClient["auditRetentionRunModel"]["count"]>[0]>["where"];
+
+function toRetentionStatus(status: string): "running" | "success" | "failed" {
+  if (status === "running" || status === "success" || status === "failed") {
+    return status;
+  }
+  return "failed";
+}
 
 function toSeverity(payload: Record<string, unknown>): string {
   const raw = typeof payload.severity === "string" ? payload.severity.toLowerCase().trim() : "";
@@ -55,13 +66,13 @@ export class PrismaAuditLogRepository implements IAuditLogRepository {
         sourceService: envelope.producer,
         correlationId: envelope.correlationId,
         severity: toSeverity(payload),
-        payload: payload as any,
+        payload: payload as unknown as object,
       },
     });
   }
 
   async list(query: ListAuditLogsQueryDto): Promise<AuditLogListResponseDto> {
-    const where: any = {};
+    const where: AuditLogWhereInput = {};
 
     if (query.type) where.eventType = query.type;
     if (query.actorId) where.actorId = query.actorId;
@@ -103,7 +114,7 @@ export class PrismaAuditLogRepository implements IAuditLogRepository {
   }
 
   async listRetentionRuns(query: ListRetentionRunsQueryDto): Promise<RetentionRunListResponseDto> {
-    const where: any = {};
+    const where: AuditRetentionRunWhereInput = {};
 
     if (query.status) where.status = query.status;
 
@@ -122,7 +133,7 @@ export class PrismaAuditLogRepository implements IAuditLogRepository {
         id: row.id,
         startedAt: row.startedAt.toISOString(),
         finishedAt: row.finishedAt?.toISOString() ?? null,
-        status: row.status as any,
+        status: toRetentionStatus(row.status),
         retentionDays: row.retentionDays,
         cutoffAt: row.cutoffAt.toISOString(),
         scannedCount: row.scannedCount,

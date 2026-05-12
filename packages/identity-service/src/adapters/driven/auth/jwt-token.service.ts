@@ -1,7 +1,7 @@
 import jwt from "jsonwebtoken";
 import { createHash } from "crypto";
 import { z } from "zod";
-import type { ITokenService, TokenPayload } from "../../../application/ports/token-service.port";
+import type { ITokenService, TokenPayload } from "../../../application/ports";
 import { logger } from "@lframework/shared";
 import { DEFAULT_USER_ROLE } from "../../../domain/types";
 

@@ -16,6 +16,7 @@ import {
 import { logger } from "@lframework/shared";
 import { toAuthUserDto } from "../dtos/user-profile.mapper";
 import type { UserAuthProfileDto } from "../dtos/user-auth-profile.dto";
+import type { User } from "../../domain/entities/user.entity";
 
 export interface LoginInputDto {
   email: string;
@@ -135,7 +136,7 @@ export class LoginUseCase {
   }
 
   private async handleFailedAttempt(
-    user: any, // Tipo User do domínio
+    user: User,
     baseAuditPayload: Record<string, unknown>,
     reason: string
   ): Promise<void> {

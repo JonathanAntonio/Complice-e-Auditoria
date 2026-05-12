@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { UserController } from "./user.controller";
-import type { CreateUserUseCase } from "../../../application/use-cases/create-user.use-case";
-import type { GetUserByIdUseCase } from "../../../application/use-cases/get-user-by-id.use-case";
-import type { AssignUserRolesUseCase } from "../../../application/use-cases/assign-user-role.use-case";
+import type { CreateUserUseCase } from "../../../application/use-cases";
+import type { GetUserByIdUseCase } from "../../../application/use-cases";
+import type { AssignUserRolesUseCase } from "../../../application/use-cases";
 import type { Response } from "express";
 import type { NextFunction } from "express";
 import {

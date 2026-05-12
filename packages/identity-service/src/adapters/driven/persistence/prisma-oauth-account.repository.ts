@@ -1,5 +1,5 @@
 import { PrismaClient } from "../../../../generated/prisma-client";
-import type { IOAuthAccountRepository, OAuthProvider } from "../../../application/ports/oauth-account-repository.port";
+import type { IOAuthAccountRepository, OAuthProvider } from "../../../application/ports";
 
 export class PrismaOAuthAccountRepository implements IOAuthAccountRepository {
   constructor(private readonly prisma: PrismaClient) {}

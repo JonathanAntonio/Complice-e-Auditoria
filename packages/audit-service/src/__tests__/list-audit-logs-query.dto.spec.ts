@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseListAuditLogsQueryDto } from "../application/dtos/list-audit-logs-query.dto";
+import { parseListAuditLogsQueryDto } from "../application/dtos";
 
 describe("parseListAuditLogsQueryDto", () => {
   it("applies defaults", () => {

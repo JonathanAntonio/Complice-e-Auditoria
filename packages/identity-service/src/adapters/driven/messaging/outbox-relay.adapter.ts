@@ -1,6 +1,6 @@
 import { logger } from "@lframework/shared";
 import type { PrismaClient } from "../../../../generated/prisma-client";
-import type { IEventPublisher } from "../../../application/ports/event-publisher.port";
+import type { IEventPublisher } from "../../../application/ports";
 import { parseEventEnvelopeV1 } from "@lframework/shared";
 
 const DEFAULT_BATCH_SIZE = 50;

@@ -17,6 +17,17 @@ async function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function getErrorMessage(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  return String(err);
+}
+
+type ComplianceViolation = {
+  id?: string;
+  title?: string;
+  status?: string;
+};
+
 async function runTest() {
   const correlationId = `test-corr-${randomUUID()}`;
   const eventId = randomUUID();
@@ -52,8 +63,8 @@ async function runTest() {
     
     const data = await response.json();
     console.log("✅ Evento aceito pelo Integration:", data);
-  } catch (err: any) {
-    console.error("❌ Falha ao enviar evento:", err.message);
+  } catch (err: unknown) {
+    console.error("❌ Falha ao enviar evento:", getErrorMessage(err));
     process.exit(1);
   }
 
@@ -69,8 +80,9 @@ async function runTest() {
         throw new Error(`Compliance fetch failed (${response.status}): ${await response.text()}`);
     }
     
-    const items: any = await response.json();
-    const violation = items.find((i: any) => i.title && i.title.includes("transacao.suspeita.teste"));
+    const payload: unknown = await response.json();
+    const items = Array.isArray(payload) ? (payload as ComplianceViolation[]) : [];
+    const violation = items.find((i) => typeof i.title === "string" && i.title.includes("transacao.suspeita.teste"));
 
     if (violation) {
       console.log("✅ VIOLAÇÃO DETECTADA COM SUCESSO!");
@@ -79,10 +91,10 @@ async function runTest() {
       console.log("📊 Status:", violation.status);
     } else {
       console.error("❌ Violação não encontrada no Compliance Service.");
-      console.log("Itens atuais:", items.map((i: any) => i.title));
+      console.log("Itens atuais:", items.map((i) => i.title ?? "<sem titulo>"));
     }
-  } catch (err: any) {
-    console.error("❌ Erro ao consultar Compliance Service:", err.message);
+  } catch (err: unknown) {
+    console.error("❌ Erro ao consultar Compliance Service:", getErrorMessage(err));
   }
 
   console.log("\n🏁 Teste E2E Finalizado.");

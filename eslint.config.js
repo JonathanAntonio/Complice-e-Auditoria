@@ -16,6 +16,30 @@ export default tseslint.config(
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
+  {
+    files: ["packages/*/src/**/*.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["**/application/dtos/*.dto"],
+              message: "Use o barrel \"application/dtos\" em vez de importar DTOs por arquivo.",
+            },
+            {
+              group: ["**/application/ports/*.port"],
+              message: "Use o barrel \"application/ports\" em vez de importar ports por arquivo.",
+            },
+            {
+              group: ["**/application/use-cases/*.use-case"],
+              message: "Use o barrel \"application/use-cases\" em vez de importar use-cases por arquivo.",
+            },
+          ],
+        },
+      ],
+    },
+  },
   // Código fonte: lint com type-aware (usa tsconfig dos pacotes)
   {
     files: [

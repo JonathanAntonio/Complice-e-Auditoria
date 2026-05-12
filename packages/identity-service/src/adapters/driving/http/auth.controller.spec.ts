@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { Response } from "express";
 import { NextFunction } from "express";
 import { AuthController } from "./auth.controller";
-import type { GetCurrentUserUseCase } from "../../../application/use-cases/get-current-user.use-case";
-import type { OAuthCallbackUseCase } from "../../../application/use-cases/oauth-callback.use-case";
-import type { LoginUseCase } from "../../../application/use-cases/login.use-case";
-import type { CreateUserUseCase } from "../../../application/use-cases/create-user.use-case";
-import type { LogoutUseCase } from "../../../application/use-cases/logout.use-case";
-import type { IOAuthProvider } from "../../../application/ports/oauth-provider.port";
-import type { ITokenService } from "../../../application/ports/token-service.port";
+import type { GetCurrentUserUseCase } from "../../../application/use-cases";
+import type { OAuthCallbackUseCase } from "../../../application/use-cases";
+import type { LoginUseCase } from "../../../application/use-cases";
+import type { CreateUserUseCase } from "../../../application/use-cases";
+import type { LogoutUseCase } from "../../../application/use-cases";
+import type { IOAuthProvider } from "../../../application/ports";
+import type { ITokenService } from "../../../application/ports";
 import type { ICacheService } from "@lframework/shared";
 import { mapApplicationErrorToHttp } from "./error-to-http.mapper";
 import { sendError } from "@lframework/shared";
@@ -80,7 +80,7 @@ describe("AuthController", () => {
 
   describe("me", () => {
     it("deve retornar 200 com user quando usuário existe", async () => {
-      vi.mocked(getCurrentUserUseCase.execute).mockResolvedValue(mockUser as any);
+      vi.mocked(getCurrentUserUseCase.execute).mockResolvedValue(mockUser as unknown);
       const controller = createController();
       const req = createMockAuthenticatedRequest({ userId: "user-1" });
 
@@ -120,7 +120,7 @@ describe("AuthController", () => {
         getAccessToken: vi.fn(),
         getProfile: vi.fn(),
         provider: "google"
-      } as any;
+      } as unknown;
       const controller = new AuthController(
         getCurrentUserUseCase,
         oauthCallbackUseCase,
@@ -155,7 +155,7 @@ describe("AuthController", () => {
         getAccessToken: vi.fn(),
         getProfile: vi.fn(),
         provider: "google"
-      } as any;
+      } as unknown;
       const controller = new AuthController(
         getCurrentUserUseCase,
         oauthCallbackUseCase,
@@ -181,7 +181,7 @@ describe("AuthController", () => {
       vi.mocked(cache.get).mockResolvedValue("1");
       vi.mocked(cache.delete).mockResolvedValue(undefined);
       vi.mocked(oauthCallbackUseCase.execute).mockResolvedValue({
-        user: { ...mockUser, isNewUser: false, createdAt: mockUser.createdAt! } as any,
+        user: { ...mockUser, isNewUser: false, createdAt: mockUser.createdAt! } as unknown,
         accessToken: "oauth-token",
       });
       const mockProvider: IOAuthProvider = {
@@ -189,7 +189,7 @@ describe("AuthController", () => {
         getAccessToken: vi.fn(),
         getProfile: vi.fn(),
         provider: "google"
-      } as any;
+      } as unknown;
       const controller = new AuthController(
         getCurrentUserUseCase,
         oauthCallbackUseCase,
@@ -228,7 +228,7 @@ describe("AuthController", () => {
         user: { ...mockUser, isNewUser: false, createdAt: mockUser.createdAt! },
         accessToken: "token-123",
       };
-      vi.mocked(loginUseCase.execute).mockResolvedValue(result as any);
+      vi.mocked(loginUseCase.execute).mockResolvedValue(result as unknown);
 
       const controller = createController();
       const req = createMockRequest({
@@ -246,7 +246,7 @@ describe("AuthController", () => {
 
   describe("register", () => {
     it("deve retornar 201 com user e token em sucesso", async () => {
-      vi.mocked(createUserUseCase.execute).mockResolvedValue(mockUser as any);
+      vi.mocked(createUserUseCase.execute).mockResolvedValue(mockUser as unknown);
       const controller = createController();
       const req = createMockRequest({
         body: { email: "new@example.com", name: "New User", password: "password123" },

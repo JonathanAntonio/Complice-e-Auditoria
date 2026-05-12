@@ -1,8 +1,8 @@
 import type { NextFunction, Request, Response } from "express";
 import { sendValidationError } from "@lframework/shared";
 import { ZodError } from "zod";
-import { parseListRetentionRunsQueryDto } from "../../../application/dtos/list-retention-runs-query.dto";
-import type { ListRetentionRunsUseCase } from "../../../application/use-cases/list-retention-runs.use-case";
+import { parseListRetentionRunsQueryDto } from "../../../application/dtos";
+import type { ListRetentionRunsUseCase } from "../../../application/use-cases";
 
 export class RetentionRunsController {
   constructor(private readonly listRetentionRunsUseCase: ListRetentionRunsUseCase) {}

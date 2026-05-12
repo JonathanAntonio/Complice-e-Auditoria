@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
-import { CreateItemUseCase } from "../../../application/use-cases/create-item.use-case";
-import { ListItemsUseCase } from "../../../application/use-cases/list-items.use-case";
-import { UpdateItemUseCase } from "../../../application/use-cases/update-item.use-case";
+import { CreateItemUseCase } from "../../../application/use-cases";
+import { ListItemsUseCase } from "../../../application/use-cases";
+import { UpdateItemUseCase } from "../../../application/use-cases";
 
 export class ItemController {
   constructor(

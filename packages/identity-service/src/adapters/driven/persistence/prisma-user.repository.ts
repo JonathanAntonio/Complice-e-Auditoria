@@ -2,9 +2,9 @@ import { randomUUID } from "crypto";
 import { Prisma, PrismaClient } from "../../../../generated/prisma-client";
 import { logger, type IAuthzVersionChecker } from "@lframework/shared";
 import { User } from "../../../domain/entities/user.entity";
-import type { IUserRepository } from "../../../application/ports/user-repository.port";
-import type { OutboxEvent } from "../../../application/ports/outbox-writer.port";
-import type { ListUsersQueryDto } from "../../../application/dtos/list-users-query.dto";
+import type { IUserRepository } from "../../../application/ports";
+import type { OutboxEvent } from "../../../application/ports";
+import type { ListUsersQueryDto } from "../../../application/dtos";
 import { UserAlreadyExistsError } from "../../../application/errors";
 import {
   PERMISSION_VALUES,

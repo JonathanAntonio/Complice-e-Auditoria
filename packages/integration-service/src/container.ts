@@ -12,9 +12,9 @@ import { RabbitMqEventPublisherAdapter } from "./adapters/driven/messaging/rabbi
 import { OutboxRelayAdapter } from "./adapters/driven/messaging/outbox-relay.adapter";
 import { IntegrationMetrics } from "./application/metrics";
 import { PrometheusMetricsReaderAdapter } from "./adapters/driven/observability/prometheus-metrics-reader.adapter";
-import { GetMetricsUseCase } from "./application/use-cases/get-metrics.use-case";
+import { GetMetricsUseCase } from "./application/use-cases";
 import { MetricsController } from "./adapters/driving/http/metrics.controller";
-import type { IMetricsReader } from "./application/ports/metrics-reader.port";
+import type { IMetricsReader } from "./application/ports";
 
 export interface IntegrationContainerConfig {
   databaseUrl: string;

@@ -1,21 +1,21 @@
 import { Request, Response, NextFunction } from "express";
 import { z } from "zod";
-import { CreateUserUseCase } from "../../../application/use-cases/create-user.use-case";
-import { GetUserByIdUseCase } from "../../../application/use-cases/get-user-by-id.use-case";
-import { ListUsersUseCase } from "../../../application/use-cases/list-users.use-case";
-import { AssignUserRolesUseCase } from "../../../application/use-cases/assign-user-role.use-case";
-import type { UpdateUserSecurityUseCase } from "../../../application/use-cases/update-user-security.use-case";
-import type { DeactivateUserUseCase } from "../../../application/use-cases/deactivate-user.use-case";
-import type { CreateUserDto } from "../../../application/dtos/create-user.dto";
-import { parseListUsersQuery } from "../../../application/dtos/list-users-query.dto";
+import {
+  AssignUserRolesUseCase,
+  CreateUserUseCase,
+  DeactivateUserUseCase,
+  GetUserByIdUseCase,
+  ListUsersUseCase,
+  UpdateUserSecurityUseCase,
+} from "../../../application/use-cases";
 import {
   assignUserRoleSchema,
   assignUserRolesSchema,
-} from "../../../application/dtos/assign-user-role.dto";
-import {
+  parseListUsersQuery,
   toUpdateUserSecurityDto,
+  type CreateUserDto,
   updateUserSecuritySchema,
-} from "../../../application/dtos/update-user-security.dto";
+} from "../../../application/dtos";
 import type { AuthenticatedRequest } from "@lframework/shared";
 import { sendError } from "@lframework/shared";
 

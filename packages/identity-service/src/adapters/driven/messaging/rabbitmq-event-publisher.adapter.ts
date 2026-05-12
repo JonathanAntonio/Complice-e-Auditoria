@@ -1,5 +1,5 @@
 import amqp from "amqplib";
-import type { IEventPublisher } from "../../../application/ports/event-publisher.port";
+import type { IEventPublisher } from "../../../application/ports";
 import { EXCHANGE_USER_EVENTS, publishEventEnvelopeV1, type EventEnvelopeV1 } from "@lframework/shared";
 
 type AmqpConnection = Awaited<ReturnType<typeof amqp.connect>>;

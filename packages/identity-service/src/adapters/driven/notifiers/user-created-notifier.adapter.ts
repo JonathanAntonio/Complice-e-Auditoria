@@ -1,4 +1,4 @@
-import type { IUserCreatedNotifier, UserCreatedNotifyInput } from "../../../application/ports/user-created-notifier.port";
+import type { IUserCreatedNotifier, UserCreatedNotifyInput } from "../../../application/ports";
 import type { ICacheService } from "@lframework/shared";
 
 /**

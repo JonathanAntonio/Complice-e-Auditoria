@@ -23,7 +23,7 @@ describe("PrismaUserRepository", () => {
         ])
         .mockResolvedValueOnce([{ code: USER_ROLES.GESTOR, isPrimary: true }])
         .mockResolvedValueOnce([{ code: PERMISSIONS.COMPLIANCE_VIOLATIONS_READ }]),
-    } as any;
+    } as unknown;
 
     const repository = new PrismaUserRepository(prisma);
     const user = await repository.findById("user-1");
@@ -43,7 +43,7 @@ describe("PrismaUserRepository", () => {
   it("should return null when user is not found", async () => {
     const prisma = {
       $queryRaw: vi.fn().mockResolvedValueOnce([]),
-    } as any;
+    } as unknown;
 
     const repository = new PrismaUserRepository(prisma);
     await expect(repository.findById("missing-user")).resolves.toBeNull();
@@ -71,7 +71,7 @@ describe("PrismaUserRepository", () => {
           { code: USER_ROLES.ADMINISTRADOR, isPrimary: true },
         ])
         .mockResolvedValueOnce([{ code: PERMISSIONS.USERS_CREATE }]),
-    } as any;
+    } as unknown;
 
     const repository = new PrismaUserRepository(prisma);
     const user = await repository.findById("user-1");
@@ -99,7 +99,7 @@ describe("PrismaUserRepository", () => {
         ])
         .mockResolvedValueOnce([{ code: USER_ROLES.VISUALIZADOR, isPrimary: true }])
         .mockResolvedValueOnce([]),
-    } as any;
+    } as unknown;
 
     const repository = new PrismaUserRepository(prisma);
     const user = await repository.findById("user-1");
@@ -128,7 +128,7 @@ describe("PrismaUserRepository", () => {
         ])
         .mockResolvedValueOnce([{ code: "super_admin", isPrimary: true }])
         .mockResolvedValueOnce([]),
-    } as any;
+    } as unknown;
 
     const repository = new PrismaUserRepository(prisma);
 
@@ -155,7 +155,7 @@ describe("PrismaUserRepository", () => {
         ])
         .mockResolvedValueOnce([{ code: USER_ROLES.VISUALIZADOR, isPrimary: true }])
         .mockResolvedValueOnce([]),
-    } as any;
+    } as unknown;
 
     const repository = new PrismaUserRepository(prisma);
     await expect(repository.findById("user-1")).rejects.toThrow();

@@ -1,11 +1,12 @@
 import type { NextFunction, Request, Response } from "express";
 import { sendValidationError, eventEnvelopeV1Schema } from "@lframework/shared";
 import { ZodError } from "zod";
-import { parseListAuditLogsQueryDto } from "../../../application/dtos/list-audit-logs-query.dto";
-import { parseListRetentionRunsQueryDto } from "../../../application/dtos/list-retention-runs-query.dto";
-import type { ListAuditLogsUseCase } from "../../../application/use-cases/list-audit-logs.use-case";
-import type { ListRetentionRunsUseCase } from "../../../application/use-cases/list-retention-runs.use-case";
-import type { IngestAuditEventUseCase } from "../../../application/use-cases/ingest-audit-event.use-case";
+import { parseListAuditLogsQueryDto, parseListRetentionRunsQueryDto } from "../../../application/dtos";
+import type {
+  IngestAuditEventUseCase,
+  ListAuditLogsUseCase,
+  ListRetentionRunsUseCase,
+} from "../../../application/use-cases";
 
 export class AuditLogsController {
   constructor(

@@ -4,13 +4,15 @@ import {
   OpenAPIRegistry,
 } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
-import { createUserSchema } from "./application/dtos/create-user.dto";
-import { userResponseDtoSchema } from "./application/dtos/user-response.dto";
+import { createUserSchema } from "./application/dtos";
+import { userResponseDtoSchema } from "./application/dtos";
 import {
+  createUserSchema,
+  userResponseDtoSchema,
   assignUserRoleSchema,
   assignUserRolesSchema,
-} from "./application/dtos/assign-user-role.dto";
-import { updateUserSecuritySchema } from "./application/dtos/update-user-security.dto";
+  updateUserSecuritySchema,
+} from "./application/dtos";
 
 extendZodWithOpenApi(z);
 

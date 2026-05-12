@@ -1,4 +1,4 @@
-import type { IReplicatedUserStore } from "../../../application/ports/replicated-user-store.port";
+import type { IReplicatedUserStore } from "../../../application/ports";
 import type { UserCreatedPayload } from "@lframework/shared";
 
 interface ComplianceDb {

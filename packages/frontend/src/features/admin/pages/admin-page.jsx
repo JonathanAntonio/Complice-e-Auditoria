@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Button, Card, Form, Input, Select, Space, Table, Tag, Typography, message } from "antd";
+import { Alert, Button, Card, Form, Input, Popconfirm, Select, Space, Table, Tag, Typography, message } from "antd";
 import {
   createAdminUser,
   deactivateAdminUser,
@@ -40,6 +40,7 @@ export function AdminPage() {
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [createForm] = Form.useForm();
   const [rolesForm] = Form.useForm();
@@ -157,6 +158,11 @@ export function AdminPage() {
 
   const rows = useMemo(() => usersQuery.data?.items ?? [], [usersQuery.data?.items]);
 
+  const applySearch = () => {
+    setPage(1);
+    setSearch(searchInput.trim());
+  };
+
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       {messageContextHolder}
@@ -178,12 +184,13 @@ export function AdminPage() {
           extra={(
             <Space>
               <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                value={searchInput}
+                onChange={(event) => setSearchInput(event.target.value)}
+                onPressEnter={applySearch}
                 placeholder="Buscar por nome/e-mail"
                 style={{ width: 220 }}
               />
-              <Button onClick={() => usersQuery.refetch()}>Buscar</Button>
+              <Button onClick={applySearch}>Buscar</Button>
             </Space>
           )}
         >
@@ -237,30 +244,45 @@ export function AdminPage() {
                       }}>Segurança</Button>
                     ) : null}
                     {canSecurity && !row.isActive ? (
-                      <Button
-                        size="small"
-                        type="primary"
-                        loading={activateLoadingId === row.id}
-                        onClick={() => {
+                      <Popconfirm
+                        title="Ativar usuário?"
+                        description="A conta voltará a ter acesso conforme permissões vigentes."
+                        okText="Ativar"
+                        cancelText="Cancelar"
+                        onConfirm={() => {
                           setActivateLoadingId(row.id);
                           activateMutation.mutate(row.id);
                         }}
                       >
-                        Ativar
-                      </Button>
+                        <Button
+                          size="small"
+                          type="primary"
+                          loading={activateLoadingId === row.id}
+                        >
+                          Ativar
+                        </Button>
+                      </Popconfirm>
                     ) : null}
                     {canDeactivate && row.isActive ? (
-                      <Button
-                        danger
-                        size="small"
-                        loading={deactivateLoadingId === row.id}
-                        onClick={() => {
+                      <Popconfirm
+                        title="Desativar usuário?"
+                        description="A conta perderá acesso até ser reativada."
+                        okText="Desativar"
+                        cancelText="Cancelar"
+                        okButtonProps={{ danger: true }}
+                        onConfirm={() => {
                           setDeactivateLoadingId(row.id);
                           deactivateMutation.mutate(row.id);
                         }}
                       >
-                        Desativar
-                      </Button>
+                        <Button
+                          danger
+                          size="small"
+                          loading={deactivateLoadingId === row.id}
+                        >
+                          Desativar
+                        </Button>
+                      </Popconfirm>
                     ) : null}
                   </Space>
                 ),
@@ -331,6 +353,10 @@ export function AdminPage() {
           layout="vertical"
           onFinish={(values) => {
             if (!selectedUser) return;
+            if (values.isActive === false && !canDeactivate) {
+              void messageApi.error("Seu perfil não pode desativar usuários.");
+              return;
+            }
             securityMutation.mutate({
               id: selectedUser.id,
               payload: {
@@ -341,7 +367,12 @@ export function AdminPage() {
           }}
         >
           <Form.Item label="Ativo" name="isActive" rules={[{ required: true }]}>
-            <Select options={[{ label: "Ativo", value: true }, { label: "Inativo", value: false }]} />
+            <Select
+              options={[
+                { label: "Ativo", value: true },
+                { label: "Inativo", value: false, disabled: !canDeactivate },
+              ]}
+            />
           </Form.Item>
           <Form.Item label="Bloqueado até (ISO UTC)" name="blockedUntil">
             <Input placeholder="2026-12-31T23:59:59.000Z" />

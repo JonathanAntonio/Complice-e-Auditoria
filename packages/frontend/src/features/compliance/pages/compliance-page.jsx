@@ -115,15 +115,16 @@ export function CompliancePage() {
             title: "Ações",
             key: "actions",
             render: (_, row) => (
-              <Button
-                size="small"
-                disabled={!canCreate}
-                onClick={() => {
-                  setEditing(row);
-                }}
-              >
-                Editar
-              </Button>
+              canCreate ? (
+                <Button
+                  size="small"
+                  onClick={() => {
+                    setEditing(row);
+                  }}
+                >
+                  Editar
+                </Button>
+              ) : <Text type="secondary">Sem ação</Text>
             ),
           },
         ]}

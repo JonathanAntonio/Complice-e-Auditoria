@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Select, Space, Table } from "antd";
+import { Alert, Button, Card, Select, Space, Table } from "antd";
 import { listAuditRetentionRuns, listComplianceRetentionRuns } from "../../../bff-client";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
@@ -76,6 +76,16 @@ export function RetentionPage({ embedded = false }) {
             />
           )}
         >
+          {auditQuery.error ? (
+            <Alert
+              type="error"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message="Falha ao carregar retenção de auditoria"
+              description={auditQuery.error instanceof Error ? auditQuery.error.message : "Erro inesperado ao consultar retenção de auditoria."}
+              action={<Button size="small" onClick={() => void auditQuery.refetch()}>Tentar novamente</Button>}
+            />
+          ) : null}
           <Table
             rowKey={(row) => row.id}
             loading={auditQuery.isLoading}
@@ -111,6 +121,16 @@ export function RetentionPage({ embedded = false }) {
             />
           )}
         >
+          {complianceQuery.error ? (
+            <Alert
+              type="error"
+              showIcon
+              style={{ marginBottom: 12 }}
+              message="Falha ao carregar retenção de compliance"
+              description={complianceQuery.error instanceof Error ? complianceQuery.error.message : "Erro inesperado ao consultar retenção de compliance."}
+              action={<Button size="small" onClick={() => void complianceQuery.refetch()}>Tentar novamente</Button>}
+            />
+          ) : null}
           <Table
             rowKey={(row) => row.id}
             loading={complianceQuery.isLoading}

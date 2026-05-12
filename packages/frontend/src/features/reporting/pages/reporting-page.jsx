@@ -86,8 +86,26 @@ export function ReportingPage({ embedded = false }) {
         <Text className="form-helper">Cole o ID de uma execução para confirmar status e metadados.</Text>
         <div className="form-grid form-grid-2">
           <Space.Compact style={{ width: "100%" }}>
-            <Input value={lookupId} onChange={(event) => setLookupId(event.target.value)} placeholder="ID da exportação" />
-            <Button loading={lookupMutation.isPending} onClick={() => lookupId.trim() && lookupMutation.mutate(lookupId.trim())}>Consultar</Button>
+            <Input
+              value={lookupId}
+              onChange={(event) => {
+                setLookupId(event.target.value);
+                if (!event.target.value.trim()) {
+                  setLookupResult(null);
+                }
+              }}
+              onPressEnter={() => {
+                if (lookupId.trim()) lookupMutation.mutate(lookupId.trim());
+              }}
+              placeholder="ID da exportação"
+            />
+            <Button
+              loading={lookupMutation.isPending}
+              disabled={!lookupId.trim()}
+              onClick={() => lookupMutation.mutate(lookupId.trim())}
+            >
+              Consultar
+            </Button>
           </Space.Compact>
         </div>
         {lookupResult ? (

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
+  Alert,
   Button,
   Card,
   Form,
@@ -91,6 +92,15 @@ export function RiskPage() {
         title="Fluxo de priorização"
         steps={["Filtrar entidade e nível de risco", "Priorizar casos críticos/altos", "Analisar tendência no histórico antes da decisão"]}
       />
+      {scoresQuery.error ? (
+        <Alert
+          type="error"
+          showIcon
+          message="Falha ao carregar priorização de risco"
+          description={scoresQuery.error instanceof Error ? scoresQuery.error.message : "Erro inesperado ao consultar risco."}
+          action={<Button size="small" onClick={() => void scoresQuery.refetch()}>Tentar novamente</Button>}
+        />
+      ) : null}
 
       <Card>
         <Space size="large" wrap>
@@ -189,6 +199,15 @@ export function RiskPage() {
         onCancel={() => setHistoryTarget(null)}
         footer={null}
       >
+        {historyQuery.error ? (
+          <Alert
+            type="error"
+            showIcon
+            message="Falha ao carregar histórico"
+            description={historyQuery.error instanceof Error ? historyQuery.error.message : "Erro inesperado ao consultar histórico."}
+            action={<Button size="small" onClick={() => void historyQuery.refetch()}>Tentar novamente</Button>}
+          />
+        ) : null}
         {historyQuery.data ? (
           <Space direction="vertical" style={{ width: "100%" }}>
             <Text><strong>Janela:</strong> {toReadableDate(historyQuery.data.fromUTC)} - {toReadableDate(historyQuery.data.toUTC)}</Text>

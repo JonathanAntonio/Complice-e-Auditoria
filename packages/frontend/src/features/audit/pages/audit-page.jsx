@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Space, Table, Typography } from "antd";
+import { Alert, Button, Card, Space, Table, Typography } from "antd";
 import { listAuditLogs } from "../../../bff-client";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { toReadableDate } from "../../../shared/utils/formatters";
@@ -22,6 +22,15 @@ export function AuditPage() {
         title="Auditoria"
         subtitle="Trilha de eventos por serviço, severidade, ator e correlação."
       />
+      {logsQuery.error ? (
+        <Alert
+          type="error"
+          showIcon
+          message="Falha ao carregar auditoria"
+          description={logsQuery.error instanceof Error ? logsQuery.error.message : "Erro inesperado ao consultar logs."}
+          action={<Button size="small" onClick={() => void logsQuery.refetch()}>Tentar novamente</Button>}
+        />
+      ) : null}
 
       <Card>
         <Table

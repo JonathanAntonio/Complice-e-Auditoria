@@ -6,7 +6,7 @@ import { logger } from "@lframework/shared";
 import { loadIdentityServiceConfig } from "./app/config";
 
 // Em dev no monorepo, usa apenas variáveis centralizadas no .env da raiz.
-loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: true });
+loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: false });
 
 const config = loadIdentityServiceConfig(process.env);
 
@@ -23,6 +23,7 @@ async function bootstrap() {
   });
 
   await container.connectRabbitMQ();
+  container.setupAuditLogging();
   container.startOutboxRelay(config.outboxRelayIntervalMs);
 
   let retentionSweepRunning = false;

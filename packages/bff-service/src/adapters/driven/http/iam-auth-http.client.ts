@@ -10,6 +10,7 @@ import type {
   AdminUserDto,
 } from "../../../application/dtos/admin-user.dto";
 import { parseAdminUserDto, parseAdminUsersListDto } from "../../../application/dtos/admin-user.dto";
+import type { LoginInputDto, RegisterInputDto, AuthResponseDto } from "../../../application/dtos/auth.dto";
 
 export interface IamAuthHttpClientConfig {
   gatewayBaseUrl: string;
@@ -31,6 +32,22 @@ export class IamAuthHttpClient implements IIamAuthClient {
   async completeCallback(provider: OAuthProvider, code: string, state: string): Promise<OAuthAuthResponse> {
     const query = new URLSearchParams({ code, state });
     return this.request<OAuthAuthResponse>(`/${provider}/callback?${query.toString()}`);
+  }
+
+  async login(input: LoginInputDto): Promise<AuthResponseDto> {
+    return this.request<AuthResponseDto>("/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  }
+
+  async register(input: RegisterInputDto): Promise<AuthResponseDto> {
+    return this.request<AuthResponseDto>("/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
   }
 
   async getCurrentUser(token: string): Promise<unknown> {

@@ -18,7 +18,6 @@ import {
 } from "../../../application/dtos/update-user-security.dto";
 import type { AuthenticatedRequest } from "@lframework/shared";
 import { sendError } from "@lframework/shared";
-import { PERMISSIONS } from "../../../domain/types";
 
 const uuidParamSchema = z.string().uuid();
 
@@ -50,10 +49,6 @@ export class UserController {
   list = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const authReq = req as AuthenticatedRequest;
-      if (!authReq.userId) {
-        sendError(res, 403, "Forbidden");
-        return;
-      }
       if (!this.listUsersUseCase) {
         sendError(res, 503, "User list is not available");
         return;
@@ -69,11 +64,6 @@ export class UserController {
   getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const authReq = req as AuthenticatedRequest;
-      if (!authReq.userId) {
-        sendError(res, 403, "Forbidden");
-        return;
-      }
-
       const { id } = authReq.params;
       const parsed = uuidParamSchema.safeParse(id);
       if (!parsed.success) {
@@ -81,14 +71,6 @@ export class UserController {
         return;
       }
       const userId = parsed.data;
-      const userPermissions = Array.isArray(authReq.userPermissions) ? authReq.userPermissions : [];
-      const canReadTarget =
-        authReq.userId === userId ||
-        userPermissions.includes(PERMISSIONS.USERS_READ_ANY);
-      if (!canReadTarget) {
-        sendError(res, 403, "Forbidden");
-        return;
-      }
 
       const user = await this.getUserByIdUseCase.execute(userId);
       if (!user) {
@@ -104,16 +86,6 @@ export class UserController {
   assignLegacyRole = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const authReq = req as AuthenticatedRequest;
-      if (!authReq.userId) {
-        sendError(res, 403, "Forbidden");
-        return;
-      }
-      const userPermissions = Array.isArray(authReq.userPermissions) ? authReq.userPermissions : [];
-      if (!userPermissions.includes(PERMISSIONS.ROLES_ASSIGN)) {
-        sendError(res, 403, "Forbidden");
-        return;
-      }
-
       const parsed = uuidParamSchema.safeParse(authReq.params.id);
       if (!parsed.success) {
         sendError(res, 400, "Invalid user id format");
@@ -145,16 +117,6 @@ export class UserController {
   assignRoles = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const authReq = req as AuthenticatedRequest;
-      if (!authReq.userId) {
-        sendError(res, 403, "Forbidden");
-        return;
-      }
-      const userPermissions = Array.isArray(authReq.userPermissions) ? authReq.userPermissions : [];
-      if (!userPermissions.includes(PERMISSIONS.ROLES_ASSIGN)) {
-        sendError(res, 403, "Forbidden");
-        return;
-      }
-
       const parsed = uuidParamSchema.safeParse(authReq.params.id);
       if (!parsed.success) {
         sendError(res, 400, "Invalid user id format");
@@ -186,17 +148,8 @@ export class UserController {
   updateSecurity = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const authReq = req as AuthenticatedRequest;
-      if (!authReq.userId) {
-        sendError(res, 403, "Forbidden");
-        return;
-      }
       if (!this.updateUserSecurityUseCase) {
         sendError(res, 503, "User security update is not available");
-        return;
-      }
-      const userPermissions = Array.isArray(authReq.userPermissions) ? authReq.userPermissions : [];
-      if (!userPermissions.includes(PERMISSIONS.USERS_UPDATE)) {
-        sendError(res, 403, "Forbidden");
         return;
       }
 
@@ -231,17 +184,8 @@ export class UserController {
   deactivate = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const authReq = req as AuthenticatedRequest;
-      if (!authReq.userId) {
-        sendError(res, 403, "Forbidden");
-        return;
-      }
       if (!this.deactivateUserUseCase) {
         sendError(res, 503, "User deactivation is not available");
-        return;
-      }
-      const userPermissions = Array.isArray(authReq.userPermissions) ? authReq.userPermissions : [];
-      if (!userPermissions.includes(PERMISSIONS.USERS_DEACTIVATE)) {
-        sendError(res, 403, "Forbidden");
         return;
       }
 

@@ -1,7 +1,7 @@
 import path from "path";
 import { config as loadEnv } from "dotenv";
 
-loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: true });
+loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: false });
 
 import { createContainer } from "./container";
 import { createApp } from "./app";
@@ -21,6 +21,7 @@ async function bootstrap() {
   await container.connectRabbitMQ((payload) =>
     container.handleUserCreatedUseCase.execute(payload)
   );
+  container.setupAuditLogging();
 
   let metricsRef: ServiceMetrics | null = null;
   const app = createApp(container, {

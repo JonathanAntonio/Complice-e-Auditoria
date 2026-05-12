@@ -16,6 +16,19 @@ export function createAuditOpenApi(baseUrl: string) {
         },
       },
       schemas: {
+        EventEnvelope: {
+          type: "object",
+          required: ["eventId", "type", "occurredAtUTC", "producer", "correlationId", "payload", "version"],
+          properties: {
+            eventId: { type: "string", format: "uuid" },
+            type: { type: "string" },
+            occurredAtUTC: { type: "string", format: "date-time" },
+            producer: { type: "string" },
+            correlationId: { type: "string" },
+            payload: { type: "object", additionalProperties: true },
+            version: { type: "string", example: "1.0" },
+          },
+        },
         AuditLogItem: {
           type: "object",
           required: [
@@ -134,6 +147,22 @@ export function createAuditOpenApi(baseUrl: string) {
               description: "Forbidden",
               content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
             },
+          },
+        },
+        post: {
+          summary: "Ingest audit log via HTTP",
+          description: "Permite que serviços sem RabbitMQ enviem logs diretamente.",
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/EventEnvelope" },
+              },
+            },
+          },
+          responses: {
+            "202": { description: "Accepted" },
+            "400": { description: "Invalid payload" },
           },
         },
       },

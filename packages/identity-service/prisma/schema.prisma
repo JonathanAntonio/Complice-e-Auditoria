@@ -12,6 +12,7 @@ model UserModel {
   id                  String               @id @default(uuid())
   email               String               @unique
   name                String
+  passwordHash        String?              @map("password_hash")
   authorizationVersion Int                 @default(1) @map("authorization_version")
   isActive            Boolean              @default(true) @map("is_active")
   deactivatedAt       DateTime?            @map("deactivated_at")

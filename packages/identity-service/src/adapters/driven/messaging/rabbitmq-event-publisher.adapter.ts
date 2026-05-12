@@ -26,6 +26,10 @@ export class RabbitMqEventPublisherAdapter implements IEventPublisher {
     await this.channel.assertExchange(this.exchange, "topic", { durable: true });
   }
 
+  getChannel(): amqp.Channel | null {
+    return this.channel;
+  }
+
   async publish(envelope: EventEnvelopeV1): Promise<void> {
     if (!this.channel) {
       throw new Error("RabbitMqEventPublisherAdapter não conectado; chame connect() antes de publicar.");

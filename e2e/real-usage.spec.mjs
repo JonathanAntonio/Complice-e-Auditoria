@@ -23,7 +23,7 @@ loadDotEnv(path.resolve(process.cwd(), ".env"));
 
 const require = createRequire(import.meta.url);
 const { PrismaClient: IdentityPrismaClient } = require("../packages/identity-service/generated/prisma-client");
-const argon2 = require("argon2");
+const bcrypt = require("bcrypt");
 
 // Use compiled JS to avoid TS imports in Playwright.
 const {
@@ -56,18 +56,23 @@ async function ensureAdminSeeded() {
 
     const email = process.env.E2E_ADMIN_EMAIL ?? "e2e-admin@local.test";
     const password = process.env.E2E_ADMIN_PASSWORD ?? "E2EAdminPass123!";
-    const passwordHash = await argon2.hash(password, { type: argon2.argon2id });
+    const passwordHash = await bcrypt.hash(password, 12);
 
     const user = await prisma.userModel.upsert({
       where: { email },
-      update: { name: "E2E Admin", isActive: true, failedLoginAttempts: 0, blockedUntil: null },
-      create: { id: randomUUID(), email, name: "E2E Admin" },
-    });
-
-    await prisma.authCredentialModel.upsert({
-      where: { userId: user.id },
-      update: { passwordHash },
-      create: { userId: user.id, passwordHash },
+      update: {
+        name: "E2E Admin",
+        isActive: true,
+        failedLoginAttempts: 0,
+        blockedUntil: null,
+        passwordHash,
+      },
+      create: {
+        id: randomUUID(),
+        email,
+        name: "E2E Admin",
+        passwordHash,
+      },
     });
 
     await prisma.userRoleModel.updateMany({ where: { userId: user.id }, data: { isPrimary: false } });

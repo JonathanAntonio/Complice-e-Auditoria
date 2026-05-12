@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { Prisma, PrismaClient } from "../../../../generated/prisma-client";
-import { logger } from "@lframework/shared";
+import { logger, type IAuthzVersionChecker } from "@lframework/shared";
 import { User } from "../../../domain/entities/user.entity";
 import type { IUserRepository } from "../../../application/ports/user-repository.port";
 import type { OutboxEvent } from "../../../application/ports/outbox-writer.port";
@@ -62,7 +62,10 @@ function normalizeLegacyPermissionCode(permission: string): string {
  * Adapter: implementação do repositório User com Prisma/PostgreSQL.
  */
 export class PrismaUserRepository implements IUserRepository {
-  constructor(private readonly prisma: PrismaClient) {}
+  constructor(
+    private readonly prisma: PrismaClient,
+    private readonly authzVersionChecker?: IAuthzVersionChecker
+  ) {}
 
   async save(user: User): Promise<void> {
     try {
@@ -70,16 +73,17 @@ export class PrismaUserRepository implements IUserRepository {
         await ensureAuthorizationRegistry(tx);
         await tx.$executeRaw`
           INSERT INTO "users" (
-            "id", "email", "name", "authorization_version", "is_active",
+            "id", "email", "name", "password_hash", "authorization_version", "is_active",
             "deactivated_at", "failed_login_attempts", "blocked_until", "created_at"
           )
           VALUES (
-            ${user.id}, ${user.email.value}, ${user.name}, ${user.authorizationVersion},
+            ${user.id}, ${user.email.value}, ${user.name}, ${user.passwordHash}, ${user.authorizationVersion},
             ${user.isActive}, ${user.deactivatedAt}, ${user.failedLoginAttempts}, ${user.blockedUntil}, ${user.createdAt}
           )
           ON CONFLICT ("id") DO UPDATE SET
             "email" = EXCLUDED."email",
             "name" = EXCLUDED."name",
+            "password_hash" = EXCLUDED."password_hash",
             "authorization_version" = EXCLUDED."authorization_version",
             "is_active" = EXCLUDED."is_active",
             "deactivated_at" = EXCLUDED."deactivated_at",
@@ -88,6 +92,10 @@ export class PrismaUserRepository implements IUserRepository {
         `;
         await syncUserRoles(tx, user);
       });
+
+      if (this.authzVersionChecker) {
+        await this.authzVersionChecker.updateVersion(user.id, user.authorizationVersion);
+      }
     } catch (err) {
       if (isPrismaP2002(err)) {
         throw new UserAlreadyExistsError("User with this email already exists");
@@ -103,16 +111,17 @@ export class PrismaUserRepository implements IUserRepository {
         await ensureAuthorizationRegistry(tx);
         await tx.$executeRaw`
           INSERT INTO "users" (
-            "id", "email", "name", "authorization_version", "is_active",
+            "id", "email", "name", "password_hash", "authorization_version", "is_active",
             "deactivated_at", "failed_login_attempts", "blocked_until", "created_at"
           )
           VALUES (
-            ${user.id}, ${user.email.value}, ${user.name}, ${user.authorizationVersion},
+            ${user.id}, ${user.email.value}, ${user.name}, ${user.passwordHash}, ${user.authorizationVersion},
             ${user.isActive}, ${user.deactivatedAt}, ${user.failedLoginAttempts}, ${user.blockedUntil}, ${user.createdAt}
           )
           ON CONFLICT ("id") DO UPDATE SET
             "email" = EXCLUDED."email",
             "name" = EXCLUDED."name",
+            "password_hash" = EXCLUDED."password_hash",
             "authorization_version" = EXCLUDED."authorization_version",
             "is_active" = EXCLUDED."is_active",
             "deactivated_at" = EXCLUDED."deactivated_at",
@@ -129,6 +138,10 @@ export class PrismaUserRepository implements IUserRepository {
           },
         });
       });
+
+      if (this.authzVersionChecker) {
+        await this.authzVersionChecker.updateVersion(user.id, user.authorizationVersion);
+      }
     } catch (err) {
       if (isPrismaP2002(err)) {
         throw new UserAlreadyExistsError("User with this email already exists");
@@ -143,6 +156,7 @@ export class PrismaUserRepository implements IUserRepository {
         u."id",
         u."email",
         u."name",
+        u."password_hash" AS "passwordHash",
         u."authorization_version" AS "authorizationVersion",
         u."is_active" AS "isActive",
         u."deactivated_at" AS "deactivatedAt",
@@ -167,6 +181,7 @@ export class PrismaUserRepository implements IUserRepository {
         u."id",
         u."email",
         u."name",
+        u."password_hash" AS "passwordHash",
         u."authorization_version" AS "authorizationVersion",
         u."is_active" AS "isActive",
         u."deactivated_at" AS "deactivatedAt",
@@ -221,6 +236,7 @@ export class PrismaUserRepository implements IUserRepository {
         u."id",
         u."email",
         u."name",
+        u."password_hash" AS "passwordHash",
         u."authorization_version" AS "authorizationVersion",
         u."is_active" AS "isActive",
         u."deactivated_at" AS "deactivatedAt",
@@ -301,7 +317,8 @@ export class PrismaUserRepository implements IUserRepository {
       row.isActive,
       row.deactivatedAt,
       row.failedLoginAttempts,
-      row.blockedUntil
+      row.blockedUntil,
+      row.passwordHash
     );
   }
 }
@@ -354,6 +371,7 @@ interface UserRow {
   id: string;
   email: string;
   name: string;
+  passwordHash: string | null;
   authorizationVersion: number;
   isActive: boolean;
   deactivatedAt: Date | null;

@@ -1,5 +1,6 @@
 body {
   background: var(--app-bg);
   color: var(--ink);
-  font-family: "IBM Plex Sans", "Segoe UI", sans-serif;
+  font-family: "Nunito", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }

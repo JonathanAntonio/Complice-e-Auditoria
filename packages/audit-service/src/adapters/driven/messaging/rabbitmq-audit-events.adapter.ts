@@ -1,38 +1,44 @@
 import amqp from "amqplib";
 import {
   consumeEventEnvelopeV1,
+  EXCHANGE_AUDIT_LOGS,
   EXCHANGE_USER_EVENTS,
+  EXCHANGE_DOMAIN_EVENTS,
   logger,
   QUEUE_AUDIT_EVENTS,
   type EventEnvelopeV1,
 } from "@lframework/shared";
 import type { IngestAuditEventUseCase } from "../../../application/use-cases/ingest-audit-event.use-case";
 
-type AmqpConnection = Awaited<ReturnType<typeof amqp.connect>>;
+  type AmqpConnection = Awaited<ReturnType<typeof amqp.connect>>;
 
-export class RabbitMqAuditEventsAdapter {
-  private connection: AmqpConnection | null = null;
-  private channel: amqp.Channel | null = null;
-  private static readonly CONNECT_TIMEOUT_MS = 10_000;
+  export class RabbitMqAuditEventsAdapter {
+    private connection: AmqpConnection | null = null;
+    private channel: amqp.Channel | null = null;
+    private static readonly CONNECT_TIMEOUT_MS = 10_000;
 
-  constructor(
-    private readonly rabbitmqUrl: string,
-    private readonly queueName: string = QUEUE_AUDIT_EVENTS,
-  ) {}
+    constructor(
+      private readonly rabbitmqUrl: string,
+      private readonly queueName: string = QUEUE_AUDIT_EVENTS,
+    ) {}
 
-  async start(ingestAuditEventUseCase: IngestAuditEventUseCase): Promise<void> {
-    if (this.connection && this.channel) {
-      return;
-    }
+    async start(ingestAuditEventUseCase: IngestAuditEventUseCase): Promise<void> {
+      if (this.connection && this.channel) {
+        return;
+      }
 
-    this.connection = await amqp.connect(this.rabbitmqUrl, {
-      timeout: RabbitMqAuditEventsAdapter.CONNECT_TIMEOUT_MS,
-    });
-    this.channel = await this.connection.createChannel();
+      this.connection = await amqp.connect(this.rabbitmqUrl, {
+        timeout: RabbitMqAuditEventsAdapter.CONNECT_TIMEOUT_MS,
+      });
+      this.channel = await this.connection.createChannel();
 
-    await this.channel.assertExchange(EXCHANGE_USER_EVENTS, "topic", { durable: true });
-    await this.channel.assertQueue(this.queueName, { durable: true });
-    await this.channel.bindQueue(this.queueName, EXCHANGE_USER_EVENTS, "#");
+      await this.channel.assertExchange(EXCHANGE_USER_EVENTS, "topic", { durable: true });
+      await this.channel.assertExchange(EXCHANGE_DOMAIN_EVENTS, "topic", { durable: true });
+      await this.channel.assertExchange(EXCHANGE_AUDIT_LOGS, "topic", { durable: true });
+      await this.channel.assertQueue(this.queueName, { durable: true });
+      await this.channel.bindQueue(this.queueName, EXCHANGE_USER_EVENTS, "#");
+      await this.channel.bindQueue(this.queueName, EXCHANGE_DOMAIN_EVENTS, "#");
+      await this.channel.bindQueue(this.queueName, EXCHANGE_AUDIT_LOGS, "#");
 
     await this.channel.consume(this.queueName, async (msg) => {
       if (!msg || !this.channel) return;
@@ -46,6 +52,10 @@ export class RabbitMqAuditEventsAdapter {
         this.channel.nack(msg, false, false);
       }
     });
+  }
+
+  getChannel(): amqp.Channel | null {
+    return this.channel;
   }
 
   async close(): Promise<void> {

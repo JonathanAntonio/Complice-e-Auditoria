@@ -34,6 +34,14 @@ export class AuditHttpClient implements IAuditLogsClient {
     return parseRetentionRunListDto(payload);
   }
 
+  async ingestFrontendAuditLog(payload: any) {
+    await this.request<unknown>(`/audit/logs`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+  }
+
   private async request<T>(pathWithQuery: string, init: RequestInit = {}): Promise<T> {
     const headers = new Headers(init.headers ?? {});
     if (!headers.has("Accept")) {

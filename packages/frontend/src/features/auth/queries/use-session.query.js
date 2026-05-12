@@ -8,6 +8,9 @@ async function loadSession() {
     if (err instanceof Error && err.message === "Não autenticado.") {
       return null;
     }
+    if (err instanceof TypeError) {
+      return null;
+    }
     throw err;
   }
 }

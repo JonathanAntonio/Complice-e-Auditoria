@@ -26,7 +26,8 @@ export class User {
     private _deactivatedAt: Date | null,
     private _failedLoginAttempts: number,
     private _blockedUntil: Date | null,
-    private readonly _createdAt: Date
+    private readonly _createdAt: Date,
+    private _passwordHash: string | null = null
   ) {}
 
   static create(
@@ -34,7 +35,8 @@ export class User {
     email: Email,
     name: string,
     primaryRole: UserRole = DEFAULT_USER_ROLE,
-    roles: UserRole[] = [primaryRole]
+    roles: UserRole[] = [primaryRole],
+    passwordHash: string | null = null
   ): User {
     if (!name || name.trim().length === 0) {
       throw new Error("Name is required");
@@ -53,7 +55,8 @@ export class User {
       null,
       0,
       null,
-      new Date()
+      new Date(),
+      passwordHash
     );
   }
 
@@ -69,7 +72,8 @@ export class User {
     isActive?: boolean,
     deactivatedAt?: Date | null,
     failedLoginAttempts?: number,
-    blockedUntil?: Date | null
+    blockedUntil?: Date | null,
+    passwordHash?: string | null
   ): User;
   static reconstitute(
     id: string,
@@ -79,7 +83,8 @@ export class User {
     primaryRole: UserRole,
     isActive: boolean,
     failedLoginAttempts?: number,
-    blockedUntil?: Date | null
+    blockedUntil?: Date | null,
+    passwordHash?: string | null
   ): User;
   static reconstitute(
     id: string,
@@ -90,10 +95,11 @@ export class User {
     rolesOrIsActive: UserRole[] | boolean = [primaryRole],
     permissionsOrFailedLoginAttempts: Permission[] | number = permissionsForRoles([primaryRole]),
     authorizationVersionOrBlockedUntil: number | Date | null = 1,
-    isActive = true,
+    isActiveOrPasswordHash: boolean | string | null = true,
     deactivatedAt: Date | null = null,
     failedLoginAttempts = 0,
-    blockedUntil: Date | null = null
+    blockedUntil: Date | null = null,
+    passwordHash: string | null = null
   ): User {
     if (typeof rolesOrIsActive === "boolean") {
       return User.reconstituteLegacy(
@@ -108,9 +114,12 @@ export class User {
           : failedLoginAttempts,
         User.isDateOrNull(authorizationVersionOrBlockedUntil)
           ? authorizationVersionOrBlockedUntil
-          : blockedUntil
+          : blockedUntil,
+        typeof isActiveOrPasswordHash === "string" ? isActiveOrPasswordHash : passwordHash
       );
     }
+
+    const isActive = typeof isActiveOrPasswordHash === "boolean" ? isActiveOrPasswordHash : true;
 
     if (!User.isUserRoleArray(rolesOrIsActive)) {
       throw new Error("Invalid roles while reconstituting user");
@@ -162,7 +171,8 @@ export class User {
       deactivatedAt,
       failedLoginAttempts,
       blockedUntil,
-      createdAt
+      createdAt,
+      passwordHash
     );
   }
 
@@ -174,7 +184,8 @@ export class User {
     primaryRole: UserRole = DEFAULT_USER_ROLE,
     isActive = true,
     failedLoginAttempts = 0,
-    blockedUntil: Date | null = null
+    blockedUntil: Date | null = null,
+    passwordHash: string | null = null
   ): User {
     if (typeof isActive !== "boolean") {
       throw new Error("Invalid active flag while reconstituting user");
@@ -204,7 +215,8 @@ export class User {
       null,
       failedLoginAttempts,
       blockedUntil,
-      createdAt
+      createdAt,
+      passwordHash
     );
   }
 
@@ -254,6 +266,18 @@ export class User {
 
   get createdAt(): Date {
     return new Date(this._createdAt.getTime());
+  }
+
+  get passwordHash(): string | null {
+    return this._passwordHash;
+  }
+
+  setPasswordHash(hash: string): void {
+    if (this._passwordHash === hash) {
+      return;
+    }
+    this._passwordHash = hash;
+    this._authorizationVersion += 1;
   }
 
   isBlocked(at: Date): boolean {

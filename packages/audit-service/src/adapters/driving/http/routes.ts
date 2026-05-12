@@ -10,6 +10,7 @@ export function createAuditRoutes(
   const router = Router();
 
   router.get("/audit/logs", authMiddleware, requireAuditLogsRead, asyncHandler(controller.list.bind(controller)));
+  router.post("/audit/logs", asyncHandler(controller.ingest.bind(controller)));
   router.get(
     "/audit/retention/runs",
     authMiddleware,

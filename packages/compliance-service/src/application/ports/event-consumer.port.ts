@@ -1,4 +1,4 @@
-import type { UserCreatedPayload } from "@lframework/shared";
+import type { UserCreatedPayload, EventEnvelopeV1 } from "@lframework/shared";
 
 /**
  * Porta: consumidor de eventos (ex.: RabbitMQ).
@@ -6,4 +6,5 @@ import type { UserCreatedPayload } from "@lframework/shared";
  */
 export interface IEventConsumer {
   onUserCreated(handler: (payload: UserCreatedPayload) => Promise<void>): void;
+  onDomainEvent(handler: (envelope: EventEnvelopeV1) => Promise<void>): void;
 }

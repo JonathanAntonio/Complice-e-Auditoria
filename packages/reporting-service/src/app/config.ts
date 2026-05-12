@@ -7,7 +7,7 @@ export interface ReportingServiceConfig {
 }
 
 export function loadReportingServiceConfig(env: NodeJS.ProcessEnv): ReportingServiceConfig {
-  const port = parseInt(env.REPORTING_SERVICE_PORT ?? "3007", 10);
+  const port = parseInt(env.REPORTING_SERVICE_PORT ?? "4007", 10);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     logger.error("REPORTING_SERVICE_PORT must be a valid port (1-65535)");
     process.exit(1);

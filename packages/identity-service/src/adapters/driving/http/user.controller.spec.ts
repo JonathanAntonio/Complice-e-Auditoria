@@ -267,45 +267,6 @@ describe("UserController", () => {
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({ error: "User not found" });
     });
-
-    it("deve retornar 403 quando requester não está autenticado", async () => {
-      const controller = new UserController(
-        createUserUseCase,
-        getUserByIdUseCase,
-        assignUserRolesUseCase
-      );
-
-      const req = createMockAuthenticatedRequest({
-        params: { id: userId },
-        body: { primaryRole: USER_ROLES.ADMINISTRADOR, roles: [USER_ROLES.ADMINISTRADOR] },
-        userId: undefined,
-      });
-      await controller.assignRoles(req, res as Response, next);
-
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith({ error: "Forbidden" });
-      expect(assignUserRolesUseCase.execute).not.toHaveBeenCalled();
-    });
-
-    it("deve retornar 403 quando requester não possui roles.assign", async () => {
-      const controller = new UserController(
-        createUserUseCase,
-        getUserByIdUseCase,
-        assignUserRolesUseCase
-      );
-
-      const req = createMockAuthenticatedRequest({
-        params: { id: userId },
-        body: { primaryRole: USER_ROLES.ADMINISTRADOR, roles: [USER_ROLES.ADMINISTRADOR] },
-        userId: "actor-1",
-        userPermissions: [],
-      });
-      await controller.assignRoles(req, res as Response, next);
-
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith({ error: "Forbidden" });
-      expect(assignUserRolesUseCase.execute).not.toHaveBeenCalled();
-    });
   });
 
   describe("assignLegacyRole", () => {
@@ -341,26 +302,6 @@ describe("UserController", () => {
         "actor-1"
       );
       expect(res.status).toHaveBeenCalledWith(200);
-    });
-
-    it("deve retornar 403 quando não possui roles.assign", async () => {
-      const controller = new UserController(
-        createUserUseCase,
-        getUserByIdUseCase,
-        assignUserRolesUseCase
-      );
-      const req = createMockAuthenticatedRequest({
-        params: { id: "11111111-1111-1111-1111-111111111111" },
-        body: { primaryRole: USER_ROLES.ADMINISTRADOR },
-        userId: "actor-1",
-        userPermissions: [],
-      });
-
-      await controller.assignLegacyRole(req, res as Response, next);
-
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith({ error: "Forbidden" });
-      expect(assignUserRolesUseCase.execute).not.toHaveBeenCalled();
     });
   });
 });

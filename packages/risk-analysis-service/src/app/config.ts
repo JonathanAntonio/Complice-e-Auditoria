@@ -7,7 +7,7 @@ export interface RiskServiceConfig {
 }
 
 export function loadRiskServiceConfig(env: NodeJS.ProcessEnv): RiskServiceConfig {
-  const port = parseInt(env.RISK_SERVICE_PORT ?? "3006", 10);
+  const port = parseInt(env.RISK_SERVICE_PORT ?? "4006", 10);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     logger.error("RISK_SERVICE_PORT must be a valid port (1-65535)");
     process.exit(1);

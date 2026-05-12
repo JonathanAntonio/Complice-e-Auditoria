@@ -166,10 +166,11 @@ export class OAuthCallbackUseCase {
     baseAuditPayload: Record<string, unknown>,
     rotateSession: boolean
   ): Promise<OAuthCallbackResultDto> {
+    user.recordSuccessfulLogin();
     if (rotateSession) {
       user.invalidateSessions();
-      await this.userRepository.save(user);
     }
+    await this.userRepository.save(user);
 
     await this.appendAuditEventSafely(
       SECURITY_AUDIT_EVENTS.LOGIN_SUCCEEDED,

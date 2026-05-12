@@ -2,8 +2,11 @@ import { Request, Response, NextFunction } from "express";
 import type { AuthenticatedRequest } from "@lframework/shared";
 import type { GetCurrentUserUseCase } from "../../../application/use-cases/get-current-user.use-case";
 import type { OAuthCallbackUseCase } from "../../../application/use-cases/oauth-callback.use-case";
+import type { LoginUseCase } from "../../../application/use-cases/login.use-case";
+import type { CreateUserUseCase } from "../../../application/use-cases/create-user.use-case";
 import type { LogoutUseCase } from "../../../application/use-cases/logout.use-case";
 import type { IOAuthProvider } from "../../../application/ports/oauth-provider.port";
+import type { ITokenService } from "../../../application/ports/token-service.port";
 import type { ICacheService } from "@lframework/shared";
 import type { OAuthCallbackResponseDto } from "../../../application/dtos/oauth-callback-response.dto";
 import {
@@ -12,6 +15,8 @@ import {
 import {
   oauthCallbackQuerySchema,
 } from "../../../application/dtos/oauth-callback-query.dto";
+import { loginSchema } from "./auth.validation";
+import { createUserSchema } from "../../../application/dtos/create-user.dto";
 import { formatExpiresIn } from "./utils/format-expires-in";
 import {
   createOAuthAuthorizationUrl,
@@ -29,6 +34,9 @@ export class AuthController {
     private readonly baseUrl: string,
     private readonly cache: ICacheService,
     private readonly jwtExpiresInSeconds: number,
+    private readonly loginUseCase: LoginUseCase,
+    private readonly createUserUseCase: CreateUserUseCase,
+    private readonly tokenService: ITokenService,
     private readonly logoutUseCase?: LogoutUseCase
   ) {}
 
@@ -79,6 +87,57 @@ export class AuthController {
         return;
       }
       res.json(user);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  login = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const parsed = loginSchema.safeParse(req.body);
+      if (!parsed.success) {
+        sendValidationError(res, parsed.error);
+        return;
+      }
+
+      const result = await this.loginUseCase.execute(parsed.data, this.buildAuditContext(req));
+      const body: OAuthCallbackResponseDto = {
+        user: result.user,
+        accessToken: result.accessToken,
+        expiresIn: formatExpiresIn(this.jwtExpiresInSeconds),
+      };
+      res.json(body);
+    } catch (err) {
+      next(err);
+    }
+  };
+
+  register = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const parsed = createUserSchema.safeParse(req.body);
+      if (!parsed.success) {
+        sendValidationError(res, parsed.error);
+        return;
+      }
+
+      const user = await this.createUserUseCase.execute(parsed.data);
+
+      // Emite token imediatamente após registro
+      const accessToken = this.tokenService.sign({
+        sub: user.id,
+        email: user.email,
+        primaryRole: user.primaryRole,
+        roles: user.roles,
+        permissions: user.permissions,
+        authzVersion: user.authzVersion,
+      });
+
+      const body: OAuthCallbackResponseDto = {
+        user,
+        accessToken,
+        expiresIn: formatExpiresIn(this.jwtExpiresInSeconds),
+      };
+      res.status(201).json(body);
     } catch (err) {
       next(err);
     }

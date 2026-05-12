@@ -182,11 +182,21 @@ describe("OAuth integration", () => {
   it("rejects OAuth login for inactive user matched by email", async ({ skip }) => {
     if (!dbAvailable) skip();
 
+    const visualizadorRoleId = await container.prisma.roleModel.findUnique({
+      where: { code: USER_ROLES.VISUALIZADOR },
+    }).then(r => r!.id);
+
     await container.prisma.userModel.create({
       data: {
         email: "inactive-oauth@example.com",
         name: "Inactive OAuth User",
         isActive: false,
+        userRoles: {
+          create: {
+            roleId: visualizadorRoleId,
+            isPrimary: true,
+          },
+        },
       },
     });
 
@@ -201,12 +211,22 @@ describe("OAuth integration", () => {
   it("rejects OAuth login for blocked linked user", async ({ skip }) => {
     if (!dbAvailable) skip();
 
+    const visualizadorRoleId = await container.prisma.roleModel.findUnique({
+      where: { code: USER_ROLES.VISUALIZADOR },
+    }).then(r => r!.id);
+
     const blockedUser = await container.prisma.userModel.create({
       data: {
         email: "blocked-oauth@example.com",
         name: "Blocked OAuth User",
         failedLoginAttempts: 5,
         blockedUntil: new Date(Date.now() + 15 * 60 * 1000),
+        userRoles: {
+          create: {
+            roleId: visualizadorRoleId,
+            isPrimary: true,
+          },
+        },
       },
     });
 

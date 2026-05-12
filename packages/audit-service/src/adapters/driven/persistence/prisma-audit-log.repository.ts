@@ -4,11 +4,7 @@ import type { AuditLogListResponseDto } from "../../../application/dtos/audit-lo
 import type { ListAuditLogsQueryDto } from "../../../application/dtos/list-audit-logs-query.dto";
 import type { ListRetentionRunsQueryDto } from "../../../application/dtos/list-retention-runs-query.dto";
 import type { RetentionRunListResponseDto } from "../../../application/dtos/retention-run-response.dto";
-
-interface AuditDb {
-  $executeRawUnsafe(query: string, ...values: unknown[]): Promise<unknown>;
-  $queryRawUnsafe<T>(query: string, ...values: unknown[]): Promise<T>;
-}
+import { PrismaClient } from "../../../../generated/prisma-client";
 
 function toSeverity(payload: Record<string, unknown>): string {
   const raw = typeof payload.severity === "string" ? payload.severity.toLowerCase().trim() : "";
@@ -40,125 +36,52 @@ function toActorType(payload: Record<string, unknown>): string | null {
 }
 
 export class PrismaAuditLogRepository implements IAuditLogRepository {
-  constructor(private readonly prisma: AuditDb) {}
+  constructor(private readonly prisma: PrismaClient) {}
 
   async saveFromEnvelope(envelope: EventEnvelopeV1): Promise<void> {
     const payload = envelope.payload as Record<string, unknown>;
 
-    await this.prisma.$executeRawUnsafe(
-      `
-        INSERT INTO "audit_logs" (
-          "id",
-          "event_id",
-          "event_type",
-          "occurred_at_utc",
-          "recorded_at_utc",
-          "actor_id",
-          "actor_type",
-          "source_service",
-          "correlation_id",
-          "severity",
-          "payload"
-        ) VALUES (
-          $1,
-          $1,
-          $2,
-          $3::timestamptz,
-          NOW(),
-          $4,
-          $5,
-          $6,
-          $7,
-          $8,
-          $9::jsonb
-        )
-        ON CONFLICT ("event_id") DO NOTHING
-      `,
-      envelope.eventId,
-      envelope.type,
-      envelope.occurredAtUTC,
-      toActorId(payload),
-      toActorType(payload),
-      envelope.producer,
-      envelope.correlationId,
-      toSeverity(payload),
-      JSON.stringify(payload)
-    );
+    // Upsert equivalent using create with conflict check (standard Prisma way or use catch)
+    // Here we use upsert with empty update to achieve DO NOTHING behavior
+    await this.prisma.auditLogModel.upsert({
+      where: { eventId: envelope.eventId },
+      update: {}, 
+      create: {
+        eventId: envelope.eventId,
+        eventType: envelope.type,
+        occurredAtUTC: new Date(envelope.occurredAtUTC),
+        actorId: toActorId(payload),
+        actorType: toActorType(payload),
+        sourceService: envelope.producer,
+        correlationId: envelope.correlationId,
+        severity: toSeverity(payload),
+        payload: payload as any,
+      },
+    });
   }
 
   async list(query: ListAuditLogsQueryDto): Promise<AuditLogListResponseDto> {
-    const whereParts: string[] = [];
-    const values: unknown[] = [];
+    const where: any = {};
 
-    if (query.type) {
-      values.push(query.type);
-      whereParts.push(`"event_type" = $${values.length}`);
-    }
-    if (query.actorId) {
-      values.push(query.actorId);
-      whereParts.push(`"actor_id" = $${values.length}`);
-    }
-    if (query.severity) {
-      values.push(query.severity);
-      whereParts.push(`"severity" = $${values.length}`);
-    }
-    if (query.from) {
-      values.push(query.from);
-      whereParts.push(`"occurred_at_utc" >= $${values.length}::timestamptz`);
-    }
-    if (query.to) {
-      values.push(query.to);
-      whereParts.push(`"occurred_at_utc" <= $${values.length}::timestamptz`);
+    if (query.type) where.eventType = query.type;
+    if (query.actorId) where.actorId = query.actorId;
+    if (query.severity) where.severity = query.severity;
+    
+    if (query.from || query.to) {
+      where.occurredAtUTC = {};
+      if (query.from) where.occurredAtUTC.gte = new Date(query.from);
+      if (query.to) where.occurredAtUTC.lte = new Date(query.to);
     }
 
-    const whereSql = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
-    const offset = (query.page - 1) * query.pageSize;
-
-    const countRows = await this.prisma.$queryRawUnsafe<Array<{ total: number }>>(
-      `SELECT COUNT(*)::int AS total FROM "audit_logs" ${whereSql}`,
-      ...values
-    );
-    const total = countRows[0]?.total ?? 0;
-
-    values.push(query.pageSize);
-    const takeIndex = values.length;
-    values.push(offset);
-    const skipIndex = values.length;
-
-    const rows = await this.prisma.$queryRawUnsafe<
-      Array<{
-        eventId: string;
-        eventType: string;
-        occurredAtUTC: Date;
-        recordedAtUTC: Date;
-        actorId: string | null;
-        actorType: string | null;
-        sourceService: string;
-        correlationId: string;
-        severity: string;
-        payload: Record<string, unknown>;
-      }>
-    >(
-      `
-        SELECT
-          "event_id" AS "eventId",
-          "event_type" AS "eventType",
-          "occurred_at_utc" AS "occurredAtUTC",
-          "recorded_at_utc" AS "recordedAtUTC",
-          "actor_id" AS "actorId",
-          "actor_type" AS "actorType",
-          "source_service" AS "sourceService",
-          "correlation_id" AS "correlationId",
-          "severity",
-          "payload"
-        FROM "audit_logs"
-        ${whereSql}
-        ORDER BY "occurred_at_utc" DESC
-        LIMIT $${takeIndex}
-        OFFSET $${skipIndex}
-      `,
-      ...values
-    );
+    const [total, rows] = await Promise.all([
+      this.prisma.auditLogModel.count({ where }),
+      this.prisma.auditLogModel.findMany({
+        where,
+        orderBy: { occurredAtUTC: "desc" },
+        take: query.pageSize,
+        skip: (query.page - 1) * query.pageSize,
+      }),
+    ]);
 
     return {
       items: rows.map((row) => ({
@@ -180,67 +103,26 @@ export class PrismaAuditLogRepository implements IAuditLogRepository {
   }
 
   async listRetentionRuns(query: ListRetentionRunsQueryDto): Promise<RetentionRunListResponseDto> {
-    const whereParts: string[] = [];
-    const values: unknown[] = [];
+    const where: any = {};
 
-    if (query.status) {
-      values.push(query.status);
-      whereParts.push(`"status" = $${values.length}`);
-    }
+    if (query.status) where.status = query.status;
 
-    const whereSql = whereParts.length > 0 ? `WHERE ${whereParts.join(" AND ")}` : "";
-    const offset = (query.page - 1) * query.pageSize;
-
-    const countRows = await this.prisma.$queryRawUnsafe<Array<{ total: number }>>(
-      `SELECT COUNT(*)::int AS total FROM "audit_retention_runs" ${whereSql}`,
-      ...values
-    );
-    const total = countRows[0]?.total ?? 0;
-
-    values.push(query.pageSize);
-    const takeIndex = values.length;
-    values.push(offset);
-    const skipIndex = values.length;
-
-    const rows = await this.prisma.$queryRawUnsafe<Array<{
-      id: string;
-      startedAt: Date;
-      finishedAt: Date | null;
-      status: "running" | "success" | "failed";
-      retentionDays: number;
-      cutoffAt: Date;
-      scannedCount: number;
-      eligibleCount: number;
-      monitorOnlyCount: number;
-      errorMessage: string | null;
-    }>>(
-      `
-      SELECT
-        "id"::text AS "id",
-        "started_at" AS "startedAt",
-        "finished_at" AS "finishedAt",
-        "status",
-        "retention_days" AS "retentionDays",
-        "cutoff_at" AS "cutoffAt",
-        "scanned_count" AS "scannedCount",
-        "eligible_count" AS "eligibleCount",
-        "monitor_only_count" AS "monitorOnlyCount",
-        "error_message" AS "errorMessage"
-      FROM "audit_retention_runs"
-      ${whereSql}
-      ORDER BY "started_at" DESC
-      LIMIT $${takeIndex}
-      OFFSET $${skipIndex}
-      `,
-      ...values
-    );
+    const [total, rows] = await Promise.all([
+      this.prisma.auditRetentionRunModel.count({ where }),
+      this.prisma.auditRetentionRunModel.findMany({
+        where,
+        orderBy: { startedAt: "desc" },
+        take: query.pageSize,
+        skip: (query.page - 1) * query.pageSize,
+      }),
+    ]);
 
     return {
       items: rows.map((row) => ({
         id: row.id,
         startedAt: row.startedAt.toISOString(),
         finishedAt: row.finishedAt?.toISOString() ?? null,
-        status: row.status,
+        status: row.status as any,
         retentionDays: row.retentionDays,
         cutoffAt: row.cutoffAt.toISOString(),
         scannedCount: row.scannedCount,

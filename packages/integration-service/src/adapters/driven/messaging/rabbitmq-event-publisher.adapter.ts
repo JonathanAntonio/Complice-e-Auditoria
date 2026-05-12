@@ -1,6 +1,6 @@
 import amqp from "amqplib";
 import {
-  EXCHANGE_USER_EVENTS,
+  EXCHANGE_DOMAIN_EVENTS,
   publishEventEnvelopeV1,
   type EventEnvelopeV1,
 } from "@lframework/shared";
@@ -10,7 +10,7 @@ type AmqpConnection = Awaited<ReturnType<typeof amqp.connect>>;
 export class RabbitMqEventPublisherAdapter {
   private connection: AmqpConnection | null = null;
   private channel: amqp.Channel | null = null;
-  private readonly exchange = EXCHANGE_USER_EVENTS;
+  private readonly exchange = EXCHANGE_DOMAIN_EVENTS;
   private static readonly CONNECT_TIMEOUT_MS = 10_000;
 
   constructor(private readonly rabbitmqUrl: string) {}
@@ -34,6 +34,10 @@ export class RabbitMqEventPublisherAdapter {
     });
     this.channel = await this.connection.createChannel();
     await this.channel.assertExchange(this.exchange, "topic", { durable: true });
+  }
+
+  getChannel(): amqp.Channel | null {
+    return this.channel;
   }
 
   async publish(envelope: EventEnvelopeV1): Promise<void> {

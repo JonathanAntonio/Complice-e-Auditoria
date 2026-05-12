@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { sendError } from "./send-error";
+import { logger } from "../logger";
+import type { IAuthzVersionChecker } from "./authz-version-checker.port";
 
 /**
  * Payload mínimo esperado após verificação do JWT (sub = userId).
@@ -75,11 +77,14 @@ export type AuthenticatedRequest = Request & {
 /**
  * Middleware: valida Bearer JWT usando a função verify fornecida e anexa contexto autenticado em req.
  * Uso: createAuthMiddleware((token) => tokenService.verify(token)) ou createAuthMiddleware((token) => jwt.verify(...)).
+ *
+ * Se authzVersionChecker for fornecido, valida a versão do token contra o cache central.
  */
 export function createAuthMiddleware(
-  verify: (token: string) => JwtPayload | null
+  verify: (token: string) => JwtPayload | null,
+  authzVersionChecker?: IAuthzVersionChecker
 ) {
-  return (req: Request, res: Response, next: NextFunction): void => {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       sendError(res, 401, "Missing or invalid Authorization header");
@@ -95,6 +100,20 @@ export function createAuthMiddleware(
       sendError(res, 401, "Invalid token: missing subject");
       return;
     }
+
+    // Validação de versão de autorização (Fase 10)
+    if (authzVersionChecker && typeof payload.authzVersion === "number") {
+      const latestVersion = await authzVersionChecker.getLatestVersion(payload.sub);
+      if (latestVersion !== null && payload.authzVersion < latestVersion) {
+        logger.info(
+          { userId: payload.sub, tokenVersion: payload.authzVersion, latestVersion },
+          "Session version mismatch (revoked token)"
+        );
+        sendError(res, 401, "Session version mismatch (revoked token)");
+        return;
+      }
+    }
+
     req.userId = payload.sub;
     req.userEmail = payload.email;
     req.userPrimaryRole = payload.primaryRole;
@@ -106,20 +125,6 @@ export function createAuthMiddleware(
   };
 }
 
-/**
- * Middleware: exige que o usuário autenticado tenha a role indicada.
- * Deve ser usado após createAuthMiddleware.
- */
-export function requireRole(role: string) {
-  return (req: Request, res: Response, next: NextFunction): void => {
-    if ((req.userPrimaryRole ?? req.userRole) !== role) {
-      sendError(res, 403, "Forbidden");
-      return;
-    }
-    next();
-  };
-}
-
 export function hasPermission(req: Request, permission: string): boolean {
   return req.userPermissions?.includes(permission) ?? false;
 }
@@ -127,6 +132,24 @@ export function hasPermission(req: Request, permission: string): boolean {
 export function requirePermission(permission: string) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!hasPermission(req, permission)) {
+      const authReq = req as AuthenticatedRequest;
+      logger.warn(
+        {
+          audit: true,
+          eventType: "identity.auth.permission_denied",
+          severity: "medium",
+          actorUserId: authReq.userId,
+          actorRole: authReq.userPrimaryRole,
+          actorPermissions: authReq.userPermissions,
+          requiredPermission: permission,
+          resource: req.originalUrl,
+          method: req.method,
+          ipAddress: req.ip,
+          requestId: req.headers["x-request-id"]?.toString(),
+          correlationId: req.headers["x-correlation-id"]?.toString() ?? req.headers["x-request-id"]?.toString(),
+        },
+        `Access denied: missing permission '${permission}'`
+      );
       sendError(res, 403, "Forbidden");
       return;
     }
@@ -137,6 +160,61 @@ export function requirePermission(permission: string) {
 export function requireAnyPermission(permissions: string[]) {
   return (req: Request, res: Response, next: NextFunction): void => {
     if (!permissions.some((permission) => hasPermission(req, permission))) {
+      const authReq = req as AuthenticatedRequest;
+      logger.warn(
+        {
+          audit: true,
+          eventType: "identity.auth.permission_denied",
+          severity: "medium",
+          actorUserId: authReq.userId,
+          actorRole: authReq.userPrimaryRole,
+          actorPermissions: authReq.userPermissions,
+          requiredPermissions: permissions,
+          resource: req.originalUrl,
+          method: req.method,
+          ipAddress: req.ip,
+          requestId: req.headers["x-request-id"]?.toString(),
+          correlationId: req.headers["x-correlation-id"]?.toString() ?? req.headers["x-request-id"]?.toString(),
+        },
+        `Access denied: missing one of permissions [${permissions.join(", ")}]`
+      );
+      sendError(res, 403, "Forbidden");
+      return;
+    }
+    next();
+  };
+}
+
+/**
+ * Middleware: exige uma permissão ou que o usuário seja o dono do recurso (self).
+ * O ID do dono deve ser passado via params[paramName].
+ */
+export function requirePermissionOrSelf(permission: string, paramName: string = "id") {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const isOwner = req.userId === req.params[paramName];
+    const hasPerm = hasPermission(req, permission);
+
+    if (!isOwner && !hasPerm) {
+      const authReq = req as AuthenticatedRequest;
+      logger.warn(
+        {
+          audit: true,
+          eventType: "identity.auth.permission_denied",
+          severity: "medium",
+          actorUserId: authReq.userId,
+          actorRole: authReq.userPrimaryRole,
+          actorPermissions: authReq.userPermissions,
+          requiredPermission: permission,
+          isSelfAccess: false,
+          targetResourceId: req.params[paramName],
+          resource: req.originalUrl,
+          method: req.method,
+          ipAddress: req.ip,
+          requestId: req.headers["x-request-id"]?.toString(),
+          correlationId: req.headers["x-correlation-id"]?.toString() ?? req.headers["x-request-id"]?.toString(),
+        },
+        `Access denied to resource '${req.params[paramName]}': missing permission '${permission}' and not owner`
+      );
       sendError(res, 403, "Forbidden");
       return;
     }

@@ -4,7 +4,6 @@ import {
   hasPermission,
   requireAnyPermission,
   requirePermission,
-  requireRole,
 } from "./auth.middleware";
 import type { Request, Response, NextFunction } from "express";
 
@@ -165,46 +164,13 @@ describe("createAuthMiddleware", () => {
   });
 });
 
-describe("requireRole", () => {
-  let req: Partial<Request>;
-  let res: Partial<Response>;
-  let next: NextFunction;
-
-  beforeEach(() => {
-    req = {};
-    res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
-    next = vi.fn();
-  });
-
-  it("deve retornar 403 quando userRole não é a role exigida", () => {
-    req.userRole = "user";
-    const middleware = requireRole("admin");
-
-    middleware(req as Request, res as Response, next);
-
-    expect(res.status).toHaveBeenCalledWith(403);
-    expect(res.json).toHaveBeenCalledWith({ error: "Forbidden" });
-    expect(next).not.toHaveBeenCalled();
-  });
-
-  it("deve chamar next quando userRole é a role exigida", () => {
-    req.userRole = "admin";
-    const middleware = requireRole("admin");
-
-    middleware(req as Request, res as Response, next);
-
-    expect(next).toHaveBeenCalled();
-    expect(res.status).not.toHaveBeenCalled();
-  });
-});
-
 describe("permissions helpers", () => {
   let req: Partial<Request>;
   let res: Partial<Response>;
   let next: NextFunction;
 
   beforeEach(() => {
-    req = { userPermissions: [] };
+    req = { userPermissions: [], headers: {} };
     res = { status: vi.fn().mockReturnThis(), json: vi.fn() };
     next = vi.fn();
   });

@@ -78,6 +78,10 @@ export class RabbitMqUserCreatedConsumer {
     this.handler = fn;
   }
 
+  getChannel(): amqp.Channel | null {
+    return this.channel;
+  }
+
   async start(): Promise<void> {
     this.channel = await this.connection.createChannel();
     await this.channel.assertExchange(EXCHANGE_USER_EVENTS, "topic", { durable: true });

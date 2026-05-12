@@ -11,7 +11,7 @@ export interface IntegrationServiceConfig {
 }
 
 export function loadIntegrationServiceConfig(env: NodeJS.ProcessEnv): IntegrationServiceConfig {
-  const port = parseInt(env.INTEGRATION_SERVICE_PORT ?? "3003", 10);
+  const port = parseInt(env.INTEGRATION_SERVICE_PORT ?? "4003", 10);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     logger.error("INTEGRATION_SERVICE_PORT must be a valid port (1-65535)");
     process.exit(1);

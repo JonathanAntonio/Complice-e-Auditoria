@@ -5,7 +5,7 @@ describe("loadBffConfig", () => {
   it("loads defaults when env vars are missing", () => {
     const config = loadBffConfig({});
 
-    expect(config.port).toBe(3004);
+    expect(config.port).toBe(4000);
     expect(config.gatewayBaseUrl).toBe("http://localhost:8080");
     expect(config.iamAuthBasePath).toBe("/identity/api/v1/auth");
     expect(config.complianceBasePath).toBe("/compliance/api/v1");

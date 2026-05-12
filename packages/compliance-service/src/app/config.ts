@@ -15,7 +15,7 @@ export interface ComplianceServiceConfig {
 }
 
 export function loadComplianceServiceConfig(env: NodeJS.ProcessEnv): ComplianceServiceConfig {
-  const port = parseInt(env.COMPLIANCE_SERVICE_PORT ?? "3002", 10);
+  const port = parseInt(env.COMPLIANCE_SERVICE_PORT ?? "4002", 10);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     logger.error("COMPLIANCE_SERVICE_PORT must be a valid port (1-65535)");
     process.exit(1);

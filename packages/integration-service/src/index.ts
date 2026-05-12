@@ -2,7 +2,7 @@ import path from "path";
 import { config as loadEnv } from "dotenv";
 import type { Server } from "http";
 
-loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: true });
+loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: false });
 
 import { logger } from "@lframework/shared";
 import { createContainer } from "./container";
@@ -35,6 +35,7 @@ async function bootstrap() {
   });
 
   await container.connectRabbitMQ();
+  container.setupAuditLogging();
   container.startOutboxRelay(config.outboxRelayIntervalMs);
 
   const app = createApp(container, {

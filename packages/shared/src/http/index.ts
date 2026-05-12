@@ -17,10 +17,13 @@ export {
   hasPermission,
   requireAnyPermission,
   requirePermission,
-  requireRole,
+  requirePermissionOrSelf,
+
   type JwtPayload,
   type AuthenticatedRequest,
 } from "./auth.middleware";
+export * from "./authz-version-checker.port";
+export * from "./redis-authz-version-checker.adapter";
 export type { ITokenVerifier, TokenVerifierPayload } from "./token-verifier.port";
 export { JwtTokenVerifier } from "./jwt-token-verifier";
 export { createServiceMetrics, type ServiceMetrics } from "./metrics";

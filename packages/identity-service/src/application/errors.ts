@@ -60,3 +60,11 @@ export class InvalidSessionError extends AppError {
     Object.setPrototypeOf(this, InvalidSessionError.prototype);
   }
 }
+
+export class InvalidCredentialsError extends AppError {
+  override name = "InvalidCredentialsError";
+  constructor(message = "Invalid email or password") {
+    super(message);
+    Object.setPrototypeOf(this, InvalidCredentialsError.prototype);
+  }
+}

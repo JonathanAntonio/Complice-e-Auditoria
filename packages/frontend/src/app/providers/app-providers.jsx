@@ -7,9 +7,14 @@ export function AppProviders({ children }) {
     <ConfigProvider
       theme={{
         token: {
-          colorPrimary: "#0f3b66",
-          borderRadius: 10,
-          fontFamily: "IBM Plex Sans, Segoe UI, sans-serif",
+          colorPrimary: "#6366f1",
+          borderRadius: 16,
+          fontFamily: "'Nunito', 'Segoe UI', sans-serif",
+          colorInfo: "#6366f1",
+          colorSuccess: "#10b981",
+          colorWarning: "#f59e0b",
+          colorError: "#f43f5e",
+          wireframe: false,
         },
       }}
     >

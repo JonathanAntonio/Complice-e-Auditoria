@@ -8,6 +8,7 @@ import { emailSchema, nameSchema } from "./user-common.schema";
 export const createUserSchema = z.object({
   email: emailSchema,
   name: nameSchema,
+  password: z.string().min(6).optional(),
 });
 
 export type CreateUserDto = z.infer<typeof createUserSchema>;

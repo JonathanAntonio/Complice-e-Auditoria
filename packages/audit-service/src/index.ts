@@ -1,7 +1,7 @@
 import path from "path";
 import { config as loadEnv } from "dotenv";
 
-loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: true });
+loadEnv({ path: path.resolve(process.cwd(), "../../.env"), override: false });
 
 import type { Server } from "http";
 import { logger, type ServiceMetrics } from "@lframework/shared";
@@ -28,6 +28,7 @@ function closeServer(server: Server, timeoutMs: number = 10_000): Promise<void> 
 async function bootstrap() {
   const container = createContainer(config);
   await container.startConsumer();
+  container.setupAuditLogging();
 
   let metricsRef: ServiceMetrics | null = null;
   const app = createApp(container, {

@@ -1,7 +1,16 @@
 import { createContainer as createAwilixContainer, asValue, asFunction } from "awilix";
 import { PrismaClient } from "../generated/prisma-client";
 import Redis from "ioredis";
-import { RedisCacheAdapter, type ICacheService } from "@lframework/shared";
+import {
+  RedisCacheAdapter,
+  type ICacheService,
+  logger as baseLogger,
+  setLogger,
+  wrapWithAudit,
+  RabbitMqAuditPublisher,
+  RedisAuthzVersionChecker,
+  type IAuthzVersionChecker,
+} from "@lframework/shared";
 import { PrismaUserRepository } from "./adapters/driven/persistence/prisma-user.repository";
 import { PrismaUserOAuthRegistrationPersistence } from "./adapters/driven/persistence/prisma-user-oauth-registration.repository";
 import { PrismaOAuthAccountRepository } from "./adapters/driven/persistence/prisma-oauth-account.repository";
@@ -14,6 +23,7 @@ import { UserCreatedNotifierAdapter } from "./adapters/driven/notifiers/user-cre
 import { JwtTokenService } from "./adapters/driven/auth/jwt-token.service";
 import { GoogleOAuthProvider } from "./adapters/driven/auth/google-oauth.provider";
 import { GitHubOAuthProvider } from "./adapters/driven/auth/github-oauth.provider";
+import { BcryptPasswordHasher } from "./adapters/driven/auth/bcrypt-password-hasher.adapter";
 import type { IOAuthProvider } from "./application/ports/oauth-provider.port";
 import { CreateUserUseCase } from "./application/use-cases/create-user.use-case";
 import { GetUserByIdUseCase } from "./application/use-cases/get-user-by-id.use-case";
@@ -21,6 +31,7 @@ import { ListUsersUseCase } from "./application/use-cases/list-users.use-case";
 import { AssignUserRolesUseCase } from "./application/use-cases/assign-user-role.use-case";
 import { GetCurrentUserUseCase } from "./application/use-cases/get-current-user.use-case";
 import { OAuthCallbackUseCase } from "./application/use-cases/oauth-callback.use-case";
+import { LoginUseCase } from "./application/use-cases/login.use-case";
 import { LogoutUseCase } from "./application/use-cases/logout.use-case";
 import { AnonymizeInactiveUsersUseCase } from "./application/use-cases/anonymize-inactive-users.use-case";
 import { UpdateUserSecurityUseCase } from "./application/use-cases/update-user-security.use-case";
@@ -66,12 +77,14 @@ interface IdentityCradle {
   prisma: PrismaClient;
   redis: Redis;
   cache: RedisCacheAdapter;
+  authzVersionChecker: IAuthzVersionChecker;
   userRepository: PrismaUserRepository;
   userOAuthRegistrationPersistence: PrismaUserOAuthRegistrationPersistence;
   oauthAccountRepository: PrismaOAuthAccountRepository;
   outboxRepository: IOutboxRepository;
   eventPublisher: IEventPublisher & { connect?: () => Promise<void>; disconnect?: () => Promise<void> };
   tokenService: JwtTokenService;
+  passwordHasher: BcryptPasswordHasher;
   googleProvider: IOAuthProvider | null;
   githubProvider: IOAuthProvider | null;
   baseUrl: string;
@@ -82,6 +95,7 @@ interface IdentityCradle {
   listUsersUseCase: ListUsersUseCase;
   getCurrentUserUseCase: GetCurrentUserUseCase;
   oauthCallbackUseCase: OAuthCallbackUseCase;
+  loginUseCase: LoginUseCase;
   logoutUseCase: LogoutUseCase;
   anonymizeInactiveUsersUseCase: AnonymizeInactiveUsersUseCase;
   assignUserRolesUseCase: AssignUserRolesUseCase;
@@ -123,11 +137,16 @@ export function createContainer(config: ContainerConfig) {
     }).singleton(),
 
     cache: asFunction(
-    ({ config, redis }: { config: ContainerConfig; redis: Redis }) =>
-      config.cacheOverride ?? new RedisCacheAdapter(redis)
-  ).singleton(),
+      ({ config, redis }: { config: ContainerConfig; redis: Redis }) =>
+        config.cacheOverride ?? new RedisCacheAdapter(redis)
+    ).singleton(),
+
+    authzVersionChecker: asFunction(
+      ({ redis }: { redis: Redis }) => new RedisAuthzVersionChecker(redis)
+    ).singleton(),
+
     userRepository: asFunction(
-      (cradle: IdentityCradle) => new PrismaUserRepository(cradle.prisma)
+      (cradle: IdentityCradle) => new PrismaUserRepository(cradle.prisma, cradle.authzVersionChecker)
     ).singleton(),
     userOAuthRegistrationPersistence: asFunction(
       (cradle: IdentityCradle) =>
@@ -141,15 +160,9 @@ export function createContainer(config: ContainerConfig) {
       (cradle: IdentityCradle) => new PrismaOutboxRepository(cradle.prisma)
     ).singleton(),
 
-    eventPublisher: asFunction(
-      ({ config }: { config: ContainerConfig }) =>
-        config.eventPublisherOverride ?? new RabbitMqEventPublisherAdapter(config.rabbitmqUrl)
-    ).singleton(),
-
-    outboxRelay: asFunction(
-      (cradle: IdentityCradle) =>
-        new OutboxRelayAdapter(cradle.prisma, cradle.eventPublisher)
-    ).singleton(),
+    eventPublisher: asFunction(({ config }: { config: ContainerConfig }) => {
+      return config.eventPublisherOverride ?? new RabbitMqEventPublisherAdapter(config.rabbitmqUrl);
+    }).singleton(),
 
     tokenService: asFunction(({ config }: { config: ContainerConfig }) => {
       return new JwtTokenService({
@@ -158,17 +171,25 @@ export function createContainer(config: ContainerConfig) {
       });
     }).singleton(),
 
-    googleProvider: asFunction(
-      ({ config }: { config: ContainerConfig }): IOAuthProvider | null =>
-        config.googleProviderOverride ??
-        (config.googleOAuth ? new GoogleOAuthProvider(config.googleOAuth) : null)
-    ).singleton(),
+    passwordHasher: asFunction(() => new BcryptPasswordHasher()).singleton(),
 
-    githubProvider: asFunction(
-      ({ config }: { config: ContainerConfig }): IOAuthProvider | null =>
-        config.githubProviderOverride ??
-        (config.githubOAuth ? new GitHubOAuthProvider(config.githubOAuth) : null)
-    ).singleton(),
+    googleProvider: asFunction(({ config }: { config: ContainerConfig }) => {
+      if (config.googleProviderOverride) return config.googleProviderOverride;
+      if (!config.googleOAuth) return null;
+      return new GoogleOAuthProvider({
+        clientId: config.googleOAuth.clientId,
+        clientSecret: config.googleOAuth.clientSecret,
+      });
+    }).singleton(),
+
+    githubProvider: asFunction(({ config }: { config: ContainerConfig }) => {
+      if (config.githubProviderOverride) return config.githubProviderOverride;
+      if (!config.githubOAuth) return null;
+      return new GitHubOAuthProvider({
+        clientId: config.githubOAuth.clientId,
+        clientSecret: config.githubOAuth.clientSecret,
+      });
+    }).singleton(),
 
     baseUrl: asFunction(({ config }: { config: ContainerConfig }) => config.baseUrl).singleton(),
     jwtExpiresInSeconds: asFunction(
@@ -182,7 +203,7 @@ export function createContainer(config: ContainerConfig) {
 
     createUserUseCase: asFunction(
       (cradle: IdentityCradle) =>
-        new CreateUserUseCase(cradle.userRepository, cradle.userCreatedNotifier)
+        new CreateUserUseCase(cradle.userRepository, cradle.userCreatedNotifier, cradle.passwordHasher)
     ).singleton(),
 
     getUserByIdUseCase: asFunction(
@@ -226,6 +247,16 @@ export function createContainer(config: ContainerConfig) {
         )
     ).singleton(),
 
+    loginUseCase: asFunction(
+      (cradle: IdentityCradle) =>
+        new LoginUseCase(
+          cradle.userRepository,
+          cradle.passwordHasher,
+          cradle.tokenService,
+          cradle.outboxRepository
+        )
+    ).singleton(),
+
     logoutUseCase: asFunction(
       (cradle: IdentityCradle) =>
         new LogoutUseCase(cradle.userRepository, cradle.outboxRepository)
@@ -257,13 +288,19 @@ export function createContainer(config: ContainerConfig) {
           cradle.baseUrl,
           cradle.cache,
           cradle.jwtExpiresInSeconds,
+          cradle.loginUseCase,
+          cradle.createUserUseCase,
+          cradle.tokenService,
           cradle.logoutUseCase
         )
     ).singleton(),
 
     authMiddleware: asFunction(
-      ({ tokenService }: { tokenService: JwtTokenService }) =>
-        createAuthMiddleware((token) => tokenService.verify(token))
+      ({ tokenService, authzVersionChecker }: { tokenService: JwtTokenService; authzVersionChecker: IAuthzVersionChecker }) =>
+        createAuthMiddleware(
+          (token) => tokenService.verify(token),
+          authzVersionChecker
+        )
     ).singleton(),
 
     requireUsersCreate: asFunction(
@@ -352,6 +389,11 @@ export function createContainer(config: ContainerConfig) {
         authMiddleware: ReturnType<typeof createAuthMiddleware>;
       }) => createAuthRoutes(authController, authMiddleware)
     ).singleton(),
+
+    outboxRelay: asFunction(
+      (cradle: IdentityCradle) =>
+        new OutboxRelayAdapter(cradle.prisma, cradle.eventPublisher)
+    ).singleton(),
   });
 
   const c = awilix.cradle;
@@ -373,6 +415,16 @@ export function createContainer(config: ContainerConfig) {
     async connectRabbitMQ(): Promise<void> {
       const ep = c.eventPublisher as { connect?: () => Promise<void> };
       if (ep.connect) await ep.connect();
+    },
+    setupAuditLogging(): void {
+      const ep = c.eventPublisher as RabbitMqEventPublisherAdapter;
+      const channel = ep.getChannel();
+      if (channel) {
+        const publisher = new RabbitMqAuditPublisher(channel);
+        const auditLogger = wrapWithAudit(baseLogger, publisher, "identity-service");
+        setLogger(auditLogger);
+        baseLogger.info("Auditoria de logs centralizada ativada para identity-service");
+      }
     },
     startOutboxRelay(intervalMs: number = 2_000): void {
       c.outboxRelay.start(intervalMs);

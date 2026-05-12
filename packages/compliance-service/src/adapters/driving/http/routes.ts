@@ -17,6 +17,10 @@ export function createItemRoutes(
   requireComplianceTestAccess: (req: Request, res: Response, next: NextFunction) => void
 ): Router {
   const router = Router();
+
+  // Public endpoint for E2E testing
+  router.get("/test/violations", asyncHandler(controller.list.bind(controller)));
+
   router.get("/violations", authMiddleware, requireItemsRead, asyncHandler(controller.list.bind(controller)));
   router.get(
     "/violations/test-permission",

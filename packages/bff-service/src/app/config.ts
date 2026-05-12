@@ -16,7 +16,7 @@ export interface BffConfig {
 
 export function loadBffConfig(env: NodeJS.ProcessEnv): BffConfig {
   return {
-    port: parsePort(env.BFF_PORT, 3004),
+    port: parsePort(env.BFF_PORT, 4000),
     gatewayBaseUrl: normalizeBaseUrl(env.BFF_GATEWAY_URL ?? "http://localhost:8080"),
     iamAuthBasePath: normalizeBasePath(env.BFF_IAM_AUTH_BASE_PATH ?? "/identity/api/v1/auth"),
     complianceBasePath: normalizeBasePath(env.BFF_COMPLIANCE_BASE_PATH ?? "/compliance/api/v1"),

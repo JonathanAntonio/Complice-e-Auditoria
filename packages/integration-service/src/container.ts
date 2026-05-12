@@ -1,5 +1,10 @@
 import { createContainer as createAwilixContainer, asFunction, asValue } from "awilix";
-import { logger } from "@lframework/shared";
+import {
+  logger as baseLogger,
+  setLogger,
+  wrapWithAudit,
+  RabbitMqAuditPublisher,
+} from "@lframework/shared";
 import { PrismaClient } from "../generated/prisma-client";
 import { createIntegrationRoutes } from "./adapters/driving/http/routes";
 import { PrismaEventRepository } from "./adapters/driven/persistence/prisma-event.repository";
@@ -69,6 +74,15 @@ export function createContainer(config: IntegrationContainerConfig) {
     async connectRabbitMQ(): Promise<void> {
       await c.eventPublisher.connect();
     },
+    setupAuditLogging(): void {
+      const channel = c.eventPublisher.getChannel();
+      if (channel) {
+        const publisher = new RabbitMqAuditPublisher(channel);
+        const auditLogger = wrapWithAudit(baseLogger, publisher, "integration-service");
+        setLogger(auditLogger);
+        baseLogger.info("Auditoria de logs centralizada ativada para integration-service");
+      }
+    },
     startOutboxRelay(intervalMs: number = 2_000): void {
       c.outboxRelay.start(intervalMs);
     },
@@ -76,7 +90,7 @@ export function createContainer(config: IntegrationContainerConfig) {
       try {
         c.outboxRelay.stop();
       } catch (err) {
-        logger.warn({ err }, "Failed to stop outbox relay during shutdown");
+        baseLogger.warn({ err }, "Failed to stop outbox relay during shutdown");
       }
 
       const results = await Promise.allSettled([
@@ -86,10 +100,10 @@ export function createContainer(config: IntegrationContainerConfig) {
       const [publisherResult, prismaResult] = results;
 
       if (publisherResult.status === "rejected") {
-        logger.error({ err: publisherResult.reason }, "Failed to disconnect RabbitMQ publisher");
+        baseLogger.error({ err: publisherResult.reason }, "Failed to disconnect RabbitMQ publisher");
       }
       if (prismaResult.status === "rejected") {
-        logger.error({ err: prismaResult.reason }, "Failed to disconnect Prisma client");
+        baseLogger.error({ err: prismaResult.reason }, "Failed to disconnect Prisma client");
       }
 
       if (publisherResult.status === "rejected" || prismaResult.status === "rejected") {

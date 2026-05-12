@@ -27,13 +27,16 @@ const transport = getDevTransport();
  * Logger estruturado (Pino).
  * - Produção: sempre JSON no stdout.
  * - Desenvolvimento: pretty (pino-pretty) se o pacote estiver instalado;
- *   caso contrário, JSON no stdout. Quem usar apenas @lframework/shared sem
- *   pino-pretty em dev não precisa instalá-lo.
- *
- * Nota de segurança: não logar req, headers ou body sem sanitização (evitar
- * vazamento de tokens, PII ou dados sensíveis).
+ *   caso contrário, JSON no stdout. 
  */
-export const logger = pino({
+export let logger = pino({
   level: process.env.LOG_LEVEL ?? (isProduction ? "info" : "debug"),
   ...(transport ? { transport } : {}),
 });
+
+/**
+ * Permite substituir o logger global por uma versão estendida (ex: com auditoria).
+ */
+export function setLogger(newLogger: pino.Logger) {
+  logger = newLogger;
+}

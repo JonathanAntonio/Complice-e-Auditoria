@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { AuthHandlers } from "./auth.handlers";
+import { UpstreamHttpError } from "../../../application/errors/upstream-http.error";
 
 function createHandlers() {
   return new AuthHandlers({
@@ -73,6 +74,30 @@ describe("AuthHandlers", () => {
       error: "Não autenticado",
       message: "Não autenticado",
     });
+  });
+
+  it("returns 204 on duplicated oauth exchange when state already consumed and session exists", async () => {
+    const handlers = createHandlers();
+    const req = {
+      query: { code: "oauth-code", state: "oauth-state" },
+      body: {},
+    } as never;
+    const res = {
+      status: vi.fn().mockReturnThis(),
+      send: vi.fn(),
+    } as never;
+
+    (handlers as never).deps.completeOAuthCallbackUseCase.execute.mockRejectedValue(
+      new UpstreamHttpError(400, "Invalid or expired state")
+    );
+    (handlers as never).deps.cookieSessionService.readSessionToken.mockReturnValue("session-token");
+
+    handlers.googleExchange(req, res);
+    await flushAsync();
+
+    expect(res.status).toHaveBeenCalledWith(204);
+    expect(res.send).toHaveBeenCalled();
+    expect((handlers as never).deps.cookieSessionService.clearSessionCookie).not.toHaveBeenCalled();
   });
 
   it("returns 401 on compliance violations list when session cookie is missing", async () => {

@@ -8,6 +8,12 @@ import {
   createAuthMiddleware,
   JwtTokenVerifier,
   requirePermission,
+  logger as baseLogger,
+  setLogger,
+  wrapWithAudit,
+  RabbitMqAuditPublisher,
+  RedisAuthzVersionChecker,
+  type IAuthzVersionChecker,
 } from "@lframework/shared";
 import { PrismaItemRepository } from "./adapters/driven/persistence/prisma-item.repository";
 import { PrismaReplicatedUserStore } from "./adapters/driven/persistence/prisma-replicated-user.store";
@@ -17,6 +23,7 @@ import { CreateItemUseCase } from "./application/use-cases/create-item.use-case"
 import { ListItemsUseCase } from "./application/use-cases/list-items.use-case";
 import { UpdateItemUseCase } from "./application/use-cases/update-item.use-case";
 import { HandleUserCreatedUseCase } from "./application/use-cases/handle-user-created.use-case";
+import { EvaluateComplianceUseCase } from "./application/use-cases/evaluate-compliance.use-case";
 import { RunRetentionSweepUseCase } from "./application/use-cases/run-retention-sweep.use-case";
 import { ListRetentionRunsUseCase } from "./application/use-cases/list-retention-runs.use-case";
 import { ItemController } from "./adapters/driving/http/item.controller";
@@ -54,11 +61,13 @@ interface ComplianceCradle {
   listItemsUseCase: ListItemsUseCase;
   updateItemUseCase: UpdateItemUseCase;
   handleUserCreatedUseCase: HandleUserCreatedUseCase;
+  evaluateComplianceUseCase: EvaluateComplianceUseCase;
   runRetentionSweepUseCase: RunRetentionSweepUseCase;
   listRetentionRunsUseCase: ListRetentionRunsUseCase;
   itemController: ItemController;
   retentionRunsController: RetentionRunsController;
   tokenVerifier: JwtTokenVerifier;
+  authzVersionChecker: IAuthzVersionChecker;
   authMiddleware: ReturnType<typeof createAuthMiddleware>;
   requireItemsRead: ReturnType<typeof requirePermission>;
   requireItemsCreate: ReturnType<typeof requirePermission>;
@@ -121,6 +130,10 @@ export function createContainer(config: ComplianceContainerConfig) {
       (cradle: ComplianceCradle) =>
         new HandleUserCreatedUseCase(cradle.replicatedUserStore, cradle.cache)
     ).singleton(),
+    evaluateComplianceUseCase: asFunction(
+      (cradle: ComplianceCradle) =>
+        new EvaluateComplianceUseCase(cradle.itemRepository)
+    ).singleton(),
     runRetentionSweepUseCase: asFunction(
       (cradle: ComplianceCradle) => new RunRetentionSweepUseCase(cradle.prisma)
     ).singleton(),
@@ -141,9 +154,14 @@ export function createContainer(config: ComplianceContainerConfig) {
       return new JwtTokenVerifier(config.jwtSecret);
     }).singleton(),
 
+    authzVersionChecker: asFunction(({ redis }: { redis: Redis }) => new RedisAuthzVersionChecker(redis)).singleton(),
+
     authMiddleware: asFunction(
-      ({ tokenVerifier }: { tokenVerifier: JwtTokenVerifier }) =>
-        createAuthMiddleware((token) => tokenVerifier.verify(token))
+      ({ tokenVerifier, authzVersionChecker }: { tokenVerifier: JwtTokenVerifier; authzVersionChecker: IAuthzVersionChecker }) =>
+        createAuthMiddleware(
+          (token) => tokenVerifier.verify(token),
+          authzVersionChecker
+        )
     ).singleton(),
 
     requireItemsRead: asFunction(() => requirePermission("compliance.violations.read")).singleton(),
@@ -211,8 +229,20 @@ export function createContainer(config: ComplianceContainerConfig) {
         activeConsumer = config.eventConsumerOverride;
       } else {
         c.eventConsumer.onUserCreated(userCreatedHandler);
+        c.eventConsumer.onDomainEvent(async (envelope) => {
+          await c.evaluateComplianceUseCase.execute(envelope);
+        });
         await c.eventConsumer.start();
         activeConsumer = c.eventConsumer;
+      }
+    },
+    setupAuditLogging(): void {
+      const channel = c.eventConsumer.getChannel();
+      if (channel) {
+        const publisher = new RabbitMqAuditPublisher(channel);
+        const auditLogger = wrapWithAudit(baseLogger, publisher, "compliance-service");
+        setLogger(auditLogger);
+        baseLogger.info("Auditoria de logs centralizada ativada para compliance-service");
       }
     },
     async disconnect(): Promise<void> {

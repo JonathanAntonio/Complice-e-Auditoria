@@ -4,6 +4,7 @@ export interface AuditServiceConfig {
   port: number;
   databaseUrl: string;
   rabbitmqUrl: string;
+  redisUrl: string;
   jwtSecret: string;
   baseUrl: string;
   corsOrigin?: string;
@@ -14,7 +15,7 @@ export interface AuditServiceConfig {
 }
 
 export function loadAuditServiceConfig(env: NodeJS.ProcessEnv): AuditServiceConfig {
-  const port = parseInt(env.AUDIT_SERVICE_PORT ?? "3005", 10);
+  const port = parseInt(env.AUDIT_SERVICE_PORT ?? "4005", 10);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     logger.error("AUDIT_SERVICE_PORT must be a valid port (1-65535)");
     process.exit(1);
@@ -27,6 +28,10 @@ export function loadAuditServiceConfig(env: NodeJS.ProcessEnv): AuditServiceConf
   }
   if (isProduction && !env.RABBITMQ_URL) {
     logger.error("RABBITMQ_URL must be set in production");
+    process.exit(1);
+  }
+  if (isProduction && !env.REDIS_URL) {
+    logger.error("REDIS_URL must be set in production");
     process.exit(1);
   }
   if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {
@@ -62,6 +67,9 @@ export function loadAuditServiceConfig(env: NodeJS.ProcessEnv): AuditServiceConf
     rabbitmqUrl: isProduction
       ? env.RABBITMQ_URL!
       : (env.RABBITMQ_URL ?? "amqp://lframework:lframework@localhost:5672"),
+    redisUrl: isProduction
+      ? env.REDIS_URL!
+      : (env.REDIS_URL ?? "redis://localhost:6379"),
     jwtSecret: env.JWT_SECRET,
     baseUrl: env.AUDIT_BASE_URL ?? `http://localhost:${port}`,
     corsOrigin: env.CORS_ORIGIN,

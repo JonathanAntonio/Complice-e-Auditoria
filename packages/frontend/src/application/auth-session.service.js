@@ -6,6 +6,22 @@ export async function getCurrentUserSession() {
   return parseAuthSessionDto(payload);
 }
 
+export async function login(email, password) {
+  return requestBffAuth("/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password }),
+    defaultErrorMessage: "E-mail ou senha inválidos.",
+  });
+}
+
+export async function register(email, password, name) {
+  return requestBffAuth("/register", {
+    method: "POST",
+    body: JSON.stringify({ email, password, name }),
+    defaultErrorMessage: "Falha ao criar conta.",
+  });
+}
+
 export async function logoutSession() {
   return requestBffAuth("/logout", {
     method: "POST",

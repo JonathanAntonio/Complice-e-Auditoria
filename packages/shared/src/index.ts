@@ -1,6 +1,7 @@
 export * from "./cache";
 export * from "./dtos";
-export { logger } from "./logger";
+export { logger, setLogger } from "./logger";
+export * from "./logger-audit";
 export * from "./errors";
 export * from "./events";
 export * from "./http";

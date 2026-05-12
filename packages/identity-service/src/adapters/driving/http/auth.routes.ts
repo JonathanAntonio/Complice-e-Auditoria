@@ -25,6 +25,8 @@ export function createAuthRoutes(
 ): Router {
   const router = Router();
 
+  router.post("/auth/register", oauthRateLimiter, asyncHandler(controller.register.bind(controller)));
+  router.post("/auth/login", oauthRateLimiter, asyncHandler(controller.login.bind(controller)));
   router.post("/auth/logout", authMiddleware, asyncHandler(controller.logout.bind(controller)));
   router.get("/auth/me", authMiddleware, asyncHandler(controller.me.bind(controller)));
 

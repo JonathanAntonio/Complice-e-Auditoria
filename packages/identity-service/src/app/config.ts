@@ -18,7 +18,7 @@ export interface IdentityServiceConfig {
 }
 
 export function loadIdentityServiceConfig(env: NodeJS.ProcessEnv): IdentityServiceConfig {
-  const port = parseInt(env.IDENTITY_SERVICE_PORT ?? "3001", 10);
+  const port = parseInt(env.IDENTITY_SERVICE_PORT ?? "4001", 10);
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     logger.error("IDENTITY_SERVICE_PORT must be a valid port (1-65535)");
     process.exit(1);

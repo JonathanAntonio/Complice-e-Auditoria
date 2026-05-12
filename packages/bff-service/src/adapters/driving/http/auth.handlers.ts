@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { logger } from "@lframework/shared";
+import { logger, createEventEnvelopeV1 } from "@lframework/shared";
 import type { OAuthProvider } from "../../../domain/oauth";
 import { UpstreamHttpError } from "../../../application/errors/upstream-http.error";
 import { parseCreateComplianceViolationDto } from "../../../application/dtos/create-compliance-violation.dto";
@@ -16,6 +16,8 @@ import { parseRetentionRunsQueryDto } from "../../../application/dtos/retention-
 import { parseRiskEventInputDto, parseRiskScoreHistoryQueryDto, parseRiskScoresQueryDto } from "../../../application/dtos/risk-score.dto";
 import { parseCreateReportExportDto } from "../../../application/dtos/report-export.dto";
 import { parseDispatchNotificationDto } from "../../../application/dtos/notification.dto";
+import { LoginUseCase } from "../../../application/use-cases/login.use-case";
+import { RegisterUseCase } from "../../../application/use-cases/register.use-case";
 import { StartOAuthUseCase } from "../../../application/use-cases/start-oauth.use-case";
 import { CompleteOAuthCallbackUseCase } from "../../../application/use-cases/complete-oauth-callback.use-case";
 import { GetCurrentUserUseCase } from "../../../application/use-cases/get-current-user.use-case";
@@ -41,12 +43,16 @@ import { UpdateAdminUserRolesUseCase } from "../../../application/use-cases/upda
 import { UpdateAdminUserSecurityUseCase } from "../../../application/use-cases/update-admin-user-security.use-case";
 import { DeactivateAdminUserUseCase } from "../../../application/use-cases/deactivate-admin-user.use-case";
 import { PublishIntegrationEventUseCase } from "../../../application/use-cases/publish-integration-event.use-case";
+import { IngestFrontendAuditLogUseCase } from "../../../application/use-cases/ingest-frontend-audit-log.use-case";
+import { parseLoginInputDto, parseRegisterInputDto } from "../../../application/dtos/auth.dto";
 import { IntegrationAuditHttpClient } from "../../driven/http/integration-audit-http.client";
 import { CookieSessionService } from "./cookie-session.service";
 import { resolvePublicBaseUrl, shouldUseSecureCookie } from "./public-base-url.resolver";
 import { sendJsonError, toErrorMessage } from "./error-response";
 
 export interface AuthHandlersDeps {
+  loginUseCase: LoginUseCase;
+  registerUseCase: RegisterUseCase;
   startOAuthUseCase: StartOAuthUseCase;
   completeOAuthCallbackUseCase: CompleteOAuthCallbackUseCase;
   getCurrentUserUseCase: GetCurrentUserUseCase;
@@ -72,6 +78,7 @@ export interface AuthHandlersDeps {
   updateAdminUserSecurityUseCase: UpdateAdminUserSecurityUseCase;
   deactivateAdminUserUseCase: DeactivateAdminUserUseCase;
   publishIntegrationEventUseCase: PublishIntegrationEventUseCase;
+  ingestFrontendAuditLogUseCase: IngestFrontendAuditLogUseCase;
   integrationAuditPublisher: IntegrationAuditHttpClient;
   cookieSessionService: CookieSessionService;
   explicitPublicBaseUrl: string | null;
@@ -82,6 +89,14 @@ export class AuthHandlers {
 
   health = (_req: Request, res: Response): void => {
     res.json({ status: "ok", service: "bff-service" });
+  };
+
+  login = (req: Request, res: Response): void => {
+    void this.handleLogin(req, res);
+  };
+
+  register = (req: Request, res: Response): void => {
+    void this.handleRegister(req, res);
   };
 
   googleStart = (req: Request, res: Response): void => {
@@ -200,6 +215,62 @@ export class AuthHandlers {
     void this.handlePublishIntegrationEvent(req, res);
   };
 
+  ingestFrontendAuditLog = (req: Request, res: Response): void => {
+    void this.handleIngestFrontendAuditLog(req, res);
+  };
+
+  private async handleLogin(req: Request, res: Response): Promise<void> {
+    const input = parseLoginInputDto(req.body);
+    if (!input) {
+      sendJsonError(res, 400, "Dados de login inválidos");
+      return;
+    }
+
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+
+    try {
+      const accessToken = await this.deps.loginUseCase.execute(input);
+      this.deps.cookieSessionService.writeSessionCookie(res, accessToken, secureCookie);
+      res.status(204).send();
+    } catch (err) {
+      logger.error({ err, email: input.email }, "BFF failed local login");
+      this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+
+      if (err instanceof UpstreamHttpError && (err.statusCode === 400 || err.statusCode === 401 || err.statusCode === 403)) {
+        sendJsonError(res, err.statusCode, toErrorMessage(err, "Falha na autenticação"));
+        return;
+      }
+
+      sendJsonError(res, 502, toErrorMessage(err, "Serviço de identidade indisponível"));
+    }
+  }
+
+  private async handleRegister(req: Request, res: Response): Promise<void> {
+    const input = parseRegisterInputDto(req.body);
+    if (!input) {
+      sendJsonError(res, 400, "Dados de registro inválidos");
+      return;
+    }
+
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+
+    try {
+      const accessToken = await this.deps.registerUseCase.execute(input);
+      this.deps.cookieSessionService.writeSessionCookie(res, accessToken, secureCookie);
+      res.status(204).send();
+    } catch (err) {
+      logger.error({ err, email: input.email }, "BFF failed local register");
+      this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+
+      if (err instanceof UpstreamHttpError && (err.statusCode === 400 || err.statusCode === 409)) {
+        sendJsonError(res, err.statusCode, toErrorMessage(err, "Falha no registro"));
+        return;
+      }
+
+      sendJsonError(res, 502, toErrorMessage(err, "Serviço de identidade indisponível"));
+    }
+  }
+
   private async startOAuth(req: Request, res: Response, provider: OAuthProvider): Promise<void> {
     const publicBaseUrl = resolvePublicBaseUrl(req, this.deps.explicitPublicBaseUrl);
     if (!publicBaseUrl) {
@@ -263,6 +334,15 @@ export class AuthHandlers {
       this.deps.cookieSessionService.writeSessionCookie(res, accessToken, secureCookie);
       res.status(204).send();
     } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 400 && isInvalidOrExpiredStateError(err.message)) {
+        const existingToken = this.deps.cookieSessionService.readSessionToken(req);
+        if (existingToken) {
+          logger.warn({ provider }, "Ignoring duplicated OAuth exchange callback with already-authenticated session");
+          res.status(204).send();
+          return;
+        }
+      }
+
       logger.error({ err, provider }, "BFF failed to complete OAuth exchange");
       this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
 
@@ -1115,6 +1195,48 @@ export class AuthHandlers {
     }
   }
 
+  private async handleIngestFrontendAuditLog(req: Request, res: Response): Promise<void> {
+    try {
+      const body = req.body;
+      if (!body || typeof body.type !== "string" || typeof body.producer !== "string" || typeof body.payload !== "object" || body.payload === null) {
+        sendJsonError(res, 400, "Payload inválido para evento de auditoria");
+        return;
+      }
+
+      const headers = (req.headers ?? {}) as Record<string, unknown>;
+      const correlationId = firstHeaderValue(headers["x-correlation-id"]) ?? firstHeaderValue(headers["x-request-id"]);
+
+      const payloadContent: Record<string, unknown> = {
+        ...(body.payload as Record<string, unknown>),
+      };
+
+      if (typeof body.severity === "string") {
+        payloadContent.severity = body.severity;
+      }
+
+      const token = this.deps.cookieSessionService.readSessionToken(req);
+      if (token) {
+        const actorId = extractActorIdFromToken(token);
+        if (actorId) {
+          payloadContent.actorUserId = actorId;
+        }
+      }
+
+      const validEnvelope = createEventEnvelopeV1({
+        type: body.type,
+        producer: body.producer,
+        correlationId,
+        payload: payloadContent,
+      });
+
+      await this.deps.ingestFrontendAuditLogUseCase.execute(validEnvelope);
+      res.status(202).send();
+    } catch (err) {
+      logger.error({ err }, "BFF failed to ingest frontend audit log");
+      sendJsonError(res, 502, "Audit service unavailable");
+    }
+  }
+
   private async ensureSessionActive(
     token: string,
     _req: Request,
@@ -1157,6 +1279,10 @@ export class AuthHandlers {
       logger.warn({ err, type }, "BFF failed to publish best-effort audit event");
     }
   }
+}
+
+function isInvalidOrExpiredStateError(message: string): boolean {
+  return message.trim().toLowerCase() === "invalid or expired state";
 }
 
 function buildFrontendErrorRedirect(publicBaseUrl: string, provider: OAuthProvider, errorMessage: string): string {

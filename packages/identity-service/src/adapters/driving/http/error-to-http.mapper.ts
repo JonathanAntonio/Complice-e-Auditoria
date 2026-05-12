@@ -7,6 +7,7 @@ import {
   UserInactiveError,
   AuthorizationError,
   InvalidSessionError,
+  InvalidCredentialsError,
 } from "../../../application/errors";
 
 /**
@@ -21,4 +22,5 @@ export const mapApplicationErrorToHttp = createErrorToHttpMapper([
   [InvalidEmailError, 400],
   [InvalidSessionError, 401],
   [AuthorizationError, 403],
+  [InvalidCredentialsError, 401],
 ]);

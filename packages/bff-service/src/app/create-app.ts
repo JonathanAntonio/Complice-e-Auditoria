@@ -18,6 +18,8 @@ import { StartOAuthUseCase } from "../application/use-cases/start-oauth.use-case
 import { CompleteOAuthCallbackUseCase } from "../application/use-cases/complete-oauth-callback.use-case";
 import { GetCurrentUserUseCase } from "../application/use-cases/get-current-user.use-case";
 import { LogoutUseCase } from "../application/use-cases/logout.use-case";
+import { LoginUseCase } from "../application/use-cases/login.use-case";
+import { RegisterUseCase } from "../application/use-cases/register.use-case";
 import { CreateComplianceViolationUseCase } from "../application/use-cases/create-compliance-violation.use-case";
 import { ListComplianceViolationsUseCase } from "../application/use-cases/list-compliance-violations.use-case";
 import { UpdateComplianceViolationUseCase } from "../application/use-cases/update-compliance-violation.use-case";
@@ -39,6 +41,7 @@ import { UpdateAdminUserRolesUseCase } from "../application/use-cases/update-adm
 import { UpdateAdminUserSecurityUseCase } from "../application/use-cases/update-admin-user-security.use-case";
 import { DeactivateAdminUserUseCase } from "../application/use-cases/deactivate-admin-user.use-case";
 import { PublishIntegrationEventUseCase } from "../application/use-cases/publish-integration-event.use-case";
+import { IngestFrontendAuditLogUseCase } from "../application/use-cases/ingest-frontend-audit-log.use-case";
 import { AuthHandlers } from "../adapters/driving/http/auth.handlers";
 
 export function createApp(config: BffConfig) {
@@ -86,6 +89,8 @@ export function createApp(config: BffConfig) {
   });
 
   const handlers = new AuthHandlers({
+    loginUseCase: new LoginUseCase(iamAuthClient),
+    registerUseCase: new RegisterUseCase(iamAuthClient),
     startOAuthUseCase: new StartOAuthUseCase(iamAuthClient),
     completeOAuthCallbackUseCase: new CompleteOAuthCallbackUseCase(iamAuthClient),
     getCurrentUserUseCase: new GetCurrentUserUseCase(iamAuthClient),
@@ -111,6 +116,7 @@ export function createApp(config: BffConfig) {
     updateAdminUserSecurityUseCase: new UpdateAdminUserSecurityUseCase(iamAuthClient),
     deactivateAdminUserUseCase: new DeactivateAdminUserUseCase(iamAuthClient),
     publishIntegrationEventUseCase: new PublishIntegrationEventUseCase(integrationAuditHttpClient),
+    ingestFrontendAuditLogUseCase: new IngestFrontendAuditLogUseCase(auditHttpClient),
     integrationAuditPublisher: integrationAuditHttpClient,
     cookieSessionService,
     explicitPublicBaseUrl: config.explicitPublicBaseUrl,
@@ -120,6 +126,8 @@ export function createApp(config: BffConfig) {
   app.get("/metrics", metrics.handler);
 
   // Public routes (frontend-facing)
+  app.post("/auth/login", handlers.login);
+  app.post("/auth/register", handlers.register);
   app.get("/auth/google/start", handlers.googleStart);
   app.get("/auth/github/start", handlers.githubStart);
   app.get("/auth/google/exchange", handlers.googleExchange);
@@ -132,6 +140,7 @@ export function createApp(config: BffConfig) {
   app.post("/compliance/violations", handlers.createComplianceViolation);
   app.patch("/compliance/violations/:violationId", handlers.updateComplianceViolation);
   app.get("/audit/logs", handlers.listAuditLogs);
+  app.post("/audit/logs", handlers.ingestFrontendAuditLog);
   app.get("/audit/retention/runs", handlers.listAuditRetentionRuns);
   app.get("/compliance/retention/runs", handlers.listComplianceRetentionRuns);
   app.get("/risk/scores", handlers.listRiskScores);

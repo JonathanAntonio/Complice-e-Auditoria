@@ -15,6 +15,7 @@ function createHandlers() {
     listAuditRetentionRunsUseCase: { execute: vi.fn() } as never,
     listComplianceRetentionRunsUseCase: { execute: vi.fn() } as never,
     listRiskScoresUseCase: { execute: vi.fn() } as never,
+    getMessagingFlowUseCase: { execute: vi.fn() } as never,
     getRiskScoreHistoryUseCase: { execute: vi.fn() } as never,
     ingestRiskEventUseCase: { execute: vi.fn() } as never,
     createReportExportUseCase: { execute: vi.fn() } as never,

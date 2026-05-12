@@ -27,6 +27,7 @@ export default defineConfig(({ mode }) => {
         "/compliance/": { target: bffUrl, changeOrigin: false },
         "/audit/": { target: bffUrl, changeOrigin: false },
         "/risk/": { target: bffUrl, changeOrigin: false },
+        "/messaging/": { target: bffUrl, changeOrigin: false },
         "/reports/": { target: bffUrl, changeOrigin: false },
         "/notifications/": { target: bffUrl, changeOrigin: false },
         "/admin/": { target: bffUrl, changeOrigin: false },

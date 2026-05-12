@@ -4,6 +4,7 @@ import { Card, Select, Space, Table } from "antd";
 import { listAuditRetentionRuns, listComplianceRetentionRuns } from "../../../bff-client";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
+import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 import { RetentionStatusTag } from "../../../shared/ui/status-tags";
 import { toReadableDate } from "../../../shared/utils/formatters";
 
@@ -55,15 +56,20 @@ export function RetentionPage({ embedded = false }) {
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       {!embedded ? (
-        <PageHeader title="Retenção" subtitle="Execuções de retenção para auditoria e compliance." />
+        <PageHeader title="Retenção" subtitle="Acompanhe execuções por domínio e status para garantir conformidade contínua." />
       ) : null}
+
+      <WorkflowPanel
+        title="Fluxo de retenção"
+        steps={["Filtrar status da execução", "Analisar volume elegível x processado", "Atuar em falhas e reexecutar quando necessário"]}
+      />
 
       {canReadAudit ? (
         <Card
           title="Retenção de auditoria"
           extra={(
             <Select
-              style={{ width: 150 }}
+              style={{ width: 170 }}
               value={auditState.status}
               options={STATUS_OPTIONS}
               onChange={(status) => setAuditState((current) => ({ ...current, status, page: 1 }))}
@@ -98,7 +104,7 @@ export function RetentionPage({ embedded = false }) {
           title="Retenção de compliance"
           extra={(
             <Select
-              style={{ width: 150 }}
+              style={{ width: 170 }}
               value={complianceState.status}
               options={STATUS_OPTIONS}
               onChange={(status) => setComplianceState((current) => ({ ...current, status, page: 1 }))}

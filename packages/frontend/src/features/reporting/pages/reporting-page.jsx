@@ -4,6 +4,7 @@ import { Button, Card, Descriptions, Form, Input, Select, Space, Table, Tag, Typ
 import { exportAndDownloadReport, getReportExport } from "../../../bff-client";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
+import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 import { toReadableDate, triggerBlobDownload } from "../../../shared/utils/formatters";
 
 const { Text } = Typography;
@@ -45,11 +46,16 @@ export function ReportingPage({ embedded = false }) {
       {!embedded ? (
         <PageHeader
           title="Relatórios"
-          subtitle="Geração de exportações e consulta de status por ID."
+          subtitle="Exportações operacionais com rastreio por ID e histórico de execução."
         />
       ) : null}
 
-      <Card title="Gerar exportação">
+      <WorkflowPanel
+        title="Fluxo de exportação"
+        steps={["Selecionar escopo e responsável", "Gerar CSV e validar download", "Consultar ID quando precisar revalidar status"]}
+      />
+
+      <Card title="Etapa 1: gerar exportação">
         <Form
           form={form}
           layout="vertical"
@@ -60,13 +66,13 @@ export function ReportingPage({ embedded = false }) {
             requestedBy: values.requestedBy?.trim() || session?.name || "Usuário",
           })}
         >
-          <Text className="form-helper">Exportação síncrona para uso administrativo. O arquivo CSV é baixado automaticamente.</Text>
+          <Text className="form-helper">Use o escopo correto para evitar retrabalho na investigação.</Text>
           <div className="form-grid form-grid-2">
-            <Form.Item label="Escopo" name="scope" rules={[{ required: true }]}>
+            <Form.Item label="Escopo da exportação" name="scope" rules={[{ required: true }]}>
               <Select options={[{ label: "Violações", value: "violations" }, { label: "Auditoria", value: "audit" }, { label: "Risco", value: "risk" }]} />
             </Form.Item>
-            <Form.Item label="Solicitado por" name="requestedBy" rules={[{ required: true }]}>
-              <Input maxLength={120} />
+            <Form.Item label="Responsável pela solicitação" name="requestedBy" rules={[{ required: true }]}>
+              <Input maxLength={120} placeholder="Nome para rastreabilidade" />
             </Form.Item>
           </div>
           <div className="form-actions">
@@ -76,8 +82,8 @@ export function ReportingPage({ embedded = false }) {
         </Form>
       </Card>
 
-      <Card title="Consultar exportação">
-        <Text className="form-helper">Informe o ID retornado no histórico para buscar status atualizado.</Text>
+      <Card title="Etapa 2: consultar exportação por ID">
+        <Text className="form-helper">Cole o ID de uma execução para confirmar status e metadados.</Text>
         <div className="form-grid form-grid-2">
           <Space.Compact style={{ width: "100%" }}>
             <Input value={lookupId} onChange={(event) => setLookupId(event.target.value)} placeholder="ID da exportação" />

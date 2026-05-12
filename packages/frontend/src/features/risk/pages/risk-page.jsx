@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import {
   Button,
   Card,
-  Drawer,
   Form,
   Input,
   Select,
@@ -16,6 +15,8 @@ import {
 import { getRiskScoreHistory, listRiskScores } from "../../../bff-client";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { toReadableDate } from "../../../shared/utils/formatters";
+import { StandardModal } from "../../../shared/ui/standard-modal";
+import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 
 const { Text } = Typography;
 
@@ -84,7 +85,11 @@ export function RiskPage() {
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <PageHeader
         title="Risco Operacional"
-        subtitle="Priorização diária de entidades com maior exposição."
+        subtitle="Fluxo de priorização diária das entidades com maior exposição."
+      />
+      <WorkflowPanel
+        title="Fluxo de priorização"
+        steps={["Filtrar entidade e nível de risco", "Priorizar casos críticos/altos", "Analisar tendência no histórico antes da decisão"]}
       />
 
       <Card>
@@ -177,11 +182,12 @@ export function RiskPage() {
         />
       </Card>
 
-      <Drawer
-        width={560}
+      <StandardModal
         title={historyTarget ? `Histórico: ${historyTarget.entityType}/${historyTarget.entityId}` : "Histórico"}
+        description="Evolução temporal do score para apoiar decisão de resposta."
         open={Boolean(historyTarget)}
-        onClose={() => setHistoryTarget(null)}
+        onCancel={() => setHistoryTarget(null)}
+        footer={null}
       >
         {historyQuery.data ? (
           <Space direction="vertical" style={{ width: "100%" }}>
@@ -202,7 +208,7 @@ export function RiskPage() {
         ) : (
           <Text type="secondary">{historyQuery.isLoading ? "Carregando histórico..." : "Sem histórico para esta entidade."}</Text>
         )}
-      </Drawer>
+      </StandardModal>
     </Space>
   );
 }

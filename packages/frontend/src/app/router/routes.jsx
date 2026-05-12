@@ -9,6 +9,7 @@ import { GovernancePage } from "../../features/governance/pages/governance-page"
 import { AdminPage } from "../../features/admin/pages/admin-page";
 import { TeamsPage } from "../../features/teams/pages/teams-page";
 import { OAuthCallbackPage } from "../../features/auth/pages/oauth-callback-page";
+import { MessagingFlowPage } from "../../features/messaging/pages/messaging-flow-page";
 
 const withPermission = (requiredAny, element) => (
   <PermissionGuard requiredAny={requiredAny}>{element}</PermissionGuard>
@@ -35,6 +36,7 @@ export const router = createBrowserRouter([
       { path: "risk", element: withPermission(["risk.scores.read"], <RiskPage />) },
       { path: "notifications", element: withPermission(["reports.read", "reports.export", "system.settings.manage"], <GovernancePage />) },
       { path: "integrations", element: withPermission(["system.settings.manage"], <GovernancePage />) },
+      { path: "messaging", element: withPermission(["audit.logs.read.any", "audit.logs.read.scoped", "reports.read", "reports.export", "system.settings.manage"], <MessagingFlowPage />) },
       { path: "reports", element: withPermission(["reports.read", "reports.export"], <GovernancePage />) },
       { path: "admin", element: withPermission(["users.read.any", "users.create", "roles.assign", "users.update", "users.deactivate", "system.settings.manage"], <AdminPage />) },
       { path: "teams", element: <TeamsPage /> },

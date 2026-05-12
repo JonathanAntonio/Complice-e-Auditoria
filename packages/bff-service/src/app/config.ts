@@ -5,6 +5,7 @@ export interface BffConfig {
   complianceBasePath: string;
   auditBasePath: string;
   riskBasePath: string;
+  messagingBasePath: string;
   reportingBasePath: string;
   notificationBasePath: string;
   integrationBasePath: string;
@@ -22,6 +23,7 @@ export function loadBffConfig(env: NodeJS.ProcessEnv): BffConfig {
     complianceBasePath: normalizeBasePath(env.BFF_COMPLIANCE_BASE_PATH ?? "/compliance/api/v1"),
     auditBasePath: normalizeBasePath(env.BFF_AUDIT_BASE_PATH ?? "/audit/api/v1"),
     riskBasePath: normalizeBasePath(env.BFF_RISK_BASE_PATH ?? "/risk/api/v1"),
+    messagingBasePath: normalizeBasePath(env.BFF_MESSAGING_BASE_PATH ?? "/messaging/api/v1"),
     reportingBasePath: normalizeBasePath(env.BFF_REPORTING_BASE_PATH ?? "/reporting/api/v1"),
     notificationBasePath: normalizeBasePath(env.BFF_NOTIFICATION_BASE_PATH ?? "/notification/api/v1"),
     integrationBasePath: normalizeBasePath(env.BFF_INTEGRATION_BASE_PATH ?? "/integration/api/v1"),

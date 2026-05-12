@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Form, Input, Modal, Select, Space, Table, Typography, message } from "antd";
+import { Button, Form, Input, Select, Space, Table, Typography, message } from "antd";
 import {
   createComplianceViolation,
   listComplianceViolations,
@@ -10,6 +10,8 @@ import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { SeverityTag } from "../../../shared/ui/status-tags";
 import { toReadableDate } from "../../../shared/utils/formatters";
+import { StandardModal } from "../../../shared/ui/standard-modal";
+import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 
 const { Text } = Typography;
 
@@ -89,8 +91,13 @@ export function CompliancePage() {
       {messageContextHolder}
       <PageHeader
         title="Compliance"
-        subtitle="Gestão de violações com rastreabilidade por severidade e status."
+        subtitle="Gestão orientada por fluxo: registrar, priorizar, tratar e encerrar violações."
         actions={canCreate ? [<Button key="new" type="primary" onClick={() => setCreateOpen(true)}>Nova violação</Button>] : []}
+      />
+      <WorkflowPanel
+        title="Fluxo de tratamento"
+        description="Padronize o ciclo para aumentar previsibilidade e controle operacional."
+        steps={["Registrar o desvio com severidade correta", "Avaliar status e owner de resposta", "Encerrar com rastreabilidade da decisão"]}
       />
 
       <Table
@@ -122,8 +129,9 @@ export function CompliancePage() {
         ]}
       />
 
-      <Modal
+      <StandardModal
         title="Criar violação"
+        description="Etapa 1 do fluxo: registre o desvio com dados mínimos padronizados."
         open={createOpen}
         onCancel={() => setCreateOpen(false)}
         onOk={() => createForm.submit()}
@@ -142,15 +150,15 @@ export function CompliancePage() {
             <Select options={[{ label: "Baixa", value: "baixa" }, { label: "Média", value: "media" }, { label: "Alta", value: "alta" }]} />
           </Form.Item>
         </Form>
-      </Modal>
+      </StandardModal>
 
-      <Modal
+      <StandardModal
         title="Editar violação"
+        description="Atualize o tratamento conforme o avanço da investigação."
         open={Boolean(editing)}
         onCancel={() => setEditing(null)}
         onOk={() => editForm.submit()}
         confirmLoading={updateMutation.isPending}
-        destroyOnHidden
       >
         <Form
           form={editForm}
@@ -177,7 +185,7 @@ export function CompliancePage() {
             <Select options={[{ label: "Aberta", value: "aberta" }, { label: "Em análise", value: "em_analise" }, { label: "Resolvida", value: "resolvida" }, { label: "Dispensada", value: "dispensada" }]} />
           </Form.Item>
         </Form>
-      </Modal>
+      </StandardModal>
     </Space>
   );
 }

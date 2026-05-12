@@ -54,6 +54,8 @@ export type {
   NotificationDispatchResultDto,
   NotificationLogsListDto,
 } from "./notification.dto";
+export { parseMessagingFlowSnapshotDto } from "./messaging-flow.dto";
+export type { MessagingFlowQueryDto, MessagingFlowSnapshotDto } from "./messaging-flow.dto";
 export { parseLoginInputDto, parseRegisterInputDto } from "./auth.dto";
 export type { AuthResponseDto, LoginInputDto, RegisterInputDto } from "./auth.dto";
 export {

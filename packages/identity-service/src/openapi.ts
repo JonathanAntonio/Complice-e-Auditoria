@@ -4,8 +4,6 @@ import {
   OpenAPIRegistry,
 } from "@asteasolutions/zod-to-openapi";
 import { z } from "zod";
-import { createUserSchema } from "./application/dtos";
-import { userResponseDtoSchema } from "./application/dtos";
 import {
   createUserSchema,
   userResponseDtoSchema,

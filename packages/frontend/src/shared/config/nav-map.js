@@ -1,5 +1,6 @@
 import {
   ChartNoAxesColumn,
+  GitBranch,
   FileCheck2,
   FolderKanban,
   Gauge,
@@ -67,6 +68,14 @@ export const NAV_GROUPS = [
           "audit.logs.read.scoped",
           "compliance.violations.read",
         ],
+      },
+      {
+        key: "messaging",
+        label: "Mensageria",
+        path: "/messaging",
+        icon: GitBranch,
+        description: "Visualização ponta a ponta do fluxo de mensageria e falhas.",
+        requiredAny: ["audit.logs.read.any", "audit.logs.read.scoped", "reports.read", "reports.export", "system.settings.manage"],
       },
     ],
   },

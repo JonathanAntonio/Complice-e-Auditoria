@@ -1,9 +1,10 @@
 import pino, { multistream } from "pino";
 import { EXCHANGE_AUDIT_LOGS } from "./rabbitmq.constants";
 import { createEventEnvelopeV1, publishEventEnvelopeV1 } from "./events/event-envelope";
+import type { EventEnvelopeV1 } from "./events/event-envelope";
 
 export interface AuditPublisher {
-  publish(envelope: unknown): Promise<void> | void;
+  publish(envelope: EventEnvelopeV1<object>): Promise<void> | void;
 }
 
 /**
@@ -11,11 +12,13 @@ export interface AuditPublisher {
  */
 export class RabbitMqAuditPublisher implements AuditPublisher {
   constructor(
-    private readonly channel: { publish: (ex: string, rk: string, content: Buffer, opts?: unknown) => boolean },
+    private readonly channel: {
+      publish: (ex: string, rk: string, content: Buffer, opts?: Record<string, unknown>) => boolean;
+    },
     private readonly exchange: string = EXCHANGE_AUDIT_LOGS
   ) {}
 
-  async publish(envelope: unknown): Promise<void> {
+  async publish(envelope: EventEnvelopeV1<object>): Promise<void> {
     publishEventEnvelopeV1(this.channel, this.exchange, envelope);
   }
 }
@@ -26,7 +29,7 @@ export class RabbitMqAuditPublisher implements AuditPublisher {
 export class HttpAuditPublisher implements AuditPublisher {
   constructor(private readonly auditServiceUrl: string) {}
 
-  async publish(envelope: unknown): Promise<void> {
+  async publish(envelope: EventEnvelopeV1<object>): Promise<void> {
     try {
       const response = await fetch(`${this.auditServiceUrl}/api/v1/audit/logs`, {
         method: "POST",

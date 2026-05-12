@@ -11,6 +11,7 @@ describe("loadBffConfig", () => {
     expect(config.complianceBasePath).toBe("/compliance/api/v1");
     expect(config.auditBasePath).toBe("/audit/api/v1");
     expect(config.riskBasePath).toBe("/risk/api/v1");
+    expect(config.messagingBasePath).toBe("/messaging/api/v1");
     expect(config.reportingBasePath).toBe("/reporting/api/v1");
     expect(config.notificationBasePath).toBe("/notification/api/v1");
     expect(config.integrationBasePath).toBe("/integration/api/v1");
@@ -28,6 +29,7 @@ describe("loadBffConfig", () => {
       BFF_COMPLIANCE_BASE_PATH: "compliance/api/v1/",
       BFF_AUDIT_BASE_PATH: "audit/api/v1/",
       BFF_RISK_BASE_PATH: "risk/api/v1/",
+      BFF_MESSAGING_BASE_PATH: "messaging/api/v1/",
       BFF_REPORTING_BASE_PATH: "reporting/api/v1/",
       BFF_NOTIFICATION_BASE_PATH: "notification/api/v1/",
       BFF_INTEGRATION_BASE_PATH: "integration/api/v1/",
@@ -43,6 +45,7 @@ describe("loadBffConfig", () => {
     expect(config.complianceBasePath).toBe("/compliance/api/v1");
     expect(config.auditBasePath).toBe("/audit/api/v1");
     expect(config.riskBasePath).toBe("/risk/api/v1");
+    expect(config.messagingBasePath).toBe("/messaging/api/v1");
     expect(config.reportingBasePath).toBe("/reporting/api/v1");
     expect(config.notificationBasePath).toBe("/notification/api/v1");
     expect(config.integrationBasePath).toBe("/integration/api/v1");

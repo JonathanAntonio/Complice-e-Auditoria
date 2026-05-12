@@ -10,6 +10,7 @@ import { IamAuthHttpClient } from "../adapters/driven/http/iam-auth-http.client"
 import { ComplianceHttpClient } from "../adapters/driven/http/compliance-http.client";
 import { AuditHttpClient } from "../adapters/driven/http/audit-http.client";
 import { RiskHttpClient } from "../adapters/driven/http/risk-http.client";
+import { MessagingHttpClient } from "../adapters/driven/http/messaging-http.client";
 import { ReportingHttpClient } from "../adapters/driven/http/reporting-http.client";
 import { NotificationHttpClient } from "../adapters/driven/http/notification-http.client";
 import { IntegrationAuditHttpClient } from "../adapters/driven/http/integration-audit-http.client";
@@ -24,6 +25,7 @@ import {
   DownloadReportExportUseCase,
   GetAdminUserUseCase,
   GetCurrentUserUseCase,
+  GetMessagingFlowUseCase,
   GetReportExportUseCase,
   GetRiskScoreHistoryUseCase,
   IngestFrontendAuditLogUseCase,
@@ -72,6 +74,10 @@ export function createApp(config: BffConfig) {
     gatewayBaseUrl: config.gatewayBaseUrl,
     riskBasePath: config.riskBasePath,
   });
+  const messagingHttpClient = new MessagingHttpClient({
+    gatewayBaseUrl: config.gatewayBaseUrl,
+    messagingBasePath: config.messagingBasePath,
+  });
   const reportingHttpClient = new ReportingHttpClient({
     gatewayBaseUrl: config.gatewayBaseUrl,
     reportingBasePath: config.reportingBasePath,
@@ -104,6 +110,7 @@ export function createApp(config: BffConfig) {
     listAuditRetentionRunsUseCase: new ListAuditRetentionRunsUseCase(auditHttpClient),
     listComplianceRetentionRunsUseCase: new ListComplianceRetentionRunsUseCase(complianceHttpClient),
     listRiskScoresUseCase: new ListRiskScoresUseCase(riskHttpClient),
+    getMessagingFlowUseCase: new GetMessagingFlowUseCase(messagingHttpClient),
     getRiskScoreHistoryUseCase: new GetRiskScoreHistoryUseCase(riskHttpClient),
     ingestRiskEventUseCase: new IngestRiskEventUseCase(riskHttpClient),
     createReportExportUseCase: new CreateReportExportUseCase(reportingHttpClient),
@@ -146,6 +153,7 @@ export function createApp(config: BffConfig) {
   app.get("/audit/retention/runs", handlers.listAuditRetentionRuns);
   app.get("/compliance/retention/runs", handlers.listComplianceRetentionRuns);
   app.get("/risk/scores", handlers.listRiskScores);
+  app.get("/messaging/flow", handlers.getMessagingFlow);
   app.get("/risk/scores/:entityType/:entityId/history", handlers.getRiskScoreHistory);
   app.post("/risk/events", handlers.ingestRiskEvent);
   app.post("/reports/exports", handlers.createReportExport);

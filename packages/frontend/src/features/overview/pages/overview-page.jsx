@@ -11,6 +11,7 @@ import {
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { toRelativeTime } from "../../../shared/utils/formatters";
+import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 
 const { Text } = Typography;
 
@@ -61,11 +62,15 @@ export function OverviewPage() {
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <PageHeader
         title="Cockpit operacional"
-        subtitle="Visão consolidada dos principais indicadores e atalhos de operação."
+        subtitle="Painel diário por função para leitura rápida, priorização e ação."
         actions={[
           <Button key="compliance" onClick={() => navigate("/compliance")}>Abrir compliance</Button>,
           <Button key="admin" type="primary" onClick={() => navigate("/admin")}>Abrir administração</Button>,
         ]}
+      />
+      <WorkflowPanel
+        title="Ritmo operacional sugerido"
+        steps={["Ler indicadores críticos", "Abrir módulos com maior desvio", "Executar ação corretiva e registrar decisão"]}
       />
 
       <Row gutter={[16, 16]}>

@@ -3,6 +3,7 @@ import { logger, createEventEnvelopeV1 } from "@lframework/shared";
 import type { OAuthProvider } from "../../../domain/oauth";
 import { UpstreamHttpError } from "../../../application/errors/upstream-http.error";
 import {
+  type MessagingFlowQueryDto,
   parseAdminCreateUserInputDto,
   parseAdminUpdateUserRolesInputDto,
   parseAdminUpdateUserSecurityInputDto,
@@ -30,6 +31,7 @@ import {
   DownloadReportExportUseCase,
   GetAdminUserUseCase,
   GetCurrentUserUseCase,
+  GetMessagingFlowUseCase,
   GetReportExportUseCase,
   GetRiskScoreHistoryUseCase,
   IngestFrontendAuditLogUseCase,
@@ -70,6 +72,7 @@ export interface AuthHandlersDeps {
   listComplianceRetentionRunsUseCase: ListComplianceRetentionRunsUseCase;
   listRiskScoresUseCase: ListRiskScoresUseCase;
   getRiskScoreHistoryUseCase: GetRiskScoreHistoryUseCase;
+  getMessagingFlowUseCase: GetMessagingFlowUseCase;
   ingestRiskEventUseCase: IngestRiskEventUseCase;
   createReportExportUseCase: CreateReportExportUseCase;
   getReportExportUseCase: GetReportExportUseCase;
@@ -162,6 +165,10 @@ export class AuthHandlers {
 
   listRiskScores = (req: Request, res: Response): void => {
     void this.handleListRiskScores(req, res);
+  };
+
+  getMessagingFlow = (req: Request, res: Response): void => {
+    void this.handleGetMessagingFlow(req, res);
   };
 
   getRiskScoreHistory = (req: Request, res: Response): void => {
@@ -682,6 +689,41 @@ export class AuthHandlers {
       }
       logger.error({ err }, "BFF failed to get risk score history");
       sendJsonError(res, 502, "Risk service unavailable");
+    }
+  }
+
+  private async handleGetMessagingFlow(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!tokenHasAnyPermission(token, ["audit.logs.read.any", "audit.logs.read.scoped", "reports.read", "reports.export", "system.settings.manage"])) {
+      sendJsonError(res, 403, "Sem permissão para visualizar fluxo de mensageria");
+      return;
+    }
+
+    try {
+      const result = await this.deps.getMessagingFlowUseCase.execute(token, parseMessagingFlowQuery(req.query));
+      res.status(200).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 400) {
+        sendJsonError(res, 400, toErrorMessage(err, "Parâmetros inválidos para fluxo de mensageria"));
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para visualizar fluxo de mensageria");
+        return;
+      }
+      logger.error({ err }, "BFF failed to get messaging flow");
+      sendJsonError(res, 502, "Messaging service unavailable");
     }
   }
 
@@ -1284,6 +1326,42 @@ export class AuthHandlers {
       logger.warn({ err, type }, "BFF failed to publish best-effort audit event");
     }
   }
+}
+
+function parseMessagingFlowQuery(query: Request["query"]): MessagingFlowQueryDto {
+  const sourceService = firstQueryValue(query.sourceService)?.trim();
+  const eventType = firstQueryValue(query.eventType)?.trim();
+  const correlationId = firstQueryValue(query.correlationId)?.trim();
+  const notificationStatus = firstQueryValue(query.notificationStatus)?.trim();
+  const onlyFailures = parseBooleanQuery(firstQueryValue(query.onlyFailures));
+  const auditLimit = parsePositiveIntQuery(firstQueryValue(query.auditLimit));
+  const failuresLimit = parsePositiveIntQuery(firstQueryValue(query.failuresLimit));
+
+  return {
+    sourceService: sourceService || undefined,
+    eventType: eventType || undefined,
+    correlationId: correlationId || undefined,
+    notificationStatus: notificationStatus === "sent" || notificationStatus === "failed" || notificationStatus === "dead_letter"
+      ? notificationStatus
+      : undefined,
+    onlyFailures,
+    auditLimit,
+    failuresLimit,
+  };
+}
+
+function parseBooleanQuery(value: string | undefined): boolean | undefined {
+  if (!value) return undefined;
+  if (value === "true") return true;
+  if (value === "false") return false;
+  return undefined;
+}
+
+function parsePositiveIntQuery(value: string | undefined): number | undefined {
+  if (!value) return undefined;
+  const parsed = parseInt(value, 10);
+  if (!Number.isInteger(parsed) || parsed <= 0) return undefined;
+  return parsed;
 }
 
 function isInvalidOrExpiredStateError(message: string): boolean {

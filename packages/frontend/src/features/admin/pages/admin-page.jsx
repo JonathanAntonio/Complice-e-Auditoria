@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Button, Card, Form, Input, Modal, Select, Space, Table, Tag, Typography, message } from "antd";
+import { Alert, Button, Card, Form, Input, Select, Space, Table, Tag, Typography, message } from "antd";
 import {
   createAdminUser,
   deactivateAdminUser,
@@ -13,6 +13,8 @@ import {
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { toReadableDate } from "../../../shared/utils/formatters";
+import { StandardModal } from "../../../shared/ui/standard-modal";
+import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 
 const { Text } = Typography;
 
@@ -49,6 +51,9 @@ export function AdminPage() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedUserDetails, setSelectedUserDetails] = useState(null);
+  const [detailsLoadingId, setDetailsLoadingId] = useState(null);
+  const [activateLoadingId, setActivateLoadingId] = useState(null);
+  const [deactivateLoadingId, setDeactivateLoadingId] = useState(null);
 
   const usersQuery = useQuery({
     queryKey: ["admin", "users", page, pageSize, search],
@@ -97,6 +102,20 @@ export function AdminPage() {
     },
   });
 
+  const activateMutation = useMutation({
+    mutationFn: (id) => updateAdminUserSecurity(id, { isActive: true, blockedUntil: null }),
+    onSuccess: async () => {
+      await refreshList();
+      void messageApi.success("Usuário ativado.");
+    },
+    onError: (error) => {
+      void messageApi.error(error instanceof Error ? error.message : "Falha ao ativar usuário.");
+    },
+    onSettled: () => {
+      setActivateLoadingId(null);
+    },
+  });
+
   const deactivateMutation = useMutation({
     mutationFn: deactivateAdminUser,
     onSuccess: async () => {
@@ -105,6 +124,9 @@ export function AdminPage() {
     },
     onError: (error) => {
       void messageApi.error(error instanceof Error ? error.message : "Falha ao desativar usuário.");
+    },
+    onSettled: () => {
+      setDeactivateLoadingId(null);
     },
   });
 
@@ -116,6 +138,9 @@ export function AdminPage() {
     },
     onError: (error) => {
       void messageApi.error(error instanceof Error ? error.message : "Falha ao carregar detalhes.");
+    },
+    onSettled: () => {
+      setDetailsLoadingId(null);
     },
   });
 
@@ -137,8 +162,12 @@ export function AdminPage() {
       {messageContextHolder}
       <PageHeader
         title="Administração de usuários"
-        subtitle="Criação, governança de cargos, segurança e desativação de contas."
+        subtitle="Controle por função: cadastro, papéis, segurança e desativação com rastreabilidade."
         actions={canCreate ? [<Button key="new" type="primary" onClick={() => setCreateOpen(true)}>Novo usuário</Button>] : []}
+      />
+      <WorkflowPanel
+        title="Fluxo administrativo"
+        steps={["Cadastrar usuário e dados básicos", "Definir papéis e permissões", "Aplicar políticas de segurança e acompanhar status"]}
       />
 
       {!canRead ? (
@@ -183,7 +212,16 @@ export function AdminPage() {
                 key: "actions",
                 render: (_, row) => (
                   <Space>
-                    <Button size="small" onClick={() => detailsMutation.mutate(row.id)} loading={detailsMutation.isPending}>Detalhes</Button>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        setDetailsLoadingId(row.id);
+                        detailsMutation.mutate(row.id);
+                      }}
+                      loading={detailsLoadingId === row.id}
+                    >
+                      Detalhes
+                    </Button>
                     {canRoles ? (
                       <Button size="small" onClick={() => {
                         setSelectedUser(row);
@@ -198,8 +236,31 @@ export function AdminPage() {
                         setSecurityOpen(true);
                       }}>Segurança</Button>
                     ) : null}
-                    {canDeactivate ? (
-                      <Button danger size="small" loading={deactivateMutation.isPending} onClick={() => deactivateMutation.mutate(row.id)}>Desativar</Button>
+                    {canSecurity && !row.isActive ? (
+                      <Button
+                        size="small"
+                        type="primary"
+                        loading={activateLoadingId === row.id}
+                        onClick={() => {
+                          setActivateLoadingId(row.id);
+                          activateMutation.mutate(row.id);
+                        }}
+                      >
+                        Ativar
+                      </Button>
+                    ) : null}
+                    {canDeactivate && row.isActive ? (
+                      <Button
+                        danger
+                        size="small"
+                        loading={deactivateLoadingId === row.id}
+                        onClick={() => {
+                          setDeactivateLoadingId(row.id);
+                          deactivateMutation.mutate(row.id);
+                        }}
+                      >
+                        Desativar
+                      </Button>
                     ) : null}
                   </Space>
                 ),
@@ -209,8 +270,9 @@ export function AdminPage() {
         </Card>
       )}
 
-      <Modal
+      <StandardModal
         title="Criar usuário"
+        description="Etapa de entrada: identidade mínima para iniciar governança de acesso."
         open={createOpen}
         onCancel={() => setCreateOpen(false)}
         onOk={() => createForm.submit()}
@@ -229,10 +291,11 @@ export function AdminPage() {
             <Input />
           </Form.Item>
         </Form>
-      </Modal>
+      </StandardModal>
 
-      <Modal
+      <StandardModal
         title="Editar cargos"
+        description="Defina papel principal e escopo de atuação do usuário."
         open={rolesOpen}
         onCancel={() => setRolesOpen(false)}
         onOk={() => rolesForm.submit()}
@@ -253,10 +316,11 @@ export function AdminPage() {
             <Select mode="multiple" options={USER_ROLE_OPTIONS} />
           </Form.Item>
         </Form>
-      </Modal>
+      </StandardModal>
 
-      <Modal
+      <StandardModal
         title="Editar segurança"
+        description="Ajuste estado de conta e bloqueio temporário quando necessário."
         open={securityOpen}
         onCancel={() => setSecurityOpen(false)}
         onOk={() => securityForm.submit()}
@@ -283,10 +347,11 @@ export function AdminPage() {
             <Input placeholder="2026-12-31T23:59:59.000Z" />
           </Form.Item>
         </Form>
-      </Modal>
+      </StandardModal>
 
-      <Modal
+      <StandardModal
         title="Detalhes do usuário"
+        description="Visão consolidada para auditoria de acesso e governança."
         open={detailsOpen}
         onCancel={() => setDetailsOpen(false)}
         footer={<Button onClick={() => setDetailsOpen(false)}>Fechar</Button>}
@@ -303,7 +368,7 @@ export function AdminPage() {
             <Text><strong>Criado em:</strong> {toReadableDate(selectedUserDetails.createdAt)}</Text>
           </Space>
         ) : null}
-      </Modal>
+      </StandardModal>
 
       {hasPermission("system.settings.manage") ? (
         <Card title="Operações técnicas: ingestão manual de risco">

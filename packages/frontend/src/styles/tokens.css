@@ -1,9 +1,9 @@
 :root {
-  --app-bg: #f8fafc;
+  --app-bg: #f4f8fb;
   --surface: #ffffff;
-  --line: #e2e8f0;
-  --ink: #334155;
-  --muted: #64748b;
-  --brand: #6366f1;
+  --line: #dce6ee;
+  --ink: #223247;
+  --muted: #607286;
+  --brand: #0f766e;
   --radius: 16px;
 }

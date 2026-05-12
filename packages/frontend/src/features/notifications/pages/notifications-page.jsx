@@ -3,6 +3,7 @@ import { Alert, Button, Card, Form, Input, Select, Space, Table, Tag, Typography
 import { dispatchNotification, listNotificationLogs } from "../../../bff-client";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
+import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 import { NotificationStatusTag } from "../../../shared/ui/status-tags";
 import { toReadableDate } from "../../../shared/utils/formatters";
 
@@ -38,9 +39,14 @@ export function NotificationsPage({ embedded = false }) {
       {!embedded ? (
         <PageHeader
           title="Notificações"
-          subtitle="Disparo administrativo e histórico de entrega por canal."
+          subtitle="Disparo operacional com histórico e rastreio por canal."
         />
       ) : null}
+
+      <WorkflowPanel
+        title="Fluxo de comunicação"
+        steps={["Escolher canal e severidade", "Validar destinatário e mensagem", "Disparar e acompanhar status no histórico"]}
+      />
 
       <Card title="Histórico de notificações">
         <Table
@@ -59,7 +65,7 @@ export function NotificationsPage({ embedded = false }) {
         />
       </Card>
 
-      <Card title="Disparar notificação">
+      <Card title="Disparo manual">
         {!canDispatch ? (
           <Alert type="info" showIcon message="Sem permissão" description="A permissão system.settings.manage é necessária para disparo manual." />
         ) : (
@@ -69,12 +75,12 @@ export function NotificationsPage({ embedded = false }) {
             initialValues={{ channel: "email", severity: "medium", recipient: "", message: "" }}
             onFinish={(values) => dispatchMutation.mutate(values)}
           >
-            <Text className="form-helper">Canal, destinatário e severidade devem refletir o playbook de comunicação do incidente.</Text>
+            <Text className="form-helper">Use somente em cenário administrativo ou resposta a incidente.</Text>
             <div className="form-grid form-grid-2">
-              <Form.Item label="Canal" name="channel" rules={[{ required: true }]}>
+              <Form.Item label="Canal de envio" name="channel" rules={[{ required: true }]}>
                 <Select options={[{ label: "Email", value: "email" }, { label: "Webhook", value: "webhook" }]} />
               </Form.Item>
-              <Form.Item label="Severidade" name="severity" rules={[{ required: true }]}>
+              <Form.Item label="Severidade da mensagem" name="severity" rules={[{ required: true }]}>
                 <Select options={[{ label: "Low", value: "low" }, { label: "Medium", value: "medium" }, { label: "High", value: "high" }, { label: "Critical", value: "critical" }]} />
               </Form.Item>
             </div>

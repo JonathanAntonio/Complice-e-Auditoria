@@ -20,6 +20,7 @@ export {
   dispatchNotification,
   listNotificationLogs,
 } from "./application/notification-logs.service";
+export { getMessagingFlowSnapshot } from "./application/messaging-flow.service";
 export {
   listAdminUsers,
   getAdminUser,

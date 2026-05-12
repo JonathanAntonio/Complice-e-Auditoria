@@ -58,7 +58,10 @@ export function AppShell() {
       <Sider width={240} theme="light" className="app-sider">
         <div className="app-brand">
           <Building2 size={18} />
-          <span>Complice e Auditoria</span>
+          <div>
+            <div>Complice e Auditoria</div>
+            <small>Centro operacional</small>
+          </div>
         </div>
         <div className="sider-nav-wrap">
           {menuItems.length > 0 ? (
@@ -95,7 +98,9 @@ export function AppShell() {
           </Space>
         </Header>
         <Content className="app-content">
-          <Outlet />
+          <div className="app-content-inner">
+            <Outlet />
+          </div>
         </Content>
       </Layout>
     </Layout>

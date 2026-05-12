@@ -1,5 +1,6 @@
-import { Card, Space, Table, Typography } from "antd";
+import { Card, Col, Row, Space, Statistic, Table, Typography } from "antd";
 import { PageHeader } from "../../../shared/ui/page-header";
+import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 import { useSession } from "../../auth/context/session-context";
 
 const { Text } = Typography;
@@ -13,8 +14,25 @@ export function TeamsPage() {
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <PageHeader
         title="Times e responsabilidades"
-        subtitle="Contexto atual da sessão e permissões efetivas do usuário."
+        subtitle="Visão funcional de identidade, papéis e permissões efetivas da sessão."
       />
+
+      <WorkflowPanel
+        title="Fluxo de governança de acesso"
+        steps={["Validar identidade e papel principal", "Conferir escopo de papéis vinculados", "Auditar permissões efetivas do token"]}
+      />
+
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={12} xl={8}>
+          <Card><Statistic title="Papéis vinculados" value={(session?.roles ?? []).length} /></Card>
+        </Col>
+        <Col xs={24} md={12} xl={8}>
+          <Card><Statistic title="Permissões efetivas" value={permissions.length} /></Card>
+        </Col>
+        <Col xs={24} md={12} xl={8}>
+          <Card><Statistic title="Papel principal" value={session?.primaryRole ?? "-"} /></Card>
+        </Col>
+      </Row>
 
       <Card title="Sessão atual">
         <Space direction="vertical">
@@ -32,7 +50,7 @@ export function TeamsPage() {
           dataSource={permissions}
           pagination={{ pageSize: 10, showSizeChanger: false }}
           locale={{ emptyText: "Sem permissões disponíveis." }}
-          columns={[{ title: "Permission", dataIndex: "", key: "permission", render: (value) => value }]}
+          columns={[{ title: "Permissão", dataIndex: "", key: "permission", render: (value) => value }]}
         />
       </Card>
     </Space>

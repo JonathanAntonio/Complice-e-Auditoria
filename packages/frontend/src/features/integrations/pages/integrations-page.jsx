@@ -4,6 +4,7 @@ import { Alert, Button, Card, Form, Input, Space, Table, Tag, Typography, messag
 import { publishIntegrationEvent } from "../../../bff-client";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
+import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 import { toReadableDate } from "../../../shared/utils/formatters";
 
 const { Text } = Typography;
@@ -43,9 +44,14 @@ export function IntegrationsPage({ embedded = false }) {
       {!embedded ? (
         <PageHeader
           title="Integrações"
-          subtitle="Publicação manual de eventos para o integration-service via BFF."
+          subtitle="Publicação manual de eventos com controle de duplicidade e rastreio."
         />
       ) : null}
+
+      <WorkflowPanel
+        title="Fluxo de publicação"
+        steps={["Definir tipo e correlação", "Validar payload JSON", "Publicar e conferir retorno no histórico"]}
+      />
 
       <Card title="Publicar evento">
         {!canPublish ? (
@@ -70,9 +76,9 @@ export function IntegrationsPage({ embedded = false }) {
               });
             }}
           >
-            <Text className="form-helper">Use esta ação somente para testes operacionais e incident response.</Text>
+            <Text className="form-helper">Use somente para testes operacionais controlados e incident response.</Text>
             <div className="form-grid form-grid-2">
-              <Form.Item label="Tipo" name="type" rules={[{ required: true }]}>
+              <Form.Item label="Tipo de evento" name="type" rules={[{ required: true }]}> 
                 <Input placeholder="compliance.violation.updated" />
               </Form.Item>
               <Form.Item label="Correlation ID (opcional)" name="correlationId">

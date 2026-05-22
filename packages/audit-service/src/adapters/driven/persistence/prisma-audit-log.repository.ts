@@ -6,9 +6,13 @@ import type {
   ListRetentionRunsQueryDto,
   RetentionRunListResponseDto,
 } from "../../../application/dtos";
-import { PrismaClient } from "../../../../generated/prisma-client";
+import { Prisma, PrismaClient } from "../../../../generated/prisma-client";
 type AuditLogWhereInput = NonNullable<Parameters<PrismaClient["auditLogModel"]["count"]>[0]>["where"];
 type AuditRetentionRunWhereInput = NonNullable<Parameters<PrismaClient["auditRetentionRunModel"]["count"]>[0]>["where"];
+
+function isPrismaP2002(err: unknown): boolean {
+  return typeof err === "object" && err !== null && (err as { code?: string }).code === "P2002";
+}
 
 function toRetentionStatus(status: string): "running" | "success" | "failed" {
   if (status === "running" || status === "success" || status === "failed") {
@@ -46,29 +50,58 @@ function toActorType(payload: Record<string, unknown>): string | null {
   return null;
 }
 
+function asNonEmptyString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function normalizeAuditPayload(envelope: EventEnvelopeV1): Record<string, unknown> {
+  const rawPayload = envelope.payload as Record<string, unknown>;
+  const action = asNonEmptyString(rawPayload.action) ?? envelope.type;
+  const entity = asNonEmptyString(rawPayload.entity) ?? "unknown";
+  const ipAddress = asNonEmptyString(rawPayload.ipAddress) ?? asNonEmptyString(rawPayload.ip) ?? "unknown";
+
+  return {
+    ...rawPayload,
+    action,
+    entity,
+    ipAddress,
+    auditContext: {
+      eventId: envelope.eventId,
+      sourceService: envelope.producer,
+      correlationId: envelope.correlationId,
+      occurredAtUTC: envelope.occurredAtUTC,
+    },
+  };
+}
+
 export class PrismaAuditLogRepository implements IAuditLogRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async saveFromEnvelope(envelope: EventEnvelopeV1): Promise<void> {
-    const payload = envelope.payload as Record<string, unknown>;
+    const payload = normalizeAuditPayload(envelope);
 
-    // Upsert equivalent using create with conflict check (standard Prisma way or use catch)
-    // Here we use upsert with empty update to achieve DO NOTHING behavior
-    await this.prisma.auditLogModel.upsert({
-      where: { eventId: envelope.eventId },
-      update: {}, 
-      create: {
-        eventId: envelope.eventId,
-        eventType: envelope.type,
-        occurredAtUTC: new Date(envelope.occurredAtUTC),
-        actorId: toActorId(payload),
-        actorType: toActorType(payload),
-        sourceService: envelope.producer,
-        correlationId: envelope.correlationId,
-        severity: toSeverity(payload),
-        payload: payload as unknown as object,
-      },
-    });
+    try {
+      await this.prisma.auditLogModel.create({
+        data: {
+          eventId: envelope.eventId,
+          eventType: envelope.type,
+          occurredAtUTC: new Date(envelope.occurredAtUTC),
+          actorId: toActorId(payload),
+          actorType: toActorType(payload),
+          sourceService: envelope.producer,
+          correlationId: envelope.correlationId,
+          severity: toSeverity(payload),
+          payload: payload as unknown as Prisma.InputJsonValue,
+        },
+      });
+    } catch (err) {
+      if (isPrismaP2002(err)) {
+        return;
+      }
+      throw err;
+    }
   }
 
   async list(query: ListAuditLogsQueryDto): Promise<AuditLogListResponseDto> {

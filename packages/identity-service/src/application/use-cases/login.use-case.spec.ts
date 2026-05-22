@@ -12,6 +12,7 @@ import {
   AccountLockedError,
 } from "../errors";
 import { USER_ROLES } from "../../domain/types";
+import { SECURITY_AUDIT_EVENTS } from "../security-audit";
 
 describe("LoginUseCase", () => {
   let userRepository: IUserRepository;
@@ -73,6 +74,12 @@ describe("LoginUseCase", () => {
     await expect(
       useCase.execute({ email: "notfound@example.com", password: "any" })
     ).rejects.toThrow(InvalidCredentialsError);
+
+    expect(outboxRepository.append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: SECURITY_AUDIT_EVENTS.LOGIN_FAILED,
+      })
+    );
   });
 
   it("deve lançar UserInactiveError quando usuário inativo", async () => {
@@ -126,6 +133,11 @@ describe("LoginUseCase", () => {
 
     expect(user.failedLoginAttempts).toBe(1);
     expect(userRepository.save).toHaveBeenCalledWith(user);
+    expect(outboxRepository.append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: SECURITY_AUDIT_EVENTS.LOGIN_FAILED,
+      })
+    );
   });
 
   it("deve bloquear conta após 5 tentativas falhas", async () => {
@@ -150,5 +162,39 @@ describe("LoginUseCase", () => {
     expect(user.failedLoginAttempts).toBe(5);
     expect(user.blockedUntil).not.toBeNull();
     expect(userRepository.save).toHaveBeenCalledWith(user);
+    expect(outboxRepository.append).toHaveBeenCalledWith(
+      expect.objectContaining({
+        eventName: SECURITY_AUDIT_EVENTS.ACCOUNT_LOCKED,
+        payload: expect.objectContaining({
+          reason: "max_attempts_reached",
+          notifyAdmin: true,
+        }),
+      })
+    );
+  });
+
+  it("deve falhar autenticação em modo fail-closed quando auditoria falha no sucesso", async () => {
+    const strictUseCase = new LoginUseCase(
+      userRepository,
+      passwordHasher,
+      tokenService,
+      outboxRepository,
+      { failClosedAudit: true }
+    );
+    const user = User.create(
+      "user-1",
+      Email.create("u@example.com"),
+      "User",
+      USER_ROLES.VISUALIZADOR,
+      [USER_ROLES.VISUALIZADOR],
+      "hashed-pwd"
+    );
+    vi.mocked(userRepository.findByEmail).mockResolvedValue(user);
+    vi.mocked(passwordHasher.compare).mockResolvedValue(true);
+    vi.mocked(outboxRepository.append).mockRejectedValue(new Error("audit unavailable"));
+
+    await expect(
+      strictUseCase.execute({ email: "u@example.com", password: "password123" })
+    ).rejects.toThrow("audit unavailable");
   });
 });

@@ -7,6 +7,23 @@ export interface AuditPublisher {
   publish(envelope: EventEnvelopeV1<object>): Promise<void> | void;
 }
 
+export class AuditUnavailableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "AuditUnavailableError";
+  }
+}
+
+export interface HttpAuditPublisherOptions {
+  failClosed?: boolean;
+  onUnavailable?: (error: AuditUnavailableError) => void;
+}
+
+export interface AuditStreamOptions {
+  failClosed?: boolean;
+  onUnavailable?: (error: AuditUnavailableError) => void;
+}
+
 /**
  * Publicador que usa um canal RabbitMQ para enviar envelopes de auditoria.
  */
@@ -19,7 +36,10 @@ export class RabbitMqAuditPublisher implements AuditPublisher {
   ) {}
 
   async publish(envelope: EventEnvelopeV1<object>): Promise<void> {
-    publishEventEnvelopeV1(this.channel, this.exchange, envelope);
+    const published = publishEventEnvelopeV1(this.channel, this.exchange, envelope);
+    if (!published) {
+      throw new AuditUnavailableError("RabbitMQ channel rejected audit publish");
+    }
   }
 }
 
@@ -27,7 +47,21 @@ export class RabbitMqAuditPublisher implements AuditPublisher {
  * Publicador que usa HTTP (fetch) para enviar envelopes de auditoria para o audit-service.
  */
 export class HttpAuditPublisher implements AuditPublisher {
-  constructor(private readonly auditServiceUrl: string) {}
+  constructor(
+    private readonly auditServiceUrl: string,
+    private readonly options: HttpAuditPublisherOptions = {}
+  ) {}
+
+  async assertAvailable(): Promise<void> {
+    try {
+      const response = await fetch(`${this.auditServiceUrl}/health`, { method: "GET" });
+      if (!response.ok) {
+        throw new AuditUnavailableError(`Audit health check failed with status ${response.status}`);
+      }
+    } catch (err) {
+      throw this.toUnavailableError(err, "Audit health check request failed");
+    }
+  }
 
   async publish(envelope: EventEnvelopeV1<object>): Promise<void> {
     try {
@@ -37,12 +71,22 @@ export class HttpAuditPublisher implements AuditPublisher {
         body: JSON.stringify(envelope),
       });
       if (!response.ok) {
-        process.stderr.write(`[Audit-HTTP] Failed to publish log: ${response.statusText}\n`);
+        throw new AuditUnavailableError(`Failed to publish audit log: ${response.status} ${response.statusText}`);
       }
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
-      process.stderr.write(`[Audit-HTTP] Error publishing log: ${message}\n`);
+      const unavailable = this.toUnavailableError(err, "Error publishing audit log");
+      if (this.options.failClosed) {
+        this.options.onUnavailable?.(unavailable);
+        throw unavailable;
+      }
+      process.stderr.write(`[Audit-HTTP] ${unavailable.message}\n`);
     }
+  }
+
+  private toUnavailableError(err: unknown, fallback: string): AuditUnavailableError {
+    if (err instanceof AuditUnavailableError) return err;
+    const message = err instanceof Error ? err.message : String(err);
+    return new AuditUnavailableError(`${fallback}: ${message}`);
   }
 }
 
@@ -50,7 +94,19 @@ export class HttpAuditPublisher implements AuditPublisher {
  * Cria um stream para o Pino que encaminha logs (especialmente erros) 
  * para o transport de auditoria através de um publicador.
  */
-export function createAuditStream(publisher: AuditPublisher, serviceName: string) {
+export function createAuditStream(publisher: AuditPublisher, serviceName: string, options: AuditStreamOptions = {}) {
+  const handleUnavailable = (err: unknown): void => {
+    const unavailable =
+      err instanceof AuditUnavailableError
+        ? err
+        : new AuditUnavailableError(err instanceof Error ? err.message : String(err));
+    if (options.failClosed) {
+      options.onUnavailable?.(unavailable);
+      return;
+    }
+    process.stderr.write(`[Audit] ${unavailable.message}\n`);
+  };
+
   return {
     write(msg: string) {
       try {
@@ -79,12 +135,12 @@ export function createAuditStream(publisher: AuditPublisher, serviceName: string
           const result = publisher.publish(envelope);
           if (result instanceof Promise) {
             result.catch((err) => {
-              process.stderr.write(`[Audit] Failed to publish log: ${err.message}\n`);
+              handleUnavailable(err);
             });
           }
         }
-      } catch {
-        // Ignora erros de parse
+      } catch (err) {
+        handleUnavailable(err);
       }
     }
   };
@@ -93,8 +149,13 @@ export function createAuditStream(publisher: AuditPublisher, serviceName: string
 /**
  * Utilitário para adicionar auditoria a um logger existente.
  */
-export function wrapWithAudit(baseLogger: pino.Logger, publisher: AuditPublisher, serviceName: string): pino.Logger {
-  const auditStream = createAuditStream(publisher, serviceName);
+export function wrapWithAudit(
+  baseLogger: pino.Logger,
+  publisher: AuditPublisher,
+  serviceName: string,
+  options: AuditStreamOptions = {}
+): pino.Logger {
+  const auditStream = createAuditStream(publisher, serviceName, options);
   
   // Pino multistream para enviar para stdout e para o stream de auditoria
   return pino({

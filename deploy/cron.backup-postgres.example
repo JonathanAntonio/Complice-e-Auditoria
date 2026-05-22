@@ -1,0 +1,2 @@
+# Backup diário às 02:00 UTC
+0 2 * * * cd /opt/complice-e-auditoria && POSTGRES_CONTAINER_NAME=lframework-postgres POSTGRES_BACKUP_DIR=/var/backups/complice/postgres POSTGRES_BACKUP_RETENTION_DAYS=30 POSTGRES_USER=lframework ./scripts/backup-postgres.sh >> /var/log/complice-backup.log 2>&1

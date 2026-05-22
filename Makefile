@@ -4,7 +4,7 @@ NGROK_URL ?= rage-awhile-snowcap.ngrok-free.dev
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install infra-up infra-wait infra-down migrate dev run test lint build
+.PHONY: help install infra-up infra-wait infra-down migrate dev run test lint build monitoring-up monitoring-down backup-db restore-db
 
 help:
 	@echo "Targets disponíveis:"
@@ -19,6 +19,10 @@ help:
 	@echo "  make test        - roda testes"
 	@echo "  make lint        - roda lint"
 	@echo "  make build       - roda build de todos os pacotes"
+	@echo "  make monitoring-up   - sobe Prometheus + Alertmanager"
+	@echo "  make monitoring-down - derruba stack de monitoramento"
+	@echo "  make backup-db       - executa backup do PostgreSQL"
+	@echo "  make restore-db FILE=<arquivo.sql.gz> - restaura backup (ou mais recente)"
 
 install:
 	pnpm install
@@ -70,3 +74,16 @@ ngrok:
 	else \
 		ngrok http 5173 --authtoken=$(NGROK_AUTHTOKEN); \
 	fi
+
+
+monitoring-up:
+	docker compose -f docker-compose.yml -f docker-compose.monitoring.yml up -d prometheus alertmanager
+
+monitoring-down:
+	docker compose -f docker-compose.yml -f docker-compose.monitoring.yml down
+
+backup-db:
+	./scripts/backup-postgres.sh
+
+restore-db:
+	./scripts/restore-postgres.sh $(FILE)

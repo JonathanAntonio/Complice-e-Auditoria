@@ -24,9 +24,15 @@ describe("DeactivateUserUseCase", () => {
     const result = await useCase.execute("target", "actor", { requestId: "req-1" });
 
     expect(result).toMatchObject({ id: "target", isActive: false });
+    expect(result?.authzVersion).toBe(2);
     expect(saveUserAndOutbox).toHaveBeenCalledWith(
       target,
-      expect.objectContaining({ eventName: SECURITY_AUDIT_EVENTS.USER_DEACTIVATED })
+      expect.objectContaining({
+        eventName: SECURITY_AUDIT_EVENTS.USER_DEACTIVATED,
+        payload: expect.objectContaining({
+          authzVersion: 2,
+        }),
+      })
     );
   });
 

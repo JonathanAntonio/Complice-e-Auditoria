@@ -94,6 +94,10 @@ make test
 make lint
 make build
 make ngrok
+make monitoring-up
+make monitoring-down
+make backup-db
+make restore-db FILE=./backups/postgres/postgres_YYYYMMDDTHHMMSSZ.sql.gz
 ```
 
 ### Com `make.cmd` (Windows)
@@ -149,6 +153,8 @@ pnpm test:e2e
 
 - Visão funcional e arquitetural: `docs/VisaoGeralProjeto.md`
 - Runbook operacional: `docs/RunbookOperacaoSLO.md`
+- Checklist de produção (Sprint 1): `docs/operacao/ChecklistProducaoSprint1.md`
+- Pendências e corte atual: `docs/PendenciasAtuais.md`
 - Diagramas: `docs/diagramas/`
 
 ## Observações

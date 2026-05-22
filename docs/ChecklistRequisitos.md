@@ -1,6 +1,6 @@
 # Checklist de Requisitos — Lista Única
 
-Data: 2026-04-11  
+Data: 2026-05-21  
 Fonte: consolidação dos checklists gerados nesta sessão.
 
 | ID | Requisito | Status |
@@ -11,7 +11,7 @@ Fonte: consolidação dos checklists gerados nesta sessão.
 | RF04 | Recuperação de senha | Parcial |
 | RF05 | Controle de sessão | Completo |
 | RF06 | Autorização por papéis e módulos | Completo |
-| RF07 | Logs de acesso | Parcial |
+| RF07 | Logs de acesso | Completo |
 | RF08 | Registro imutável de ações | Parcial |
 | RF09 | Histórico de alterações por entidade | Completo |
 | RF10 | Versionamento de dados críticos | Parcial |
@@ -28,7 +28,7 @@ Fonte: consolidação dos checklists gerados nesta sessão.
 | RNF01 | Criptografia de dados sensíveis | Parcial |
 | RNF02 | Proteção SQL Injection / XSS | Parcial |
 | RNF03 | Rate limiting | Parcial |
-| RNF04 | Backup automatizado | Parcial |
+| RNF04 | Backup automatizado | Parcial* |
 | RNF05 | Compliance LGPD | Parcial |
 | RNF06 | Assinatura digital de eventos críticos | Parcial |
 | RNF07 | Auditoria do próprio sistema | Parcial |
@@ -39,20 +39,20 @@ Fonte: consolidação dos checklists gerados nesta sessão.
 | RNF12 | Escalabilidade horizontal | Parcial |
 | RNF13 | Arquitetura desacoplada | Completo |
 | RNF14 | Alta disponibilidade | Parcial |
-| RNF15 | Monitoramento com métricas e alertas | Parcial |
+| RNF15 | Monitoramento com métricas e alertas | Parcial* |
 | RNF16 | Failover de infraestrutura crítica | Parcial |
 | RNF17 | APIs RESTful padronizadas | Completo |
 | RNF18 | Comunicação JSON | Completo |
 | RNF19 | Versionamento de API | Completo |
 | RN-001 | Acesso exige autenticação | Completo |
 | RN-002 | JWT/OAuth2 com expiração | Completo |
-| RN-003 | Bloqueio após 5 tentativas inválidas | Parcial |
-| RN-004 | Bloqueio gera auditoria/alerta | Parcial |
+| RN-003 | Bloqueio após 5 tentativas inválidas | Completo |
+| RN-004 | Bloqueio gera auditoria/alerta | Completo |
 | RN-005 | Invalidação por inatividade | Completo |
 | RN-006 | Sessão simultânea única | Completo |
 | RN-007 | Recuperação de senha local | Parcial |
-| RN-008 | Login/logout/bloqueio auditados | Parcial |
-| RN-010 | Usuário com ao menos um papel | Com`pleto |
+| RN-008 | Login/logout/bloqueio auditados | Completo |
+| RN-010 | Usuário com ao menos um papel | Completo |
 | RN-011 | Negação por padrão (RBAC) | Completo |
 | RN-012 | Papéis padrão definidos | Completo |
 | RN-013 | Só admin gerencia usuários/papéis | Completo |
@@ -113,11 +113,15 @@ Fonte: consolidação dos checklists gerados nesta sessão.
 | RN-091 | E-mail corporativo único | Completo |
 | RN-092 | Exclusão lógica de usuário | Completo |
 | RN-093 | E-mail de boas-vindas ao criar usuário | Parcial |
-| RN-094 | Desativação encerra sessões ativas | Parcial |
+| RN-094 | Desativação encerra sessões ativas | Completo |
 | RN-095 | Impedir auto-desativação do último admin | Parcial |
 | RN-100 | Escritas transacionais | Parcial |
 | RN-101 | Nenhuma escrita sem auditoria | Parcial |
-| RN-102 | Sem audit service, suspender processamento | Parcial |
+| RN-102 | Sem audit service, suspender processamento | Parcial* |
 | RN-103 | Operar em UTC | Completo |
 | RN-104 | Campos obrigatórios bloqueiam operação | Parcial |
 | RN-105 | Não expor erro técnico ao usuário final | Completo |
+
+* `RN-102` está implementado com `AUDIT_FAIL_CLOSED=true` (modo estrito). Falta garantir ativação operacional em todos os ambientes.
+* `RNF04` possui scripts de backup/restore e retenção configurável (`scripts/backup-postgres.sh`, `scripts/restore-postgres.sh`), com evidência local de execução em `2026-05-21` (arquivo `postgres_20260521T145029Z.sql.gz`); falta evidência de agendamento em ambiente produtivo.
+* `RNF15` possui stack local Prometheus/Alertmanager e regras de alerta (`monitoring/`), com evidência local de alerta `ServiceDown` em `firing` em `2026-05-21`; falta evidência de operação contínua em produção.

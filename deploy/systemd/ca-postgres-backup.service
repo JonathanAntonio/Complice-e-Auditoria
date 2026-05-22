@@ -1,0 +1,16 @@
+[Unit]
+Description=Complice Auditoria PostgreSQL Backup
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/complice-e-auditoria
+Environment=POSTGRES_CONTAINER_NAME=lframework-postgres
+Environment=POSTGRES_BACKUP_DIR=/var/backups/complice/postgres
+Environment=POSTGRES_BACKUP_RETENTION_DAYS=30
+Environment=POSTGRES_USER=lframework
+ExecStart=/opt/complice-e-auditoria/scripts/backup-postgres.sh
+
+[Install]
+WantedBy=multi-user.target

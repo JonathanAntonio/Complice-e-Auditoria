@@ -53,6 +53,30 @@ export class OutboxRelayAdapter {
     }
   }
 
+  private emitOutboundAuditEvent(params: {
+    eventType: string;
+    outboxId: string;
+    status: string;
+    responseTimeMs: number;
+    retryCount?: number;
+    errorMessage?: string;
+  }): void {
+    logger.info(
+      {
+        audit: true,
+        eventType: params.eventType,
+        severity: params.status === "failed" || params.status === "dead_letter" ? "high" : "medium",
+        sourceService: "integration-service",
+        outboxId: params.outboxId,
+        status: params.status,
+        retryCount: params.retryCount ?? 0,
+        responseTimeMs: params.responseTimeMs,
+        errorMessage: params.errorMessage ?? null,
+      },
+      "Integration outbound publish audit"
+    );
+  }
+
   async runOnce(): Promise<void> {
     const staleProcessingCutoff = new Date(Date.now() - this.staleProcessingThresholdMs);
     const recovered = await this.prisma.outboxModel.updateMany({
@@ -83,6 +107,7 @@ export class OutboxRelayAdapter {
     });
 
     for (const row of rows) {
+      const attemptStartedAt = Date.now();
       const claimed = await this.prisma.outboxModel.updateMany({
         where: {
           id: row.id,
@@ -101,6 +126,7 @@ export class OutboxRelayAdapter {
         const envelope = parseEventEnvelopeV1(row.payload);
         await this.eventPublisher.publish(envelope);
         publishedToBroker = true;
+        const responseTimeMs = Date.now() - attemptStartedAt;
         const markedPublished = await this.tryUpdateOutbox(
           row.id,
           {
@@ -112,13 +138,29 @@ export class OutboxRelayAdapter {
         );
         if (markedPublished) {
           this.metrics.publishSuccessTotal.inc();
+          this.emitOutboundAuditEvent({
+            eventType: "integration.audit.outbound.published",
+            outboxId: row.id,
+            status: "published",
+            responseTimeMs,
+            retryCount: row.retryCount ?? 0,
+          });
         } else {
           await this.tryDeadLetterFallback(
             row.id,
             "Published to broker, but failed to persist published state"
           );
+          this.emitOutboundAuditEvent({
+            eventType: "integration.audit.outbound.dead_letter",
+            outboxId: row.id,
+            status: "dead_letter",
+            responseTimeMs,
+            retryCount: row.retryCount ?? 0,
+            errorMessage: "Published to broker, but failed to persist published state",
+          });
         }
       } catch (err) {
+        const responseTimeMs = Date.now() - attemptStartedAt;
         this.metrics.publishFailedTotal.inc();
 
         // Race mitigation: if broker publish happened but persistence failed afterwards,
@@ -139,6 +181,14 @@ export class OutboxRelayAdapter {
           } else {
             await this.tryDeadLetterFallback(row.id, reason);
           }
+          this.emitOutboundAuditEvent({
+            eventType: "integration.audit.outbound.dead_letter",
+            outboxId: row.id,
+            status: "dead_letter",
+            responseTimeMs,
+            retryCount: row.retryCount ?? 0,
+            errorMessage: reason,
+          });
           logger.warn(
             { err, outboxId: row.id, eventName: row.eventName },
             "Outbox relay publish succeeded but persistence failed; moved to dead-letter to prevent duplicate publish"
@@ -164,6 +214,14 @@ export class OutboxRelayAdapter {
           } else {
             await this.tryDeadLetterFallback(row.id, `max-retries-update-failed: ${reason}`);
           }
+          this.emitOutboundAuditEvent({
+            eventType: "integration.audit.outbound.dead_letter",
+            outboxId: row.id,
+            status: "dead_letter",
+            responseTimeMs,
+            retryCount: nextRetryCount,
+            errorMessage: reason,
+          });
           logger.warn(
             { err, outboxId: row.id, eventName: row.eventName, retryCount: nextRetryCount, maxRetries: this.maxRetries },
             "Outbox relay max retries reached; row moved to dead-letter"
@@ -185,6 +243,14 @@ export class OutboxRelayAdapter {
         if (!rescheduled) {
           await this.tryDeadLetterFallback(row.id, `retry-reschedule-failed: ${retryReason}`);
         }
+        this.emitOutboundAuditEvent({
+          eventType: "integration.audit.outbound.retry",
+          outboxId: row.id,
+          status: "retry_scheduled",
+          responseTimeMs,
+          retryCount: nextRetryCount,
+          errorMessage: retryReason,
+        });
         logger.warn(
           { err, outboxId: row.id, eventName: row.eventName, retryCount: nextRetryCount, maxRetries: this.maxRetries },
           "Outbox relay publish/parse failed; row scheduled for retry"

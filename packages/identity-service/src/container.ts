@@ -253,7 +253,8 @@ export function createContainer(config: ContainerConfig) {
           cradle.userRepository,
           cradle.passwordHasher,
           cradle.tokenService,
-          cradle.outboxRepository
+          cradle.outboxRepository,
+          { failClosedAudit: process.env.AUDIT_FAIL_CLOSED === "true" }
         )
     ).singleton(),
 
@@ -420,10 +421,17 @@ export function createContainer(config: ContainerConfig) {
       const ep = c.eventPublisher as RabbitMqEventPublisherAdapter;
       const channel = ep.getChannel();
       if (channel) {
+        const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
         const publisher = new RabbitMqAuditPublisher(channel);
-        const auditLogger = wrapWithAudit(baseLogger, publisher, "identity-service");
+        const auditLogger = wrapWithAudit(baseLogger, publisher, "identity-service", {
+          failClosed: auditFailClosed,
+          onUnavailable: (error) => {
+            baseLogger.fatal({ err: error }, "Audit unavailable in identity-service (fail-closed enabled).");
+            process.exit(1);
+          },
+        });
         setLogger(auditLogger);
-        baseLogger.info("Auditoria de logs centralizada ativada para identity-service");
+        baseLogger.info({ auditFailClosed }, "Auditoria de logs centralizada ativada para identity-service");
       }
     },
     startOutboxRelay(intervalMs: number = 2_000): void {

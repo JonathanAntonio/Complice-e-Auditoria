@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Complice Auditoria PostgreSQL Backup
+
+[Timer]
+OnCalendar=*-*-* 02:00:00
+Persistent=true
+Unit=ca-postgres-backup.service
+
+[Install]
+WantedBy=timers.target

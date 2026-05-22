@@ -16,17 +16,35 @@ import { RiskScoreService } from "./application/risk-score.service";
 import { createRiskRoutes } from "./adapters/driving/http/routes";
 
 const config = loadRiskServiceConfig(process.env);
+const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
 
 // Inicializa auditoria centralizada via HTTP
 const auditServiceUrl = process.env.AUDIT_SERVICE_URL || "http://localhost:3005";
-const publisher = new HttpAuditPublisher(auditServiceUrl);
+const publisher = new HttpAuditPublisher(auditServiceUrl, {
+  failClosed: auditFailClosed,
+  onUnavailable: (error) => {
+    baseLogger.fatal({ err: error }, "Audit service unavailable (fail-closed enabled). Stopping risk-analysis-service.");
+    process.exit(1);
+  },
+});
 const auditLogger = wrapWithAudit(baseLogger, publisher, "risk-analysis-service");
 setLogger(auditLogger);
 
-const service = new RiskScoreService();
-const routes = createRiskRoutes(service);
-const app = createApp({ routes }, { baseUrl: config.baseUrl, corsOrigin: config.corsOrigin });
+async function bootstrap(): Promise<void> {
+  if (auditFailClosed) {
+    await publisher.assertAvailable();
+  }
 
-app.listen(config.port, () => {
-  logger.info(`Risk analysis service listening on http://localhost:${config.port}`);
+  const service = new RiskScoreService();
+  const routes = createRiskRoutes(service);
+  const app = createApp({ routes }, { baseUrl: config.baseUrl, corsOrigin: config.corsOrigin });
+
+  app.listen(config.port, () => {
+    logger.info({ auditFailClosed }, `Risk analysis service listening on http://localhost:${config.port}`);
+  });
+}
+
+bootstrap().catch((err) => {
+  logger.error({ err }, "Failed to start risk-analysis-service");
+  process.exit(1);
 });

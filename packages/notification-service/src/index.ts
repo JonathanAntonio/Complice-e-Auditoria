@@ -16,17 +16,35 @@ import { NotificationDispatchService } from "./application/notification-dispatch
 import { createNotificationRoutes } from "./adapters/driving/http/routes";
 
 const config = loadNotificationServiceConfig(process.env);
+const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
 
 // Inicializa auditoria centralizada via HTTP
 const auditServiceUrl = process.env.AUDIT_SERVICE_URL || "http://localhost:3005";
-const publisher = new HttpAuditPublisher(auditServiceUrl);
+const publisher = new HttpAuditPublisher(auditServiceUrl, {
+  failClosed: auditFailClosed,
+  onUnavailable: (error) => {
+    baseLogger.fatal({ err: error }, "Audit service unavailable (fail-closed enabled). Stopping notification-service.");
+    process.exit(1);
+  },
+});
 const auditLogger = wrapWithAudit(baseLogger, publisher, "notification-service");
 setLogger(auditLogger);
 
-const service = new NotificationDispatchService();
-const routes = createNotificationRoutes(service);
-const app = createApp({ routes }, { baseUrl: config.baseUrl, corsOrigin: config.corsOrigin });
+async function bootstrap(): Promise<void> {
+  if (auditFailClosed) {
+    await publisher.assertAvailable();
+  }
 
-app.listen(config.port, () => {
-  logger.info(`Notification service listening on http://localhost:${config.port}`);
+  const service = new NotificationDispatchService();
+  const routes = createNotificationRoutes(service);
+  const app = createApp({ routes }, { baseUrl: config.baseUrl, corsOrigin: config.corsOrigin });
+
+  app.listen(config.port, () => {
+    logger.info({ auditFailClosed }, `Notification service listening on http://localhost:${config.port}`);
+  });
+}
+
+bootstrap().catch((err) => {
+  logger.error({ err }, "Failed to start notification-service");
+  process.exit(1);
 });

@@ -16,17 +16,35 @@ import { ExportJobsService } from "./application/export-jobs.service";
 import { createReportingRoutes } from "./adapters/driving/http/routes";
 
 const config = loadReportingServiceConfig(process.env);
+const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
 
 // Inicializa auditoria centralizada via HTTP
 const auditServiceUrl = process.env.AUDIT_SERVICE_URL || "http://localhost:3005";
-const publisher = new HttpAuditPublisher(auditServiceUrl);
+const publisher = new HttpAuditPublisher(auditServiceUrl, {
+  failClosed: auditFailClosed,
+  onUnavailable: (error) => {
+    baseLogger.fatal({ err: error }, "Audit service unavailable (fail-closed enabled). Stopping reporting-service.");
+    process.exit(1);
+  },
+});
 const auditLogger = wrapWithAudit(baseLogger, publisher, "reporting-service");
 setLogger(auditLogger);
 
-const service = new ExportJobsService();
-const routes = createReportingRoutes(service);
-const app = createApp({ routes }, { baseUrl: config.baseUrl, corsOrigin: config.corsOrigin });
+async function bootstrap(): Promise<void> {
+  if (auditFailClosed) {
+    await publisher.assertAvailable();
+  }
 
-app.listen(config.port, () => {
-  logger.info(`Reporting service listening on http://localhost:${config.port}`);
+  const service = new ExportJobsService();
+  const routes = createReportingRoutes(service);
+  const app = createApp({ routes }, { baseUrl: config.baseUrl, corsOrigin: config.corsOrigin });
+
+  app.listen(config.port, () => {
+    logger.info({ auditFailClosed }, `Reporting service listening on http://localhost:${config.port}`);
+  });
+}
+
+bootstrap().catch((err) => {
+  logger.error({ err }, "Failed to start reporting-service");
+  process.exit(1);
 });

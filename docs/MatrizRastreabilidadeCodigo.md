@@ -1,6 +1,6 @@
 # Matriz de Rastreabilidade de Requisitos x Código
 
-Data de referência: 2026-04-08  
+Data de referência: 2026-05-21  
 Escopo: microservices atuais (`identity`, `compliance`, `audit`, `integration`, `bff`, `risk-analysis`, `reporting`, `notification`, `api-docs`).
 
 ## Resumo Executivo
@@ -22,7 +22,7 @@ Escopo: microservices atuais (`identity`, `compliance`, `audit`, `integration`, 
 | RF03 | Autenticação OAuth2/JWT | Implementado | `packages/identity-service/src/adapters/driving/http/auth.routes.ts`, `oauth-callback.use-case.ts`, `jwt-token.service.ts`, `packages/bff-service/src/app/create-app.ts` |
 | RF04 | Recuperação de senha | Descontinuado (OAuth-only) | Fora de escopo do baseline vigente em 2026-04-08 |
 | RF05 | Sessão com expiração configurável | Implementado | `packages/bff-service/src/app/config.ts` (`BFF_SESSION_MAX_AGE_SECONDS`), `cookie-session.service.ts` |
-| RF07 | Logs de acesso (login/logout/tentativas inválidas) | Parcial | `packages/identity-service/src/application/security-audit.ts`, `oauth-callback.use-case.ts`, `logout.use-case.ts` |
+| RF07 | Logs de acesso (login/logout/tentativas inválidas) | Implementado (com fail-closed opcional) | `packages/identity-service/src/application/security-audit.ts`, `login.use-case.ts`, `logout.use-case.ts`, `login.use-case.spec.ts` |
 | RF08 / RF09 | Registro e consulta de auditoria | Implementado | `packages/audit-service/src/adapters/driving/http/routes.ts`, `container.ts`, `openapi.ts` |
 | RF10 | Versionamento de dados críticos | Parcial | Há versionamento/autorização de papéis em `identity`; não há engine completa de versionamento transversal |
 | RF11 / RF12 / RF14 | Dashboard KPI + filtros + atualização | Parcial | `packages/frontend/src/App.jsx` com filtros e atualização; não há SLA técnico explícito de 60s em backend |
@@ -40,17 +40,21 @@ Escopo: microservices atuais (`identity`, `compliance`, `audit`, `integration`, 
 | ID | Regra | Status | Evidências no código |
 |---|---|---|---|
 | RN-001 / RN-002 | Acesso autenticado + JWT/OAuth2 | Implementado | middlewares de auth/permissão em `identity`, `audit`, `compliance` |
-| RN-003 | Bloqueio após 5 tentativas inválidas | Parcial | Entidade e persistência suportam `failedLoginAttempts/blockedUntil`, mas o fluxo completo de incremento por tentativa não está visível em todos os caminhos |
+| RN-003 | Bloqueio após 5 tentativas inválidas | Implementado | `packages/identity-service/src/application/use-cases/login.use-case.ts`, `packages/identity-service/src/domain/entities/user.entity.ts`, `login.use-case.spec.ts` |
+| RN-004 | Bloqueio gera auditoria/alerta | Implementado | `login.use-case.ts` (`ACCOUNT_LOCKED` + `notifyAdmin`), `login.use-case.spec.ts` |
+| RN-008 | Login/logout/bloqueio auditados | Implementado | `login.use-case.ts`, `logout.use-case.ts`, `security-audit.ts`, testes de use-case |
 | RN-005 | Expiração de sessão | Implementado | cookie do BFF com `maxAge` configurável |
 | RN-006 | Sessão simultânea única por usuário | Implementado (OAuth-only) | rotação de `authzVersion` no login OAuth e logout + validação ativa em `identity-service` e `bff-service` |
+| RN-094 | Desativação encerra sessões ativas | Implementado | `deactivate-user.use-case.ts` (incremento de `authzVersion`), `auth.middleware.ts` (rejeição por versão), `deactivate-user.use-case.spec.ts`, `auth.middleware.spec.ts` |
 | RN-010..RN-014 | RBAC e restrição por papel | Implementado (núcleo) | `domain/types.ts`, `permissionsForRole`, middlewares de permissão |
-| RN-020 / RN-021 | Registro de auditoria e imutabilidade | Parcial | Audit service com leitura e trilha; política de imutabilidade forte/infra não totalmente verificável apenas pelo código app |
+| RN-020 / RN-021 | Registro de auditoria e imutabilidade | Implementado (nível aplicação + banco) | `audit-service` com `append-only` em banco (`prisma/migrations/20260521113000_enforce_audit_logs_append_only/migration.sql`), persistência por `create` sem mutação (`prisma-audit-log.repository.ts`) |
 | RN-034..RN-037 | Aplicação de regras de compliance e ciclo da violação | Parcial | Fluxos de violação implementados; ciclo completo de aprovação dupla/dispensa avançada não evidenciado |
 | RN-040..RN-042 | Cálculo e recálculo de risco | Implementado (versão atual) | `RiskScoreService.ingest/list` |
 | RN-050 / RN-052 / RN-054 | Notificações automáticas + canais + retentativa/dead-letter | Implementado (núcleo) | `NotificationDispatchService` com canais `email/webhook`, `maxRetries` e estado `dead_letter` |
 | RN-060 / RN-063 | Dashboard por escopo/permissão + filtros | Parcial | frontend usa permissões e filtros; escopo organizacional completo depende de dados de domínio adicionais |
 | RN-064 / RN-065 | Exportação auditável com metadados | Implementado (via integração auditável) | `bff-service` publica eventos de exportação/notificação no `integration-service` |
-| RN-070..RN-074 | Integração autenticada/validada/registrada | Parcial | integração possui validação e estrutura de observabilidade; cobertura completa de idempotência e trilha de todas chamadas depende de cenário externo |
+| RN-070..RN-074 | Integração autenticada/validada/registrada | Implementado (nível aplicação) | `integration-service` valida API key/envelope/idempotência + auditoria de entrada (`routes.ts`) e saída (`outbox-relay.adapter.ts`) com `responseStatus`/`responseTimeMs`; cobertura de testes em `routes.spec.ts` e `outbox-relay.adapter.spec.ts` |
+| RN-102 | Sem audit service, suspender processamento | Parcial (controlado por configuração) | `AUDIT_FAIL_CLOSED=true` em publishers HTTP e RabbitMQ: `packages/shared/src/logger-audit.ts`, `bff/reporting/notification/risk-analysis/index.ts`, `identity/compliance/integration/container.ts` |
 | RN-080..RN-084 | Retenção e anonimização com trilha | Implementado (monitor-only + anonimização identity) | identity: `anonymize-inactive-users.use-case.ts` (+ testes unitários); compliance: `run-retention-sweep.use-case.ts` + `compliance_retention_runs` + escopo configurável (`COMPLIANCE_RETENTION_SCOPE_STATUSES`); audit: `run-retention-sweep.use-case.ts` + `audit_retention_runs` + escopo configurável (`AUDIT_RETENTION_SCOPE_SOURCE_SERVICES`) |
 | RN-103 | Timestamps em UTC | Implementado | serviços usam `new Date().toISOString()`; frontend converte para visualização |
 | RN-105 | Erros técnicos não expostos ao usuário | Implementado (maior parte) | mapeadores e mensagens controladas em `shared`/handlers |
@@ -66,6 +70,8 @@ Escopo: microservices atuais (`identity`, `compliance`, `audit`, `integration`, 
 | Frontend desacoplado via BFF | Implementado | `packages/frontend` consumindo `/bff/*` |
 | Health checks por serviço | Implementado | `GET /health` em serviços |
 | Métricas por serviço para monitoramento | Implementado | `GET /metrics` em `identity`, `compliance`, `audit`, `bff`, `risk-analysis`, `reporting`, `notification`, e nativo no `integration` |
+| Alertas ativos por SLO/SLA | Implementado (stack local) | `docker-compose.monitoring.yml`, `monitoring/prometheus.yml`, `monitoring/alerts.yml`, `monitoring/alertmanager.yml` |
+| Backup automatizado (baseline local) | Implementado (scripts + retenção) | `scripts/backup-postgres.sh`, `scripts/restore-postgres.sh`, `Makefile` (`backup-db`, `restore-db`) |
 | Documentação API unificada | Implementado | `packages/api-docs/src/app.ts` |
 | Mensageria / async | Parcial | presente em partes de `identity`/`integration`; nem todos domínios usam fila real |
 | Testes automatizados | Implementado (parcial por domínio) | suites em `identity`, `compliance`, `bff`, e novos testes unitários em `risk/reporting/notification` |

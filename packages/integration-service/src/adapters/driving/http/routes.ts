@@ -42,20 +42,22 @@ export function createIntegrationRoutes(
   router.post("/integrations/events", limiter, async (req: Request, res: Response) => {
     metrics.eventsReceivedTotal.inc();
     const correlationId = resolveCorrelationId(req);
+    const startedAt = Date.now();
 
     const apiKey = resolveApiKey(req);
     if (!apiKey || apiKey !== integrationApiKey) {
       metrics.eventsRejectedTotal.inc();
+      const responseStatus = 401;
       await tryAppendAuditEvent(repository, {
         type: "integration.audit.rejected",
         correlationId,
-        payload: {
+        payload: buildIntegrationAuditPayload(req, {
           reason: "unauthorized",
-          path: req.path,
-          method: req.method,
-        },
+          responseStatus,
+          responseTimeMs: Date.now() - startedAt,
+        }),
       });
-      sendError(res, 401, "Unauthorized");
+      sendError(res, responseStatus, "Unauthorized");
       return;
     }
 
@@ -64,58 +66,66 @@ export function createIntegrationRoutes(
       const result = await repository.storeInboundAndOutbox(envelope);
       if (result.duplicate) {
         metrics.eventsDuplicateTotal.inc();
+        const responseStatus = 200;
         await tryAppendAuditEvent(repository, {
           type: "integration.audit.duplicate",
           correlationId: envelope.correlationId,
-          payload: {
+          payload: buildIntegrationAuditPayload(req, {
             sourceEventId: envelope.eventId,
             sourceEventType: envelope.type,
             producer: envelope.producer,
-          },
+            responseStatus,
+            responseTimeMs: Date.now() - startedAt,
+          }),
         });
-        res.status(200).json({ accepted: true, duplicate: true, eventId: envelope.eventId });
+        res.status(responseStatus).json({ accepted: true, duplicate: true, eventId: envelope.eventId });
         return;
       }
 
       metrics.eventsAcceptedTotal.inc();
+      const responseStatus = 202;
       await tryAppendAuditEvent(repository, {
         type: "integration.audit.accepted",
         correlationId: envelope.correlationId,
-        payload: {
+        payload: buildIntegrationAuditPayload(req, {
           sourceEventId: envelope.eventId,
           sourceEventType: envelope.type,
           producer: envelope.producer,
-        },
+          responseStatus,
+          responseTimeMs: Date.now() - startedAt,
+        }),
       });
-      res.status(202).json({ accepted: true, duplicate: false, eventId: envelope.eventId });
+      res.status(responseStatus).json({ accepted: true, duplicate: false, eventId: envelope.eventId });
     } catch (err) {
       if (isValidationLikeError(err)) {
         metrics.eventsRejectedTotal.inc();
         logger.warn({ err }, "Invalid inbound integration event");
+        const responseStatus = 400;
         await tryAppendAuditEvent(repository, {
           type: "integration.audit.rejected",
           correlationId,
-          payload: {
+          payload: buildIntegrationAuditPayload(req, {
             reason: "invalid_envelope",
-            path: req.path,
-            method: req.method,
-          },
+            responseStatus,
+            responseTimeMs: Date.now() - startedAt,
+          }),
         });
-        sendError(res, 400, "Invalid event envelope");
+        sendError(res, responseStatus, "Invalid event envelope");
         return;
       }
 
       logger.error({ err }, "Integration repository failure while persisting inbound event");
+      const responseStatus = 500;
       await tryAppendAuditEvent(repository, {
         type: "integration.audit.rejected",
         correlationId,
-        payload: {
+        payload: buildIntegrationAuditPayload(req, {
           reason: "repository_failure",
-          path: req.path,
-          method: req.method,
-        },
+          responseStatus,
+          responseTimeMs: Date.now() - startedAt,
+        }),
       });
-      sendError(res, 500, "Internal server error");
+      sendError(res, responseStatus, "Internal server error");
     }
   });
 
@@ -127,6 +137,17 @@ function resolveCorrelationId(req: Request): string {
   if (Array.isArray(value)) return value[0] ?? "";
   if (typeof value === "string") return value;
   return "";
+}
+
+function buildIntegrationAuditPayload(
+  req: Request,
+  payload: Record<string, unknown>
+): Record<string, unknown> {
+  return {
+    path: req.path,
+    method: req.method,
+    ...payload,
+  };
 }
 
 async function tryAppendAuditEvent(

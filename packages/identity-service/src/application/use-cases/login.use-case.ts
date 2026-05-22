@@ -28,6 +28,10 @@ export interface LoginResultDto {
   accessToken: string;
 }
 
+export interface LoginUseCaseOptions {
+  failClosedAudit?: boolean;
+}
+
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 
@@ -36,7 +40,8 @@ export class LoginUseCase {
     private readonly userRepository: IUserRepository,
     private readonly passwordHasher: IPasswordHasher,
     private readonly tokenService: ITokenService,
-    private readonly outboxRepository: IOutboxRepository
+    private readonly outboxRepository: IOutboxRepository,
+    private readonly options: LoginUseCaseOptions = {}
   ) {}
 
   async execute(
@@ -152,6 +157,7 @@ export class LoginUseCase {
           userId: user.id,
           blockedUntil: user.blockedUntil?.toISOString(),
           reason: "max_attempts_reached",
+          notifyAdmin: true,
         },
         "max_attempts_reached"
       );
@@ -177,6 +183,9 @@ export class LoginUseCase {
     try {
       await this.outboxRepository.append(createSecurityAuditEvent(eventName, payload));
     } catch (err) {
+      if (this.options.failClosedAudit) {
+        throw err;
+      }
       logger.error({ err, eventName, reason }, "Failed to append auth audit event");
     }
   }

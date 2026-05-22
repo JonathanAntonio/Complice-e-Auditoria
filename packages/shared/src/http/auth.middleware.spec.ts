@@ -162,6 +162,28 @@ describe("createAuthMiddleware", () => {
     });
     expect(next).not.toHaveBeenCalled();
   });
+
+  it("deve retornar 401 quando authzVersion do token é menor que a versão atual", async () => {
+    req.headers = { authorization: "Bearer valid-token" };
+    const verify = vi.fn().mockReturnValue({
+      sub: "user-123",
+      authzVersion: 1,
+    });
+    const authzVersionChecker = {
+      getLatestVersion: vi.fn().mockResolvedValue(2),
+      updateVersion: vi.fn(),
+    };
+    const middleware = createAuthMiddleware(verify, authzVersionChecker);
+
+    await middleware(req as Request, res as Response, next);
+
+    expect(authzVersionChecker.getLatestVersion).toHaveBeenCalledWith("user-123");
+    expect(res.status).toHaveBeenCalledWith(401);
+    expect(res.json).toHaveBeenCalledWith({
+      error: "Session version mismatch (revoked token)",
+    });
+    expect(next).not.toHaveBeenCalled();
+  });
 });
 
 describe("permissions helpers", () => {

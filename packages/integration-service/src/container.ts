@@ -77,10 +77,17 @@ export function createContainer(config: IntegrationContainerConfig) {
     setupAuditLogging(): void {
       const channel = c.eventPublisher.getChannel();
       if (channel) {
+        const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
         const publisher = new RabbitMqAuditPublisher(channel);
-        const auditLogger = wrapWithAudit(baseLogger, publisher, "integration-service");
+        const auditLogger = wrapWithAudit(baseLogger, publisher, "integration-service", {
+          failClosed: auditFailClosed,
+          onUnavailable: (error) => {
+            baseLogger.fatal({ err: error }, "Audit unavailable in integration-service (fail-closed enabled).");
+            process.exit(1);
+          },
+        });
         setLogger(auditLogger);
-        baseLogger.info("Auditoria de logs centralizada ativada para integration-service");
+        baseLogger.info({ auditFailClosed }, "Auditoria de logs centralizada ativada para integration-service");
       }
     },
     startOutboxRelay(intervalMs: number = 2_000): void {

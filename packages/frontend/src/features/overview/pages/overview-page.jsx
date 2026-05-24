@@ -4,6 +4,7 @@ import { Button, Card, Col, Row, Select, Space, Statistic, Table, Typography } f
 import { useNavigate } from "react-router-dom";
 import { getReportKpis, listAuditLogs } from "../../../bff-client";
 import { useSession } from "../../auth/context/session-context";
+import { OVERVIEW_FILTER_URL_SCHEMA } from "../overview-url-state-schema";
 import { useUrlState } from "../../../shared/hooks/use-url-state";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { toReadableDate, toRelativeTime } from "../../../shared/utils/formatters";
@@ -34,17 +35,7 @@ const VIOLATION_STATUS_OPTIONS = [
 
 export function OverviewPage() {
   const navigate = useNavigate();
-  const filterSchema = useMemo(
-    () => ({
-      period: { key: "period", defaultValue: "24h", omitIfDefault: false },
-      area: { key: "area", defaultValue: "" },
-      eventType: { key: "eventType", defaultValue: "" },
-      riskLevel: { key: "riskLevel", defaultValue: "" },
-      violationStatus: { key: "violationStatus", defaultValue: "" },
-    }),
-    [],
-  );
-  const [initialFilters, updateInitialFilters] = useUrlState(filterSchema);
+  const [initialFilters, updateInitialFilters] = useUrlState(OVERVIEW_FILTER_URL_SCHEMA);
   const { hasAnyPermission } = useSession();
   const [filters, setFilters] = useState({
     period: initialFilters.period,

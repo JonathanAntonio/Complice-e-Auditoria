@@ -10,6 +10,7 @@ import {
   updateAdminUserRoles,
   updateAdminUserSecurity,
 } from "../../../bff-client";
+import { ADMIN_LIST_URL_STATE_SCHEMA } from "../admin-url-state-schema";
 import { useUrlState } from "../../../shared/hooks/use-url-state";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
@@ -39,11 +40,7 @@ export function AdminPage() {
   const canSecurity = hasPermission("users.update");
   const canDeactivate = hasPermission("users.deactivate");
 
-  const [listState, setListState] = useUrlState({
-    page: { key: "page", defaultValue: 1, parse: (value) => Number(value) || 1, serialize: (value) => String(value) },
-    pageSize: { key: "pageSize", defaultValue: 10, parse: (value) => Number(value) || 10, serialize: (value) => String(value) },
-    query: { key: "q", defaultValue: "" },
-  });
+  const [listState, setListState] = useUrlState(ADMIN_LIST_URL_STATE_SCHEMA);
   const [page, setPage] = useState(listState.page);
   const [pageSize, setPageSize] = useState(listState.pageSize);
   const [searchInput, setSearchInput] = useState(listState.query);
@@ -195,7 +192,7 @@ export function AdminPage() {
                 value={searchInput}
                 onChange={(event) => setSearchInput(event.target.value)}
                 onPressEnter={applySearch}
-                placeholder="Buscar por nome/e-mail"
+                placeholder="Filtrar por nome ou e-mail"
                 style={{ width: 220 }}
               />
               <Button onClick={applySearch}>Buscar</Button>

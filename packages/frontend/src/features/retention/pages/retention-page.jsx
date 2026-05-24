@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Card, Select, Space, Table } from "antd";
 import { listAuditRetentionRuns, listComplianceRetentionRuns } from "../../../bff-client";
+import { RETENTION_FILTER_URL_SCHEMA } from "../retention-url-state-schema";
 import { useUrlState } from "../../../shared/hooks/use-url-state";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
@@ -27,10 +28,7 @@ const columns = [
 ];
 
 export function RetentionPage({ embedded = false }) {
-  const [retentionFilters, setRetentionFilters] = useUrlState({
-    auditStatus: { key: "auditStatus", defaultValue: "all" },
-    complianceStatus: { key: "complianceStatus", defaultValue: "all" },
-  });
+  const [retentionFilters, setRetentionFilters] = useUrlState(RETENTION_FILTER_URL_SCHEMA);
   const { hasAnyPermission, hasPermission } = useSession();
   const canReadAudit = hasAnyPermission(["audit.logs.read.any", "audit.logs.read.scoped"]);
   const canReadCompliance = hasPermission("compliance.violations.read");

@@ -3,6 +3,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Button, Card, Descriptions, Form, Input, Select, Space, Table, Tag, Typography, message } from "antd";
 import { exportAndDownloadReport, getReportExport } from "../../../bff-client";
 import { useSession } from "../../auth/context/session-context";
+import { REPORTING_URL_STATE_SCHEMA } from "../reporting-url-state-schema";
 import { useUrlState } from "../../../shared/hooks/use-url-state";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
@@ -17,19 +18,7 @@ export function ReportingPage({ embedded = false }) {
   const [lookupResult, setLookupResult] = useState(null);
   const [history, setHistory] = useState([]);
   const { session } = useSession();
-  const querySchema = useMemo(
-    () => ({
-      format: { key: "format", defaultValue: "csv", omitIfDefault: false },
-      scope: { key: "scope", defaultValue: "violations", omitIfDefault: false },
-      period: { key: "period", defaultValue: "7d", omitIfDefault: false },
-      area: { key: "area", defaultValue: "" },
-      eventType: { key: "eventType", defaultValue: "" },
-      riskLevel: { key: "riskLevel", defaultValue: "" },
-      violationStatus: { key: "violationStatus", defaultValue: "" },
-    }),
-    [],
-  );
-  const [urlState, setUrlState] = useUrlState(querySchema);
+  const [urlState, setUrlState] = useUrlState(REPORTING_URL_STATE_SCHEMA);
 
   const initialValues = useMemo(
     () => ({

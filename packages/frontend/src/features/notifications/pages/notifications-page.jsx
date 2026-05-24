@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, Button, Card, Form, Input, Select, Space, Table, Tag, Typography, message } from "antd";
 import { useMemo } from "react";
 import { dispatchNotification, listNotificationLogs } from "../../../bff-client";
+import { NOTIFICATIONS_FILTER_URL_SCHEMA } from "../notifications-url-state-schema";
 import { useUrlState } from "../../../shared/hooks/use-url-state";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
@@ -14,12 +15,7 @@ const { Text } = Typography;
 export function NotificationsPage({ embedded = false }) {
   const [messageApi, messageContextHolder] = message.useMessage();
   const [form] = Form.useForm();
-  const [filterValues, setFilterValues] = useUrlState({
-    channel: { key: "channel", defaultValue: "all" },
-    severity: { key: "severity", defaultValue: "all" },
-    status: { key: "status", defaultValue: "all" },
-    recipient: { key: "recipient", defaultValue: "" },
-  });
+  const [filterValues, setFilterValues] = useUrlState(NOTIFICATIONS_FILTER_URL_SCHEMA);
   const { hasPermission } = useSession();
   const canDispatch = hasPermission("system.settings.manage");
   const queryClient = useQueryClient();

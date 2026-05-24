@@ -30,12 +30,18 @@ async function parseResponse(response, defaultErrorMessage) {
 export async function requestBffAuth(path, options = {}) {
   const {
     method = "GET",
+    body,
     defaultErrorMessage = "Falha na comunicação com o BFF.",
   } = options;
 
+  const hasBody = body !== undefined;
+
   const response = await fetch(`${BFF_AUTH_BASE}${path}`, {
     method,
-    headers: { Accept: "application/json" },
+    headers: hasBody
+      ? { Accept: "application/json", "Content-Type": "application/json" }
+      : { Accept: "application/json" },
+    body,
     credentials: "include",
   });
 

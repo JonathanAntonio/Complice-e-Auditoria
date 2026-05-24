@@ -16,6 +16,7 @@ export {
 } from "./application/retention-runs.service";
 export { ingestRiskEvent, listRiskScores, getRiskScoreHistory } from "./application/risk-scores.service";
 export { exportAndDownloadReport, getReportExport } from "./application/report-exports.service";
+export { getReportKpis } from "./application/report-kpis.service";
 export {
   dispatchNotification,
   listNotificationLogs,

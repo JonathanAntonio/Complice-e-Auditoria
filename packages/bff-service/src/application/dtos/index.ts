@@ -42,8 +42,19 @@ export type {
   RiskScoresListDto,
   RiskScoresQueryDto,
 } from "./risk-score.dto";
-export { parseCreateReportExportDto, parseReportExportJobDto } from "./report-export.dto";
-export type { CreateReportExportDto, ReportDownloadDto, ReportExportJobDto } from "./report-export.dto";
+export {
+  parseCreateReportExportDto,
+  parseReportExportJobDto,
+  parseReportKpisDto,
+  parseReportKpisQueryDto,
+} from "./report-export.dto";
+export type {
+  CreateReportExportDto,
+  ReportDownloadDto,
+  ReportExportJobDto,
+  ReportKpisDto,
+  ReportKpisQueryDto,
+} from "./report-export.dto";
 export {
   parseDispatchNotificationDto,
   parseNotificationDispatchResultDto,

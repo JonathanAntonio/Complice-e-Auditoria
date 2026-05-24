@@ -19,6 +19,7 @@ function createHandlers() {
     getRiskScoreHistoryUseCase: { execute: vi.fn() } as never,
     ingestRiskEventUseCase: { execute: vi.fn() } as never,
     createReportExportUseCase: { execute: vi.fn() } as never,
+    getReportKpisUseCase: { execute: vi.fn() } as never,
     getReportExportUseCase: { execute: vi.fn() } as never,
     downloadReportExportUseCase: { execute: vi.fn() } as never,
     dispatchNotificationUseCase: { execute: vi.fn() } as never,
@@ -427,6 +428,41 @@ describe("AuthHandlers", () => {
       createdAtUTC: "2026-05-24T12:00:00.000Z",
       filters: { period: "7d", area: "finance" },
     });
+  });
+
+  it("returns report KPIs when session is valid", async () => {
+    const handlers = createHandlers();
+    const token = [
+      Buffer.from(JSON.stringify({ alg: "none", typ: "JWT" })).toString("base64url"),
+      Buffer.from(JSON.stringify({ permissions: ["reports.read"] })).toString("base64url"),
+      "sig",
+    ].join(".");
+    const req = {
+      query: { period: "24h", area: "finance" },
+    } as never;
+    const res = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn(),
+    } as never;
+    (handlers as never).deps.cookieSessionService.readSessionToken.mockReturnValue(token);
+    (handlers as never).deps.getCurrentUserUseCase.execute.mockResolvedValue({
+      permissions: ["reports.read"],
+      authzVersion: 1,
+      user: { id: "u-1" },
+    });
+    (handlers as never).deps.getReportKpisUseCase.execute.mockResolvedValue({
+      complianceIndexPercentage: 60,
+    });
+
+    handlers.getReportKpis(req, res);
+    await flushAsync();
+
+    expect((handlers as never).deps.getReportKpisUseCase.execute).toHaveBeenCalledWith(token, {
+      period: "24h",
+      area: "finance",
+    });
+    expect(res.status).toHaveBeenCalledWith(200);
+    expect(res.json).toHaveBeenCalledWith({ complianceIndexPercentage: 60 });
   });
 
   it("returns 400 on notification dispatch when payload is invalid", async () => {

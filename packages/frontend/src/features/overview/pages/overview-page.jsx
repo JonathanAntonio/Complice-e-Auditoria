@@ -1,28 +1,60 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Card, Col, Row, Space, Statistic, Table, Typography } from "antd";
+import { Button, Card, Col, Row, Select, Space, Statistic, Table, Typography } from "antd";
 import { useNavigate } from "react-router-dom";
-import {
-  listAuditLogs,
-  listComplianceViolations,
-  listNotificationLogs,
-  listRiskScores,
-} from "../../../bff-client";
+import { getReportKpis, listAuditLogs } from "../../../bff-client";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
-import { toRelativeTime } from "../../../shared/utils/formatters";
+import { toReadableDate, toRelativeTime } from "../../../shared/utils/formatters";
 import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 
 const { Text } = Typography;
 
+const PERIOD_OPTIONS = [
+  { label: "24 horas", value: "24h" },
+  { label: "7 dias", value: "7d" },
+  { label: "30 dias", value: "30d" },
+];
+
+const RISK_LEVEL_OPTIONS = [
+  { label: "Todos", value: "" },
+  { label: "Low", value: "low" },
+  { label: "Medium", value: "medium" },
+  { label: "High", value: "high" },
+  { label: "Critical", value: "critical" },
+];
+
+const VIOLATION_STATUS_OPTIONS = [
+  { label: "Todos", value: "" },
+  { label: "Aberta", value: "aberta" },
+  { label: "Resolvida", value: "resolvida" },
+  { label: "Dispensada", value: "dispensada" },
+];
+
 export function OverviewPage() {
   const navigate = useNavigate();
-  const { hasPermission, hasAnyPermission } = useSession();
+  const { hasAnyPermission } = useSession();
+  const [filters, setFilters] = useState({
+    period: "24h",
+    area: "",
+    eventType: "",
+    riskLevel: "",
+    violationStatus: "",
+  });
 
-  const violationsQuery = useQuery({
-    queryKey: ["compliance", "violations", "overview"],
-    queryFn: listComplianceViolations,
-    enabled: hasPermission("compliance.violations.read"),
+  const canReadKpis = hasAnyPermission(["reports.read", "reports.export", "system.settings.manage"]);
+
+  const kpisQuery = useQuery({
+    queryKey: ["reports", "kpis", "overview", filters],
+    queryFn: () =>
+      getReportKpis({
+        period: filters.period,
+        area: filters.area || undefined,
+        eventType: filters.eventType || undefined,
+        riskLevel: filters.riskLevel || undefined,
+        violationStatus: filters.violationStatus || undefined,
+      }),
+    enabled: canReadKpis,
   });
 
   const auditQuery = useQuery({
@@ -31,32 +63,23 @@ export function OverviewPage() {
     enabled: hasAnyPermission(["audit.logs.read.any", "audit.logs.read.scoped"]),
   });
 
-  const riskQuery = useQuery({
-    queryKey: ["risk", "scores", "overview"],
-    queryFn: () => listRiskScores({}),
-    enabled: hasAnyPermission(["reports.read", "reports.export"]),
-  });
+  const stats = useMemo(() => {
+    if (!kpisQuery.data) {
+      return {
+        events: 0,
+        openViolations: 0,
+        highCriticalRisk: 0,
+        failedNotifications: 0,
+      };
+    }
 
-  const notificationsQuery = useQuery({
-    queryKey: ["notifications", "logs", "overview"],
-    queryFn: listNotificationLogs,
-    enabled: hasAnyPermission(["reports.read", "reports.export", "system.settings.manage"]),
-  });
-
-  const highSeverityCount = useMemo(
-    () => (violationsQuery.data ?? []).filter((item) => item.severity === "alta").length,
-    [violationsQuery.data]
-  );
-
-  const highRiskCount = useMemo(
-    () => (riskQuery.data?.items ?? []).filter((item) => item.level === "high" || item.level === "critical").length,
-    [riskQuery.data?.items]
-  );
-
-  const failedNotifications = useMemo(
-    () => (notificationsQuery.data?.items ?? []).filter((item) => item.status === "failed" || item.status === "dead_letter").length,
-    [notificationsQuery.data?.items]
-  );
+    return {
+      events: kpisQuery.data.totals.events,
+      openViolations: kpisQuery.data.totals.violationsOpen,
+      highCriticalRisk: kpisQuery.data.totals.riskHigh + kpisQuery.data.totals.riskCritical,
+      failedNotifications: kpisQuery.data.totals.notificationsFailed,
+    };
+  }, [kpisQuery.data]);
 
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
@@ -73,18 +96,81 @@ export function OverviewPage() {
         steps={["Ler indicadores críticos", "Abrir módulos com maior desvio", "Executar ação corretiva e registrar decisão"]}
       />
 
+      <Card title="Filtros de KPI" loading={kpisQuery.isLoading && !kpisQuery.data}>
+        <div className="form-grid form-grid-3">
+          <div>
+            <Text className="form-helper">Período</Text>
+            <Select
+              style={{ width: "100%" }}
+              options={PERIOD_OPTIONS}
+              value={filters.period}
+              onChange={(value) => setFilters((current) => ({ ...current, period: value }))}
+            />
+          </div>
+          <div>
+            <Text className="form-helper">Área</Text>
+            <Select
+              style={{ width: "100%" }}
+              options={[
+                { label: "Todas", value: "" },
+                { label: "Finance", value: "finance" },
+                { label: "HR", value: "hr" },
+                { label: "Security", value: "security" },
+              ]}
+              value={filters.area}
+              onChange={(value) => setFilters((current) => ({ ...current, area: value }))}
+            />
+          </div>
+          <div>
+            <Text className="form-helper">Tipo de evento</Text>
+            <Select
+              style={{ width: "100%" }}
+              options={[
+                { label: "Todos", value: "" },
+                { label: "invoice_updated", value: "invoice_updated" },
+                { label: "access_review", value: "access_review" },
+                { label: "policy_violation", value: "policy_violation" },
+              ]}
+              value={filters.eventType}
+              onChange={(value) => setFilters((current) => ({ ...current, eventType: value }))}
+            />
+          </div>
+          <div>
+            <Text className="form-helper">Risco</Text>
+            <Select
+              style={{ width: "100%" }}
+              options={RISK_LEVEL_OPTIONS}
+              value={filters.riskLevel}
+              onChange={(value) => setFilters((current) => ({ ...current, riskLevel: value }))}
+            />
+          </div>
+          <div>
+            <Text className="form-helper">Status de violação</Text>
+            <Select
+              style={{ width: "100%" }}
+              options={VIOLATION_STATUS_OPTIONS}
+              value={filters.violationStatus}
+              onChange={(value) => setFilters((current) => ({ ...current, violationStatus: value }))}
+            />
+          </div>
+        </div>
+        {kpisQuery.data ? (
+          <Text type="secondary">Atualizado em {toReadableDate(kpisQuery.data.generatedAtUTC)}</Text>
+        ) : null}
+      </Card>
+
       <Row gutter={[16, 16]}>
         <Col xs={24} md={12} xl={6}>
-          <Card><Statistic title="Violações" value={(violationsQuery.data ?? []).length} suffix="itens" /></Card>
+          <Card loading={kpisQuery.isLoading && !kpisQuery.data}><Statistic title="Eventos" value={stats.events} suffix="itens" /></Card>
         </Col>
         <Col xs={24} md={12} xl={6}>
-          <Card><Statistic title="Alta severidade" value={highSeverityCount} /></Card>
+          <Card loading={kpisQuery.isLoading && !kpisQuery.data}><Statistic title="Violações abertas" value={stats.openViolations} /></Card>
         </Col>
         <Col xs={24} md={12} xl={6}>
-          <Card><Statistic title="Risco alto/crítico" value={highRiskCount} /></Card>
+          <Card loading={kpisQuery.isLoading && !kpisQuery.data}><Statistic title="Risco alto/crítico" value={stats.highCriticalRisk} /></Card>
         </Col>
         <Col xs={24} md={12} xl={6}>
-          <Card><Statistic title="Notificações falhas" value={failedNotifications} /></Card>
+          <Card loading={kpisQuery.isLoading && !kpisQuery.data}><Statistic title="Notificações falhas" value={stats.failedNotifications} /></Card>
         </Col>
       </Row>
 

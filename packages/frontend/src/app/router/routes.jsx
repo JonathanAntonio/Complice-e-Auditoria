@@ -15,6 +15,15 @@ const withPermission = (requiredAny, element) => (
   <PermissionGuard requiredAny={requiredAny}>{element}</PermissionGuard>
 );
 
+const GOVERNANCE_ANY_PERMISSIONS = [
+  "reports.read",
+  "reports.export",
+  "system.settings.manage",
+  "audit.logs.read.any",
+  "audit.logs.read.scoped",
+  "compliance.violations.read",
+];
+
 export const router = createBrowserRouter([
   {
     path: "/login/google/callback",
@@ -31,13 +40,13 @@ export const router = createBrowserRouter([
       { index: true, element: <OverviewPage /> },
       { path: "compliance", element: withPermission(["compliance.violations.read"], <CompliancePage />) },
       { path: "audit", element: withPermission(["audit.logs.read.any", "audit.logs.read.scoped"], <AuditPage />) },
-      { path: "operations", element: withPermission(["reports.read", "reports.export", "system.settings.manage", "audit.logs.read.any", "audit.logs.read.scoped", "compliance.violations.read"], <GovernancePage />) },
-      { path: "retention", element: withPermission(["audit.logs.read.any", "audit.logs.read.scoped", "compliance.violations.read"], <GovernancePage />) },
+      { path: "operations", element: withPermission(GOVERNANCE_ANY_PERMISSIONS, <GovernancePage />) },
+      { path: "retention", element: withPermission(GOVERNANCE_ANY_PERMISSIONS, <GovernancePage />) },
       { path: "risk", element: withPermission(["risk.scores.read"], <RiskPage />) },
-      { path: "notifications", element: withPermission(["reports.read", "reports.export", "system.settings.manage"], <GovernancePage />) },
-      { path: "integrations", element: withPermission(["system.settings.manage"], <GovernancePage />) },
+      { path: "notifications", element: withPermission(GOVERNANCE_ANY_PERMISSIONS, <GovernancePage />) },
+      { path: "integrations", element: withPermission(GOVERNANCE_ANY_PERMISSIONS, <GovernancePage />) },
       { path: "messaging", element: withPermission(["audit.logs.read.any", "audit.logs.read.scoped", "reports.read", "reports.export", "system.settings.manage"], <MessagingFlowPage />) },
-      { path: "reports", element: withPermission(["reports.read", "reports.export"], <GovernancePage />) },
+      { path: "reports", element: withPermission(GOVERNANCE_ANY_PERMISSIONS, <GovernancePage />) },
       { path: "admin", element: withPermission(["users.read.any", "users.create", "roles.assign", "users.update", "users.deactivate", "system.settings.manage"], <AdminPage />) },
       { path: "teams", element: <TeamsPage /> },
       { path: "health", element: <OverviewPage /> },

@@ -50,12 +50,18 @@ export function GovernancePage() {
   const navigate = useNavigate();
   const pathname = location.pathname;
 
-  const visibleTabs = useMemo(
-    () => TAB_CONFIG.filter((tab) => tab.requiredAny.length === 0 || hasAnyPermission(tab.requiredAny)),
+  const tabState = useMemo(
+    () =>
+      TAB_CONFIG.map((tab) => ({
+        ...tab,
+        allowed: tab.requiredAny.length === 0 || hasAnyPermission(tab.requiredAny),
+      })),
     [hasAnyPermission],
   );
 
-  if (visibleTabs.length === 0) {
+  const enabledTabs = tabState.filter((tab) => tab.allowed);
+
+  if (enabledTabs.length === 0) {
     return (
       <Space direction="vertical" size="large" style={{ width: "100%" }}>
         <PageHeader
@@ -72,8 +78,8 @@ export function GovernancePage() {
     );
   }
 
-  const activeTab = resolveTabByPath(pathname);
-  const currentTab = visibleTabs.some((tab) => tab.key === activeTab) ? activeTab : visibleTabs[0].key;
+  const pathTab = resolveTabByPath(pathname);
+  const currentTab = tabState.some((tab) => tab.key === pathTab && tab.allowed) ? pathTab : enabledTabs[0].key;
 
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
@@ -86,15 +92,16 @@ export function GovernancePage() {
         <Tabs
           activeKey={currentTab}
           onChange={(nextTab) => {
-            const target = TAB_CONFIG.find((tab) => tab.key === nextTab);
-            if (target) {
+            const target = tabState.find((tab) => tab.key === nextTab);
+            if (target?.allowed) {
               navigate(target.path);
             }
           }}
-          items={visibleTabs.map((tab) => ({
+          items={tabState.map((tab) => ({
             key: tab.key,
             label: tab.label,
-            children: tab.render(),
+            disabled: !tab.allowed,
+            children: tab.allowed ? tab.render() : null,
           }))}
         />
       </Card>

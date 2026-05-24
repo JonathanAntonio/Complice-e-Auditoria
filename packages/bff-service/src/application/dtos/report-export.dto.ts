@@ -5,6 +5,28 @@ export interface CreateReportExportDto {
   filters?: Record<string, unknown>;
 }
 
+export interface ReportKpisQueryDto {
+  period?: "24h" | "7d" | "30d";
+  area?: string;
+  eventType?: string;
+  riskLevel?: "low" | "medium" | "high" | "critical";
+  violationStatus?: "aberta" | "em_analise" | "resolvida" | "dispensada";
+}
+
+export interface ReportKpisDto {
+  generatedAtUTC: string;
+  sourceLagSeconds: number;
+  appliedFilters: ReportKpisQueryDto;
+  totals: {
+    validatedEvents: number;
+    compliantEvents: number;
+    nonCompliantEvents: number;
+  };
+  complianceIndexPercentage: number;
+  violationsByStatus: Record<"aberta" | "em_analise" | "resolvida" | "dispensada", number>;
+  riskDistribution: Record<"low" | "medium" | "high" | "critical", number>;
+}
+
 export interface ReportExportJobDto {
   id: string;
   format: "csv" | "pdf";
@@ -44,6 +66,68 @@ export function parseCreateReportExportDto(raw: unknown): CreateReportExportDto 
   }
 
   return dto;
+}
+
+export function parseReportKpisQueryDto(raw: unknown): ReportKpisQueryDto {
+  if (!raw || typeof raw !== "object") return {};
+  const source = raw as Record<string, unknown>;
+  const dto: ReportKpisQueryDto = {};
+  if (source.period === "24h" || source.period === "7d" || source.period === "30d") dto.period = source.period;
+  if (typeof source.area === "string" && source.area.trim()) dto.area = source.area.trim();
+  if (typeof source.eventType === "string" && source.eventType.trim()) dto.eventType = source.eventType.trim();
+  if (source.riskLevel === "low" || source.riskLevel === "medium" || source.riskLevel === "high" || source.riskLevel === "critical") {
+    dto.riskLevel = source.riskLevel;
+  }
+  if (
+    source.violationStatus === "aberta" ||
+    source.violationStatus === "em_analise" ||
+    source.violationStatus === "resolvida" ||
+    source.violationStatus === "dispensada"
+  ) {
+    dto.violationStatus = source.violationStatus;
+  }
+  return dto;
+}
+
+export function parseReportKpisDto(raw: unknown): ReportKpisDto {
+  if (!raw || typeof raw !== "object") throw new Error("Invalid KPI response");
+  const payload = raw as Record<string, unknown>;
+  const totals = payload.totals as Record<string, unknown> | undefined;
+  const violationsByStatus = payload.violationsByStatus as Record<string, unknown> | undefined;
+  const riskDistribution = payload.riskDistribution as Record<string, unknown> | undefined;
+  if (
+    typeof payload.generatedAtUTC !== "string" ||
+    typeof payload.sourceLagSeconds !== "number" ||
+    typeof payload.complianceIndexPercentage !== "number" ||
+    !totals ||
+    !violationsByStatus ||
+    !riskDistribution
+  ) {
+    throw new Error("Invalid KPI response");
+  }
+  return {
+    generatedAtUTC: payload.generatedAtUTC,
+    sourceLagSeconds: payload.sourceLagSeconds,
+    appliedFilters: parseReportKpisQueryDto((payload.appliedFilters ?? {}) as Record<string, unknown>),
+    totals: {
+      validatedEvents: Number(totals.validatedEvents ?? 0),
+      compliantEvents: Number(totals.compliantEvents ?? 0),
+      nonCompliantEvents: Number(totals.nonCompliantEvents ?? 0),
+    },
+    complianceIndexPercentage: payload.complianceIndexPercentage,
+    violationsByStatus: {
+      aberta: Number(violationsByStatus.aberta ?? 0),
+      em_analise: Number(violationsByStatus.em_analise ?? 0),
+      resolvida: Number(violationsByStatus.resolvida ?? 0),
+      dispensada: Number(violationsByStatus.dispensada ?? 0),
+    },
+    riskDistribution: {
+      low: Number(riskDistribution.low ?? 0),
+      medium: Number(riskDistribution.medium ?? 0),
+      high: Number(riskDistribution.high ?? 0),
+      critical: Number(riskDistribution.critical ?? 0),
+    },
+  };
 }
 
 export function parseReportExportJobDto(raw: unknown): ReportExportJobDto {

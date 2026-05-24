@@ -15,6 +15,7 @@ export { GetRiskScoreHistoryUseCase } from "./get-risk-score-history.use-case";
 export { IngestRiskEventUseCase } from "./ingest-risk-event.use-case";
 export { GetMessagingFlowUseCase } from "./get-messaging-flow.use-case";
 export { CreateReportExportUseCase } from "./create-report-export.use-case";
+export { GetReportKpisUseCase } from "./get-report-kpis.use-case";
 export { GetReportExportUseCase } from "./get-report-export.use-case";
 export { DownloadReportExportUseCase } from "./download-report-export.use-case";
 export { DispatchNotificationUseCase } from "./dispatch-notification.use-case";

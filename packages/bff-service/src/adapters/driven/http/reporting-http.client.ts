@@ -2,6 +2,9 @@ import { UpstreamHttpError } from "../../../application/errors/upstream-http.err
 import type { IReportingClient } from "../../../application/ports";
 import {
   parseReportExportJobDto,
+  parseReportKpisDto,
+  type ReportKpisDto,
+  type ReportKpisQueryDto,
   type CreateReportExportDto,
   type ReportDownloadDto,
   type ReportExportJobDto,
@@ -14,6 +17,20 @@ export interface ReportingHttpClientConfig {
 
 export class ReportingHttpClient implements IReportingClient {
   constructor(private readonly config: ReportingHttpClientConfig) {}
+
+  async getKpis(token: string, query: ReportKpisQueryDto): Promise<ReportKpisDto> {
+    const params = new URLSearchParams();
+    if (query.period) params.set("period", query.period);
+    if (query.area) params.set("area", query.area);
+    if (query.eventType) params.set("eventType", query.eventType);
+    if (query.riskLevel) params.set("riskLevel", query.riskLevel);
+    if (query.violationStatus) params.set("violationStatus", query.violationStatus);
+    const suffix = params.size > 0 ? `?${params.toString()}` : "";
+    const result = await this.request<unknown>(`/reports/kpis${suffix}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return parseReportKpisDto(result);
+  }
 
   async createExport(token: string, payload: CreateReportExportDto): Promise<ReportExportJobDto> {
     const created = await this.request<unknown>("/reports/exports", {

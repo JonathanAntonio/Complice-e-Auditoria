@@ -11,9 +11,20 @@ export function resolvePublicBaseUrl(req: Request, explicitPublicBaseUrl: string
 }
 
 export function shouldUseSecureCookie(req: Request, explicitPublicBaseUrl: string | null): boolean {
+  if (isLocalRequestHost(req)) return false;
   const publicBaseUrl = resolvePublicBaseUrl(req, explicitPublicBaseUrl);
   if (publicBaseUrl) return isHttpsUrl(publicBaseUrl);
   return req.secure;
+}
+
+function isLocalRequestHost(req: Request): boolean {
+  const headers = req.headers ?? {};
+  const forwardedHost = firstForwardedValue(headers["x-forwarded-host"]);
+  const requestHost = typeof req.get === "function" ? req.get("host") : undefined;
+  const host = (forwardedHost ?? requestHost ?? "").toLowerCase();
+  if (!host) return false;
+  const hostname = host.split(":")[0];
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1";
 }
 
 function firstForwardedValue(value: string | string[] | undefined): string | undefined {

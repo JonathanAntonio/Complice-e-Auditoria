@@ -27,6 +27,7 @@ import {
   GetCurrentUserUseCase,
   GetMessagingFlowUseCase,
   GetReportExportUseCase,
+  GetReportKpisUseCase,
   GetRiskScoreHistoryUseCase,
   IngestFrontendAuditLogUseCase,
   IngestRiskEventUseCase,
@@ -114,6 +115,7 @@ export function createApp(config: BffConfig) {
     getRiskScoreHistoryUseCase: new GetRiskScoreHistoryUseCase(riskHttpClient),
     ingestRiskEventUseCase: new IngestRiskEventUseCase(riskHttpClient),
     createReportExportUseCase: new CreateReportExportUseCase(reportingHttpClient),
+    getReportKpisUseCase: new GetReportKpisUseCase(reportingHttpClient),
     getReportExportUseCase: new GetReportExportUseCase(reportingHttpClient),
     downloadReportExportUseCase: new DownloadReportExportUseCase(reportingHttpClient),
     dispatchNotificationUseCase: new DispatchNotificationUseCase(notificationHttpClient),
@@ -157,6 +159,7 @@ export function createApp(config: BffConfig) {
   app.get("/risk/scores/:entityType/:entityId/history", handlers.getRiskScoreHistory);
   app.post("/risk/events", handlers.ingestRiskEvent);
   app.post("/reports/exports", handlers.createReportExport);
+  app.get("/reports/kpis", handlers.getReportKpis);
   app.get("/reports/exports/:id", handlers.getReportExport);
   app.get("/reports/exports/:id/download", handlers.downloadReportExport);
   app.post("/notifications/dispatch", handlers.dispatchNotification);

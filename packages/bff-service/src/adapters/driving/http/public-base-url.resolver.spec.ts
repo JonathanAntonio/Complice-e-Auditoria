@@ -28,6 +28,17 @@ describe("public-base-url.resolver", () => {
     expect(shouldUseSecureCookie(req, null)).toBe(true);
   });
 
+  it("does not force secure cookie on localhost host even with explicit https base url", () => {
+    const req = {
+      headers: {},
+      protocol: "http",
+      get: () => "localhost:5173",
+      secure: false,
+    } as never;
+
+    expect(shouldUseSecureCookie(req, "https://app.example.com")).toBe(false);
+  });
+
   it("falls back to req.secure when url cannot be resolved", () => {
     const req = {
       headers: {},

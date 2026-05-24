@@ -15,13 +15,13 @@ export interface CreateApiDocsAppOptions {
 }
 
 export function createApp(options: CreateApiDocsAppOptions = {}) {
-  const identitySpecUrl = options.identitySpecUrl ?? process.env.IDENTITY_SPEC_URL ?? "http://localhost:3001/api-docs.json";
-  const complianceSpecUrl = options.complianceSpecUrl ?? process.env.COMPLIANCE_SPEC_URL ?? "http://localhost:3002/api-docs.json";
-  const integrationSpecUrl = options.integrationSpecUrl ?? process.env.INTEGRATION_SPEC_URL ?? "http://localhost:3003/api-docs.json";
-  const auditSpecUrl = options.auditSpecUrl ?? process.env.AUDIT_SPEC_URL ?? "http://localhost:3005/api-docs.json";
-  const riskSpecUrl = options.riskSpecUrl ?? process.env.RISK_SPEC_URL ?? "http://localhost:3006/api-docs.json";
-  const reportingSpecUrl = options.reportingSpecUrl ?? process.env.REPORTING_SPEC_URL ?? "http://localhost:3007/api-docs.json";
-  const notificationSpecUrl = options.notificationSpecUrl ?? process.env.NOTIFICATION_SPEC_URL ?? "http://localhost:3008/api-docs.json";
+  const identitySpecUrl = options.identitySpecUrl ?? process.env.IDENTITY_SPEC_URL ?? "http://localhost:4001/api-docs.json";
+  const complianceSpecUrl = options.complianceSpecUrl ?? process.env.COMPLIANCE_SPEC_URL ?? "http://localhost:4002/api-docs.json";
+  const integrationSpecUrl = options.integrationSpecUrl ?? process.env.INTEGRATION_SPEC_URL ?? "http://localhost:4003/api-docs.json";
+  const auditSpecUrl = options.auditSpecUrl ?? process.env.AUDIT_SPEC_URL ?? "http://localhost:4005/api-docs.json";
+  const riskSpecUrl = options.riskSpecUrl ?? process.env.RISK_SPEC_URL ?? "http://localhost:4006/api-docs.json";
+  const reportingSpecUrl = options.reportingSpecUrl ?? process.env.REPORTING_SPEC_URL ?? "http://localhost:4007/api-docs.json";
+  const notificationSpecUrl = options.notificationSpecUrl ?? process.env.NOTIFICATION_SPEC_URL ?? "http://localhost:4008/api-docs.json";
   const fetchFn = options.fetchFn ?? fetch;
   const fetchTimeoutMs = options.fetchTimeoutMs ?? 5000;
 

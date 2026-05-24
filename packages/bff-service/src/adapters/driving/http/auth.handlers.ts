@@ -11,6 +11,7 @@ import {
   parseAuditLogsQueryDto,
   parseCreateComplianceViolationDto,
   parseCreateReportExportDto,
+  parseReportKpisQueryDto,
   parseDispatchNotificationDto,
   parseLoginInputDto,
   parsePublishIntegrationEventDto,
@@ -33,6 +34,7 @@ import {
   GetCurrentUserUseCase,
   GetMessagingFlowUseCase,
   GetReportExportUseCase,
+  GetReportKpisUseCase,
   GetRiskScoreHistoryUseCase,
   IngestFrontendAuditLogUseCase,
   IngestRiskEventUseCase,
@@ -75,6 +77,7 @@ export interface AuthHandlersDeps {
   getMessagingFlowUseCase: GetMessagingFlowUseCase;
   ingestRiskEventUseCase: IngestRiskEventUseCase;
   createReportExportUseCase: CreateReportExportUseCase;
+  getReportKpisUseCase: GetReportKpisUseCase;
   getReportExportUseCase: GetReportExportUseCase;
   downloadReportExportUseCase: DownloadReportExportUseCase;
   dispatchNotificationUseCase: DispatchNotificationUseCase;
@@ -181,6 +184,10 @@ export class AuthHandlers {
 
   createReportExport = (req: Request, res: Response): void => {
     void this.handleCreateReportExport(req, res);
+  };
+
+  getReportKpis = (req: Request, res: Response): void => {
+    void this.handleGetReportKpis(req, res);
   };
 
   getReportExport = (req: Request, res: Response): void => {
@@ -816,6 +823,42 @@ export class AuthHandlers {
         return;
       }
       logger.error({ err }, "BFF failed to create report export");
+      sendJsonError(res, 502, "Reporting service unavailable");
+    }
+  }
+
+  private async handleGetReportKpis(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!tokenHasAnyPermission(token, ["reports.read", "reports.export", "system.settings.manage"])) {
+      sendJsonError(res, 403, "Sem permissão para visualizar KPIs");
+      return;
+    }
+
+    try {
+      const query = parseReportKpisQueryDto(req.query);
+      const result = await this.deps.getReportKpisUseCase.execute(token, query);
+      res.status(200).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para visualizar KPIs");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 400) {
+        sendJsonError(res, 400, "Parâmetros inválidos para KPIs");
+        return;
+      }
+      logger.error({ err }, "BFF failed to get report KPIs");
       sendJsonError(res, 502, "Reporting service unavailable");
     }
   }

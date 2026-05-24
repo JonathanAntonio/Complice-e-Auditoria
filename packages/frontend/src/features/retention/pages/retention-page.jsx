@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Card, Select, Space, Table } from "antd";
 import { listAuditRetentionRuns, listComplianceRetentionRuns } from "../../../bff-client";
+import { useUrlState } from "../../../shared/hooks/use-url-state";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
@@ -26,12 +27,24 @@ const columns = [
 ];
 
 export function RetentionPage({ embedded = false }) {
+  const [retentionFilters, setRetentionFilters] = useUrlState({
+    auditStatus: { key: "auditStatus", defaultValue: "all" },
+    complianceStatus: { key: "complianceStatus", defaultValue: "all" },
+  });
   const { hasAnyPermission, hasPermission } = useSession();
   const canReadAudit = hasAnyPermission(["audit.logs.read.any", "audit.logs.read.scoped"]);
   const canReadCompliance = hasPermission("compliance.violations.read");
 
-  const [auditState, setAuditState] = useState({ page: 1, pageSize: 10, status: "all" });
-  const [complianceState, setComplianceState] = useState({ page: 1, pageSize: 10, status: "all" });
+  const [auditState, setAuditState] = useState({
+    page: 1,
+    pageSize: 10,
+    status: retentionFilters.auditStatus,
+  });
+  const [complianceState, setComplianceState] = useState({
+    page: 1,
+    pageSize: 10,
+    status: retentionFilters.complianceStatus,
+  });
 
   const auditQuery = useQuery({
     queryKey: ["retention", "audit", auditState],
@@ -72,7 +85,10 @@ export function RetentionPage({ embedded = false }) {
               style={{ width: 170 }}
               value={auditState.status}
               options={STATUS_OPTIONS}
-              onChange={(status) => setAuditState((current) => ({ ...current, status, page: 1 }))}
+              onChange={(status) => {
+                setAuditState((current) => ({ ...current, status, page: 1 }));
+                setRetentionFilters({ auditStatus: status, complianceStatus: complianceState.status });
+              }}
             />
           )}
         >
@@ -117,7 +133,10 @@ export function RetentionPage({ embedded = false }) {
               style={{ width: 170 }}
               value={complianceState.status}
               options={STATUS_OPTIONS}
-              onChange={(status) => setComplianceState((current) => ({ ...current, status, page: 1 }))}
+              onChange={(status) => {
+                setComplianceState((current) => ({ ...current, status, page: 1 }));
+                setRetentionFilters({ auditStatus: auditState.status, complianceStatus: status });
+              }}
             />
           )}
         >

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   Alert,
@@ -20,6 +20,7 @@ import {
 } from "antd";
 import { RefreshCw } from "lucide-react";
 import { getMessagingFlowSnapshot } from "../../../bff-client";
+import { useUrlState } from "../../../shared/hooks/use-url-state";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 import { toReadableDate, toRelativeTime } from "../../../shared/utils/formatters";
@@ -43,8 +44,38 @@ const DEFAULT_FILTERS = {
 };
 
 export function MessagingFlowPage() {
+  const filterSchema = useMemo(
+    () => ({
+      sourceService: { key: "sourceService", defaultValue: undefined },
+      eventType: { key: "eventType", defaultValue: "" },
+      correlationId: { key: "correlationId", defaultValue: "" },
+      notificationStatus: { key: "notificationStatus", defaultValue: undefined },
+      onlyFailures: {
+        key: "onlyFailures",
+        defaultValue: false,
+        parse: (value) => value === "true",
+        serialize: (value) => (value ? "true" : ""),
+      },
+      auditLimit: {
+        key: "auditLimit",
+        defaultValue: DEFAULT_FILTERS.auditLimit,
+        parse: (value) => Number(value),
+      },
+      failuresLimit: {
+        key: "failuresLimit",
+        defaultValue: DEFAULT_FILTERS.failuresLimit,
+        parse: (value) => Number(value),
+      },
+    }),
+    [],
+  );
+  const [initialFilters, setUrlFilters] = useUrlState(filterSchema);
   const [filterForm] = Form.useForm();
-  const [filters, setFilters] = useState(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState(initialFilters);
+
+  const syncFiltersToUrl = (next) => {
+    setUrlFilters(next);
+  };
 
   const flowQuery = useQuery({
     queryKey: ["messaging-flow", "snapshot", filters],
@@ -72,6 +103,7 @@ export function MessagingFlowPage() {
   const resetFilters = () => {
     filterForm.resetFields();
     setFilters(DEFAULT_FILTERS);
+    setUrlFilters(DEFAULT_FILTERS);
   };
 
   return (
@@ -112,14 +144,18 @@ export function MessagingFlowPage() {
             notificationStatus: filters.notificationStatus,
             onlyFailures: filters.onlyFailures,
           }}
-          onFinish={(values) => setFilters((current) => ({
-            ...current,
-            sourceService: values.sourceService,
-            eventType: values.eventType ?? "",
-            correlationId: values.correlationId ?? "",
-            notificationStatus: values.notificationStatus,
-            onlyFailures: Boolean(values.onlyFailures),
-          }))}
+          onFinish={(values) => {
+            const next = {
+              ...filters,
+              sourceService: values.sourceService,
+              eventType: values.eventType ?? "",
+              correlationId: values.correlationId ?? "",
+              notificationStatus: values.notificationStatus,
+              onlyFailures: Boolean(values.onlyFailures),
+            };
+            setFilters(next);
+            syncFiltersToUrl(next);
+          }}
         >
           <div className="form-grid form-grid-2">
             <Form.Item label="Serviço" name="sourceService">

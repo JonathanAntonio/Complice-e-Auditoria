@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { Button, Card, Descriptions, Form, Input, Select, Space, Table, Tag, Typography, message } from "antd";
 import { exportAndDownloadReport, getReportExport } from "../../../bff-client";
 import { useSession } from "../../auth/context/session-context";
+import { useUrlState } from "../../../shared/hooks/use-url-state";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 import { toReadableDate, triggerBlobDownload } from "../../../shared/utils/formatters";
@@ -16,6 +17,45 @@ export function ReportingPage({ embedded = false }) {
   const [lookupResult, setLookupResult] = useState(null);
   const [history, setHistory] = useState([]);
   const { session } = useSession();
+  const querySchema = useMemo(
+    () => ({
+      format: { key: "format", defaultValue: "csv", omitIfDefault: false },
+      scope: { key: "scope", defaultValue: "violations", omitIfDefault: false },
+      period: { key: "period", defaultValue: "7d", omitIfDefault: false },
+      area: { key: "area", defaultValue: "" },
+      eventType: { key: "eventType", defaultValue: "" },
+      riskLevel: { key: "riskLevel", defaultValue: "" },
+      violationStatus: { key: "violationStatus", defaultValue: "" },
+    }),
+    [],
+  );
+  const [urlState, setUrlState] = useUrlState(querySchema);
+
+  const initialValues = useMemo(
+    () => ({
+      format: urlState.format,
+      scope: urlState.scope,
+      requestedBy: session?.name ?? "Usuário",
+      period: urlState.period,
+      area: urlState.area,
+      eventType: urlState.eventType,
+      riskLevel: urlState.riskLevel,
+      violationStatus: urlState.violationStatus,
+    }),
+    [session?.name, urlState],
+  );
+
+  const syncFormToUrl = (allValues) => {
+    setUrlState({
+      format: allValues.format || "csv",
+      scope: allValues.scope || "violations",
+      period: allValues.period || "7d",
+      area: allValues.area || "",
+      eventType: allValues.eventType || "",
+      riskLevel: allValues.riskLevel || "",
+      violationStatus: allValues.violationStatus || "",
+    });
+  };
 
   const exportMutation = useMutation({
     mutationFn: exportAndDownloadReport,
@@ -52,32 +92,59 @@ export function ReportingPage({ embedded = false }) {
 
       <WorkflowPanel
         title="Fluxo de exportação"
-        steps={["Selecionar escopo e responsável", "Gerar CSV e validar download", "Consultar ID quando precisar revalidar status"]}
+        steps={["Selecionar escopo, formato e filtros", "Gerar arquivo e validar metadados", "Consultar ID quando precisar revalidar status"]}
       />
 
       <Card title="Etapa 1: gerar exportação">
         <Form
           form={form}
           layout="vertical"
-          initialValues={{ scope: "violations", requestedBy: session?.name ?? "Usuário" }}
+          initialValues={initialValues}
+          key={JSON.stringify(initialValues)}
+          onValuesChange={(_, allValues) => syncFormToUrl(allValues)}
           onFinish={(values) => exportMutation.mutate({
-            format: "csv",
+            format: values.format,
             scope: values.scope,
             requestedBy: values.requestedBy?.trim() || session?.name || "Usuário",
+            filters: {
+              period: values.period,
+              area: values.area || undefined,
+              eventType: values.eventType || undefined,
+              riskLevel: values.riskLevel || undefined,
+              violationStatus: values.violationStatus || undefined,
+            },
           })}
         >
           <Text className="form-helper">Use o escopo correto para evitar retrabalho na investigação.</Text>
           <div className="form-grid form-grid-2">
+            <Form.Item label="Formato" name="format" rules={[{ required: true }]}>
+              <Select options={[{ label: "CSV", value: "csv" }, { label: "PDF", value: "pdf" }]} />
+            </Form.Item>
             <Form.Item label="Escopo da exportação" name="scope" rules={[{ required: true }]}>
               <Select options={[{ label: "Violações", value: "violations" }, { label: "Auditoria", value: "audit" }, { label: "Risco", value: "risk" }]} />
             </Form.Item>
-            <Form.Item label="Responsável pela solicitação" name="requestedBy" rules={[{ required: true }]}>
+            <Form.Item label="Responsável pela solicitação" name="requestedBy" rules={[{ required: true }]}> 
               <Input maxLength={120} placeholder="Nome para rastreabilidade" />
+            </Form.Item>
+            <Form.Item label="Período" name="period" rules={[{ required: true }]}>
+              <Select options={[{ label: "24 horas", value: "24h" }, { label: "7 dias", value: "7d" }, { label: "30 dias", value: "30d" }]} />
+            </Form.Item>
+            <Form.Item label="Área" name="area">
+              <Input maxLength={120} placeholder="Ex.: finance" />
+            </Form.Item>
+            <Form.Item label="Tipo de evento" name="eventType">
+              <Input maxLength={120} placeholder="Ex.: invoice_updated" />
+            </Form.Item>
+            <Form.Item label="Nível de risco" name="riskLevel">
+              <Select options={[{ label: "Todos", value: "" }, { label: "low", value: "low" }, { label: "medium", value: "medium" }, { label: "high", value: "high" }, { label: "critical", value: "critical" }]} />
+            </Form.Item>
+            <Form.Item label="Status da violação" name="violationStatus">
+              <Select options={[{ label: "Todos", value: "" }, { label: "aberta", value: "aberta" }, { label: "resolvida", value: "resolvida" }, { label: "dispensada", value: "dispensada" }]} />
             </Form.Item>
           </div>
           <div className="form-actions">
             <Button onClick={() => form.resetFields()}>Limpar</Button>
-            <Button type="primary" htmlType="submit" loading={exportMutation.isPending}>Gerar e baixar CSV</Button>
+            <Button type="primary" htmlType="submit" loading={exportMutation.isPending}>Gerar e baixar</Button>
           </div>
         </Form>
       </Card>

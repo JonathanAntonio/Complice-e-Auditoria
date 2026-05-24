@@ -10,6 +10,7 @@ import {
   updateAdminUserRoles,
   updateAdminUserSecurity,
 } from "../../../bff-client";
+import { useUrlState } from "../../../shared/hooks/use-url-state";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { toReadableDate } from "../../../shared/utils/formatters";
@@ -38,10 +39,15 @@ export function AdminPage() {
   const canSecurity = hasPermission("users.update");
   const canDeactivate = hasPermission("users.deactivate");
 
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-  const [searchInput, setSearchInput] = useState("");
-  const [search, setSearch] = useState("");
+  const [listState, setListState] = useUrlState({
+    page: { key: "page", defaultValue: 1, parse: (value) => Number(value) || 1, serialize: (value) => String(value) },
+    pageSize: { key: "pageSize", defaultValue: 10, parse: (value) => Number(value) || 10, serialize: (value) => String(value) },
+    query: { key: "q", defaultValue: "" },
+  });
+  const [page, setPage] = useState(listState.page);
+  const [pageSize, setPageSize] = useState(listState.pageSize);
+  const [searchInput, setSearchInput] = useState(listState.query);
+  const [search, setSearch] = useState(listState.query);
   const [createForm] = Form.useForm();
   const [rolesForm] = Form.useForm();
   const [securityForm] = Form.useForm();
@@ -159,8 +165,10 @@ export function AdminPage() {
   const rows = useMemo(() => usersQuery.data?.items ?? [], [usersQuery.data?.items]);
 
   const applySearch = () => {
+    const nextSearch = searchInput.trim();
     setPage(1);
-    setSearch(searchInput.trim());
+    setSearch(nextSearch);
+    setListState({ page: 1, pageSize, query: nextSearch });
   };
 
   return (
@@ -206,8 +214,11 @@ export function AdminPage() {
               showSizeChanger: true,
             }}
             onChange={(pagination) => {
-              setPage(pagination.current ?? 1);
-              setPageSize(pagination.pageSize ?? 10);
+              const nextPage = pagination.current ?? 1;
+              const nextPageSize = pagination.pageSize ?? 10;
+              setPage(nextPage);
+              setPageSize(nextPageSize);
+              setListState({ page: nextPage, pageSize: nextPageSize, query: search });
             }}
             columns={[
               { title: "Nome", dataIndex: "name", key: "name" },

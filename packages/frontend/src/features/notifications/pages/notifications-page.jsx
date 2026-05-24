@@ -1,6 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, Button, Card, Form, Input, Select, Space, Table, Tag, Typography, message } from "antd";
+import { useMemo } from "react";
 import { dispatchNotification, listNotificationLogs } from "../../../bff-client";
+import { useUrlState } from "../../../shared/hooks/use-url-state";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
@@ -12,6 +14,12 @@ const { Text } = Typography;
 export function NotificationsPage({ embedded = false }) {
   const [messageApi, messageContextHolder] = message.useMessage();
   const [form] = Form.useForm();
+  const [filterValues, setFilterValues] = useUrlState({
+    channel: { key: "channel", defaultValue: "all" },
+    severity: { key: "severity", defaultValue: "all" },
+    status: { key: "status", defaultValue: "all" },
+    recipient: { key: "recipient", defaultValue: "" },
+  });
   const { hasPermission } = useSession();
   const canDispatch = hasPermission("system.settings.manage");
   const queryClient = useQueryClient();
@@ -20,6 +28,17 @@ export function NotificationsPage({ embedded = false }) {
     queryKey: ["notifications", "logs"],
     queryFn: listNotificationLogs,
   });
+
+  const filteredLogs = useMemo(() => {
+    const items = logsQuery.data?.items ?? [];
+    return items.filter((item) => {
+      if (filterValues.channel !== "all" && item.channel !== filterValues.channel) return false;
+      if (filterValues.severity !== "all" && item.severity !== filterValues.severity) return false;
+      if (filterValues.status !== "all" && item.status !== filterValues.status) return false;
+      if (filterValues.recipient && !item.recipient.toLowerCase().includes(filterValues.recipient.toLowerCase())) return false;
+      return true;
+    });
+  }, [filterValues.channel, filterValues.recipient, filterValues.severity, filterValues.status, logsQuery.data?.items]);
 
   const dispatchMutation = useMutation({
     mutationFn: dispatchNotification,
@@ -49,10 +68,43 @@ export function NotificationsPage({ embedded = false }) {
       />
 
       <Card title="Histórico de notificações">
+        <div className="form-grid form-grid-2" style={{ marginBottom: 12 }}>
+          <Select
+            value={filterValues.channel}
+            options={[{ label: "Canal: todos", value: "all" }, { label: "email", value: "email" }, { label: "webhook", value: "webhook" }]}
+            onChange={(channel) => setFilterValues({ ...filterValues, channel })}
+          />
+          <Select
+            value={filterValues.severity}
+            options={[
+              { label: "Severidade: todas", value: "all" },
+              { label: "low", value: "low" },
+              { label: "medium", value: "medium" },
+              { label: "high", value: "high" },
+              { label: "critical", value: "critical" },
+            ]}
+            onChange={(severity) => setFilterValues({ ...filterValues, severity })}
+          />
+          <Select
+            value={filterValues.status}
+            options={[
+              { label: "Status: todos", value: "all" },
+              { label: "sent", value: "sent" },
+              { label: "failed", value: "failed" },
+              { label: "dead_letter", value: "dead_letter" },
+            ]}
+            onChange={(status) => setFilterValues({ ...filterValues, status })}
+          />
+          <Input
+            value={filterValues.recipient}
+            placeholder="Filtrar destinatário"
+            onChange={(event) => setFilterValues({ ...filterValues, recipient: event.target.value })}
+          />
+        </div>
         <Table
           rowKey={(row) => row.id}
           loading={logsQuery.isLoading}
-          dataSource={logsQuery.data?.items ?? []}
+          dataSource={filteredLogs}
           pagination={{ pageSize: 10, showSizeChanger: false }}
           columns={[
             { title: "Canal", dataIndex: "channel", key: "channel", render: (value) => <Tag>{value}</Tag> },

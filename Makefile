@@ -4,7 +4,7 @@ NGROK_URL ?= rage-awhile-snowcap.ngrok-free.dev
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install infra-up infra-wait infra-down migrate dev run test lint build monitoring-up monitoring-down backup-db restore-db sprint3-check
+.PHONY: help install infra-up infra-wait infra-down migrate dev run stop kill-ports test lint build monitoring-up monitoring-down backup-db restore-db sprint3-check
 
 help:
 	@echo "Targets disponíveis:"
@@ -16,6 +16,7 @@ help:
 	@echo "  make migrate     - executa migrações dos serviços"
 	@echo "  make dev         - sobe identity, compliance, integration, audit, risk, reporting, notification, messaging, api-docs, bff e frontend"
 	@echo "  make run         - instala deps, sobe infra e inicia todos os serviços"
+	@echo "  make stop        - encerra todos os serviços Node do projeto"
 	@echo "  make test        - roda testes"
 	@echo "  make sprint3-check - sobe infra, aplica migrate do compliance-service e roda testes de compliance/notification"
 	@echo "  make lint        - roda lint"
@@ -55,10 +56,18 @@ migrate:
 	./packages/integration-service/node_modules/.bin/prisma migrate dev --name init --schema=./packages/integration-service/prisma/schema.prisma
 	./packages/audit-service/node_modules/.bin/prisma migrate dev --name init --schema=./packages/audit-service/prisma/schema.prisma
 
+stop:
+	@echo "Encerrando serviços Node do projeto nas portas 4000-4011..."
+	@lsof -ti :4000,4001,4002,4003,4004,4005,4006,4007,4008,4009,4010,4011 2>/dev/null | xargs kill -9 2>/dev/null || true
+	@sleep 1
+	@echo "Pronto."
+
+kill-ports: stop
+
 dev:
 	pnpm dev
 
-run: install infra-up infra-wait dev
+run: stop install infra-up infra-wait dev
 
 test:
 	pnpm test

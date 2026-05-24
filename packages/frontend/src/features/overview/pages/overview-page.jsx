@@ -4,6 +4,7 @@ import { Button, Card, Col, Row, Select, Space, Statistic, Table, Typography } f
 import { useNavigate } from "react-router-dom";
 import { getReportKpis, listAuditLogs } from "../../../bff-client";
 import { useSession } from "../../auth/context/session-context";
+import { useUrlState } from "../../../shared/hooks/use-url-state";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { toReadableDate, toRelativeTime } from "../../../shared/utils/formatters";
 import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
@@ -33,14 +34,33 @@ const VIOLATION_STATUS_OPTIONS = [
 
 export function OverviewPage() {
   const navigate = useNavigate();
+  const filterSchema = useMemo(
+    () => ({
+      period: { key: "period", defaultValue: "24h", omitIfDefault: false },
+      area: { key: "area", defaultValue: "" },
+      eventType: { key: "eventType", defaultValue: "" },
+      riskLevel: { key: "riskLevel", defaultValue: "" },
+      violationStatus: { key: "violationStatus", defaultValue: "" },
+    }),
+    [],
+  );
+  const [initialFilters, updateInitialFilters] = useUrlState(filterSchema);
   const { hasAnyPermission } = useSession();
   const [filters, setFilters] = useState({
-    period: "24h",
-    area: "",
-    eventType: "",
-    riskLevel: "",
-    violationStatus: "",
+    period: initialFilters.period,
+    area: initialFilters.area,
+    eventType: initialFilters.eventType,
+    riskLevel: initialFilters.riskLevel,
+    violationStatus: initialFilters.violationStatus,
   });
+
+  const updateFilters = (updater) => {
+    setFilters((current) => {
+      const next = typeof updater === "function" ? updater(current) : updater;
+      updateInitialFilters(next);
+      return next;
+    });
+  };
 
   const canReadKpis = hasAnyPermission(["reports.read", "reports.export", "system.settings.manage"]);
 
@@ -81,6 +101,17 @@ export function OverviewPage() {
     };
   }, [kpisQuery.data]);
 
+  const exportQuery = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("scope", "violations");
+    params.set("period", filters.period);
+    if (filters.area) params.set("area", filters.area);
+    if (filters.eventType) params.set("eventType", filters.eventType);
+    if (filters.riskLevel) params.set("riskLevel", filters.riskLevel);
+    if (filters.violationStatus) params.set("violationStatus", filters.violationStatus);
+    return params.toString();
+  }, [filters]);
+
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <PageHeader
@@ -88,6 +119,7 @@ export function OverviewPage() {
         subtitle="Painel diário por função para leitura rápida, priorização e ação."
         actions={[
           <Button key="compliance" onClick={() => navigate("/compliance")}>Abrir compliance</Button>,
+          <Button key="reports" onClick={() => navigate(`/reports?${exportQuery}`)}>Exportar com filtros</Button>,
           <Button key="admin" type="primary" onClick={() => navigate("/admin")}>Abrir administração</Button>,
         ]}
       />
@@ -104,7 +136,7 @@ export function OverviewPage() {
               style={{ width: "100%" }}
               options={PERIOD_OPTIONS}
               value={filters.period}
-              onChange={(value) => setFilters((current) => ({ ...current, period: value }))}
+              onChange={(value) => updateFilters((current) => ({ ...current, period: value }))}
             />
           </div>
           <div>
@@ -118,7 +150,7 @@ export function OverviewPage() {
                 { label: "Security", value: "security" },
               ]}
               value={filters.area}
-              onChange={(value) => setFilters((current) => ({ ...current, area: value }))}
+              onChange={(value) => updateFilters((current) => ({ ...current, area: value }))}
             />
           </div>
           <div>
@@ -132,7 +164,7 @@ export function OverviewPage() {
                 { label: "policy_violation", value: "policy_violation" },
               ]}
               value={filters.eventType}
-              onChange={(value) => setFilters((current) => ({ ...current, eventType: value }))}
+              onChange={(value) => updateFilters((current) => ({ ...current, eventType: value }))}
             />
           </div>
           <div>
@@ -141,7 +173,7 @@ export function OverviewPage() {
               style={{ width: "100%" }}
               options={RISK_LEVEL_OPTIONS}
               value={filters.riskLevel}
-              onChange={(value) => setFilters((current) => ({ ...current, riskLevel: value }))}
+              onChange={(value) => updateFilters((current) => ({ ...current, riskLevel: value }))}
             />
           </div>
           <div>
@@ -150,7 +182,7 @@ export function OverviewPage() {
               style={{ width: "100%" }}
               options={VIOLATION_STATUS_OPTIONS}
               value={filters.violationStatus}
-              onChange={(value) => setFilters((current) => ({ ...current, violationStatus: value }))}
+              onChange={(value) => updateFilters((current) => ({ ...current, violationStatus: value }))}
             />
           </div>
         </div>

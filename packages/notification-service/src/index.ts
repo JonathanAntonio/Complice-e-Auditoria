@@ -37,12 +37,13 @@ async function bootstrap(): Promise<void> {
   });
   await prisma.$connect();
 
-  process.on("SIGINT", async () => {
+  const shutdown = async (signal: string) => {
+    logger.info({ signal }, "Shutting down notification-service...");
     await prisma.$disconnect();
-  });
-  process.on("SIGTERM", async () => {
-    await prisma.$disconnect();
-  });
+    process.exit(0);
+  };
+  process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
 
   const preferencesRepository = new PrismaNotificationPreferencesRepository(prisma);
   const preferencesService = new NotificationPreferencesService(preferencesRepository);

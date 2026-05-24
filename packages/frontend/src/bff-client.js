@@ -19,7 +19,9 @@ export { exportAndDownloadReport, getReportExport } from "./application/report-e
 export { getReportKpis } from "./application/report-kpis.service";
 export {
   dispatchNotification,
+  getNotificationPreference,
   listNotificationLogs,
+  upsertNotificationPreference,
 } from "./application/notification-logs.service";
 export { getMessagingFlowSnapshot } from "./application/messaging-flow.service";
 export {

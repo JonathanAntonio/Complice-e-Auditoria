@@ -57,13 +57,17 @@ export type {
 } from "./report-export.dto";
 export {
   parseDispatchNotificationDto,
+  parseNotificationPreferenceDto,
   parseNotificationDispatchResultDto,
   parseNotificationLogsListDto,
+  parseUpsertNotificationPreferenceDto,
 } from "./notification.dto";
 export type {
   DispatchNotificationDto,
+  NotificationPreferenceDto,
   NotificationDispatchResultDto,
   NotificationLogsListDto,
+  UpsertNotificationPreferenceDto,
 } from "./notification.dto";
 export { parseMessagingFlowSnapshotDto } from "./messaging-flow.dto";
 export type { MessagingFlowQueryDto, MessagingFlowSnapshotDto } from "./messaging-flow.dto";

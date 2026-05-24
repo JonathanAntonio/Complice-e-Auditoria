@@ -23,6 +23,7 @@ import {
   DeactivateAdminUserUseCase,
   DispatchNotificationUseCase,
   DownloadReportExportUseCase,
+  GetNotificationPreferenceUseCase,
   GetAdminUserUseCase,
   GetCurrentUserUseCase,
   GetMessagingFlowUseCase,
@@ -44,6 +45,7 @@ import {
   RegisterUseCase,
   StartOAuthUseCase,
   UpdateAdminUserRolesUseCase,
+  UpsertNotificationPreferenceUseCase,
   UpdateAdminUserSecurityUseCase,
   UpdateComplianceViolationUseCase,
 } from "../application/use-cases";
@@ -120,6 +122,8 @@ export function createApp(config: BffConfig) {
     downloadReportExportUseCase: new DownloadReportExportUseCase(reportingHttpClient),
     dispatchNotificationUseCase: new DispatchNotificationUseCase(notificationHttpClient),
     listNotificationLogsUseCase: new ListNotificationLogsUseCase(notificationHttpClient),
+    getNotificationPreferenceUseCase: new GetNotificationPreferenceUseCase(notificationHttpClient),
+    upsertNotificationPreferenceUseCase: new UpsertNotificationPreferenceUseCase(notificationHttpClient),
     listAdminUsersUseCase: new ListAdminUsersUseCase(iamAuthClient),
     getAdminUserUseCase: new GetAdminUserUseCase(iamAuthClient),
     createAdminUserUseCase: new CreateAdminUserUseCase(iamAuthClient),
@@ -164,6 +168,8 @@ export function createApp(config: BffConfig) {
   app.get("/reports/exports/:id/download", handlers.downloadReportExport);
   app.post("/notifications/dispatch", handlers.dispatchNotification);
   app.get("/notifications/logs", handlers.listNotificationLogs);
+  app.get("/notifications/preferences/:recipient", handlers.getNotificationPreference);
+  app.put("/notifications/preferences/:recipient", handlers.upsertNotificationPreference);
   app.get("/admin/users", handlers.listAdminUsers);
   app.get("/admin/users/:userId", handlers.getAdminUser);
   app.post("/admin/users", handlers.createAdminUser);

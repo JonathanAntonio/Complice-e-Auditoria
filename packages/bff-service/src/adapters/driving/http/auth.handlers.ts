@@ -13,6 +13,7 @@ import {
   parseCreateReportExportDto,
   parseReportKpisQueryDto,
   parseDispatchNotificationDto,
+  parseUpsertNotificationPreferenceDto,
   parseLoginInputDto,
   parsePublishIntegrationEventDto,
   parseRegisterInputDto,
@@ -30,6 +31,7 @@ import {
   DeactivateAdminUserUseCase,
   DispatchNotificationUseCase,
   DownloadReportExportUseCase,
+  GetNotificationPreferenceUseCase,
   GetAdminUserUseCase,
   GetCurrentUserUseCase,
   GetMessagingFlowUseCase,
@@ -51,6 +53,7 @@ import {
   RegisterUseCase,
   StartOAuthUseCase,
   UpdateAdminUserRolesUseCase,
+  UpsertNotificationPreferenceUseCase,
   UpdateAdminUserSecurityUseCase,
   UpdateComplianceViolationUseCase,
 } from "../../../application/use-cases";
@@ -82,6 +85,8 @@ export interface AuthHandlersDeps {
   downloadReportExportUseCase: DownloadReportExportUseCase;
   dispatchNotificationUseCase: DispatchNotificationUseCase;
   listNotificationLogsUseCase: ListNotificationLogsUseCase;
+  getNotificationPreferenceUseCase: GetNotificationPreferenceUseCase;
+  upsertNotificationPreferenceUseCase: UpsertNotificationPreferenceUseCase;
   listAdminUsersUseCase: ListAdminUsersUseCase;
   getAdminUserUseCase: GetAdminUserUseCase;
   createAdminUserUseCase: CreateAdminUserUseCase;
@@ -204,6 +209,14 @@ export class AuthHandlers {
 
   listNotificationLogs = (req: Request, res: Response): void => {
     void this.handleListNotificationLogs(req, res);
+  };
+
+  getNotificationPreference = (req: Request, res: Response): void => {
+    void this.handleGetNotificationPreference(req, res);
+  };
+
+  upsertNotificationPreference = (req: Request, res: Response): void => {
+    void this.handleUpsertNotificationPreference(req, res);
   };
 
   listAdminUsers = (req: Request, res: Response): void => {
@@ -1010,6 +1023,83 @@ export class AuthHandlers {
         return;
       }
       logger.error({ err }, "BFF failed to list notification logs");
+      sendJsonError(res, 502, "Notification service unavailable");
+    }
+  }
+
+  private async handleGetNotificationPreference(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    const recipient = typeof req.params.recipient === "string" ? req.params.recipient.trim().toLowerCase() : "";
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!recipient) {
+      sendJsonError(res, 400, "Destinatário inválido");
+      return;
+    }
+
+    try {
+      const result = await this.deps.getNotificationPreferenceUseCase.execute(token, recipient);
+      res.status(200).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para visualizar preferências");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 404) {
+        sendJsonError(res, 404, "Preferência não encontrada");
+        return;
+      }
+      logger.error({ err }, "BFF failed to get notification preference");
+      sendJsonError(res, 502, "Notification service unavailable");
+    }
+  }
+
+  private async handleUpsertNotificationPreference(req: Request, res: Response): Promise<void> {
+    const token = this.deps.cookieSessionService.readSessionToken(req);
+    const secureCookie = shouldUseSecureCookie(req, this.deps.explicitPublicBaseUrl);
+    const recipient = typeof req.params.recipient === "string" ? req.params.recipient.trim().toLowerCase() : "";
+    if (!token) {
+      sendJsonError(res, 401, "Não autenticado");
+      return;
+    }
+    if (!(await this.ensureSessionActive(token, req, res, secureCookie))) return;
+    if (!recipient) {
+      sendJsonError(res, 400, "Destinatário inválido");
+      return;
+    }
+    const payload = parseUpsertNotificationPreferenceDto(req.body);
+    if (!payload) {
+      sendJsonError(res, 400, "Payload inválido para preferência de notificação");
+      return;
+    }
+
+    try {
+      const result = await this.deps.upsertNotificationPreferenceUseCase.execute(token, recipient, payload);
+      res.status(200).json(result);
+    } catch (err) {
+      if (err instanceof UpstreamHttpError && err.statusCode === 401) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+        sendJsonError(res, 401, "Não autenticado");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 403) {
+        sendJsonError(res, 403, "Sem permissão para atualizar preferências");
+        return;
+      }
+      if (err instanceof UpstreamHttpError && err.statusCode === 400) {
+        sendJsonError(res, 400, toErrorMessage(err, "Payload inválido para preferência de notificação"));
+        return;
+      }
+      logger.error({ err }, "BFF failed to upsert notification preference");
       sendJsonError(res, 502, "Notification service unavailable");
     }
   }

@@ -23,6 +23,22 @@ export interface NotificationLogsListDto {
   generatedAtUTC: string;
 }
 
+export interface NotificationPreferenceDto {
+  recipient: string;
+  channels: Array<"email" | "webhook">;
+  frequency: "immediate" | "hourly_digest" | "daily_digest";
+  grouping: boolean;
+  muteLowMedium: boolean;
+  updatedAtUTC: string;
+}
+
+export interface UpsertNotificationPreferenceDto {
+  channels: Array<"email" | "webhook">;
+  frequency?: "immediate" | "hourly_digest" | "daily_digest";
+  grouping?: boolean;
+  muteLowMedium?: boolean;
+}
+
 export function parseDispatchNotificationDto(raw: unknown): DispatchNotificationDto | null {
   if (!raw || typeof raw !== "object") return null;
   const payload = raw as Record<string, unknown>;
@@ -92,5 +108,61 @@ export function parseNotificationLogsListDto(raw: unknown): NotificationLogsList
   return {
     items: payload.items.map((item) => parseNotificationDispatchResultDto(item)),
     generatedAtUTC: payload.generatedAtUTC,
+  };
+}
+
+export function parseUpsertNotificationPreferenceDto(raw: unknown): UpsertNotificationPreferenceDto | null {
+  if (!raw || typeof raw !== "object") return null;
+  const payload = raw as Record<string, unknown>;
+  if (!Array.isArray(payload.channels)) return null;
+  const channels = [...new Set(payload.channels
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim().toLowerCase())
+    .filter((item): item is "email" | "webhook" => item === "email" || item === "webhook"))];
+  if (channels.length === 0) return null;
+
+  const dto: UpsertNotificationPreferenceDto = { channels };
+  if (typeof payload.frequency === "string") {
+    const frequency = payload.frequency.trim().toLowerCase();
+    if (frequency === "immediate" || frequency === "hourly_digest" || frequency === "daily_digest") {
+      dto.frequency = frequency;
+    }
+  }
+  if (typeof payload.grouping === "boolean") {
+    dto.grouping = payload.grouping;
+  }
+  if (typeof payload.muteLowMedium === "boolean") {
+    dto.muteLowMedium = payload.muteLowMedium;
+  }
+  return dto;
+}
+
+export function parseNotificationPreferenceDto(raw: unknown): NotificationPreferenceDto {
+  if (!raw || typeof raw !== "object") throw new Error("Invalid notification preference response");
+  const payload = raw as Record<string, unknown>;
+  if (
+    typeof payload.recipient !== "string" ||
+    !Array.isArray(payload.channels) ||
+    typeof payload.frequency !== "string" ||
+    typeof payload.grouping !== "boolean" ||
+    typeof payload.muteLowMedium !== "boolean" ||
+    typeof payload.updatedAtUTC !== "string"
+  ) {
+    throw new Error("Invalid notification preference response");
+  }
+
+  const channels = payload.channels
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim().toLowerCase())
+    .filter((item): item is "email" | "webhook" => item === "email" || item === "webhook");
+
+  return {
+    recipient: payload.recipient,
+    channels: [...new Set(channels)],
+    frequency:
+      payload.frequency === "hourly_digest" || payload.frequency === "daily_digest" ? payload.frequency : "immediate",
+    grouping: payload.grouping,
+    muteLowMedium: payload.muteLowMedium,
+    updatedAtUTC: payload.updatedAtUTC,
   };
 }

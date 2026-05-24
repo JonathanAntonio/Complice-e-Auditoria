@@ -20,6 +20,8 @@ export { GetReportExportUseCase } from "./get-report-export.use-case";
 export { DownloadReportExportUseCase } from "./download-report-export.use-case";
 export { DispatchNotificationUseCase } from "./dispatch-notification.use-case";
 export { ListNotificationLogsUseCase } from "./list-notification-logs.use-case";
+export { GetNotificationPreferenceUseCase } from "./get-notification-preference.use-case";
+export { UpsertNotificationPreferenceUseCase } from "./upsert-notification-preference.use-case";
 export { ListAdminUsersUseCase } from "./list-admin-users.use-case";
 export { GetAdminUserUseCase } from "./get-admin-user.use-case";
 export { CreateAdminUserUseCase } from "./create-admin-user.use-case";

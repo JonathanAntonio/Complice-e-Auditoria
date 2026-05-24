@@ -1,11 +1,14 @@
 import { UpstreamHttpError } from "../../../application/errors/upstream-http.error";
 import type { INotificationClient } from "../../../application/ports";
 import {
+  parseNotificationPreferenceDto,
   parseNotificationDispatchResultDto,
   parseNotificationLogsListDto,
   type DispatchNotificationDto,
+  type NotificationPreferenceDto,
   type NotificationDispatchResultDto,
   type NotificationLogsListDto,
+  type UpsertNotificationPreferenceDto,
 } from "../../../application/dtos";
 
 export interface NotificationHttpClientConfig {
@@ -38,6 +41,31 @@ export class NotificationHttpClient implements INotificationClient {
     });
 
     return parseNotificationLogsListDto(result);
+  }
+
+  async getNotificationPreference(token: string, recipient: string): Promise<NotificationPreferenceDto> {
+    const encodedRecipient = encodeURIComponent(recipient.trim().toLowerCase());
+    const result = await this.request<unknown>(`/notifications/preferences/${encodedRecipient}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return parseNotificationPreferenceDto(result);
+  }
+
+  async upsertNotificationPreference(
+    token: string,
+    recipient: string,
+    payload: UpsertNotificationPreferenceDto
+  ): Promise<NotificationPreferenceDto> {
+    const encodedRecipient = encodeURIComponent(recipient.trim().toLowerCase());
+    const result = await this.request<unknown>(`/notifications/preferences/${encodedRecipient}`, {
+      method: "PUT",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(payload),
+    });
+    return parseNotificationPreferenceDto(result);
   }
 
   private async request<T>(pathWithQuery: string, init: RequestInit = {}): Promise<T> {

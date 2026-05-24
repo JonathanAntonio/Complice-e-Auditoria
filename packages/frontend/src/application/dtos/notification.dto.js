@@ -1,6 +1,7 @@
 const ALLOWED_CHANNELS = new Set(["email", "webhook"]);
 const ALLOWED_SEVERITIES = new Set(["low", "medium", "high", "critical"]);
 const ALLOWED_STATUSES = new Set(["sent", "failed", "dead_letter"]);
+const ALLOWED_FREQUENCIES = new Set(["immediate", "hourly_digest", "daily_digest"]);
 
 export function parseNotificationLogsResponseDto(raw) {
   if (!raw || typeof raw !== "object") {
@@ -44,6 +45,66 @@ export function parseDispatchNotificationInputDto(raw) {
 
 export function parseNotificationDispatchResultDto(raw) {
   return parseNotificationLogItemDto(raw);
+}
+
+export function parseNotificationPreferenceDto(raw) {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Preferência de notificação inválida.");
+  }
+  const payload = raw;
+  if (
+    typeof payload.recipient !== "string" ||
+    !Array.isArray(payload.channels) ||
+    typeof payload.frequency !== "string" ||
+    typeof payload.grouping !== "boolean" ||
+    typeof payload.muteLowMedium !== "boolean"
+  ) {
+    throw new Error("Preferência de notificação inválida.");
+  }
+
+  const channels = [...new Set(payload.channels
+    .filter((item) => typeof item === "string")
+    .map((item) => item.trim().toLowerCase())
+    .filter((item) => ALLOWED_CHANNELS.has(item)))];
+
+  if (channels.length === 0) throw new Error("Preferência de notificação inválida.");
+
+  const frequency = String(payload.frequency).trim().toLowerCase();
+  if (!ALLOWED_FREQUENCIES.has(frequency)) throw new Error("Preferência de notificação inválida.");
+
+  return {
+    recipient: payload.recipient.trim().toLowerCase(),
+    channels,
+    frequency,
+    grouping: payload.grouping,
+    muteLowMedium: payload.muteLowMedium,
+    updatedAtUTC: typeof payload.updatedAtUTC === "string" ? payload.updatedAtUTC : null,
+  };
+}
+
+export function parseUpsertNotificationPreferenceInputDto(raw) {
+  if (!raw || typeof raw !== "object") {
+    throw new Error("Payload inválido para preferência de notificação.");
+  }
+  const payload = raw;
+  if (!Array.isArray(payload.channels)) {
+    throw new Error("Selecione ao menos um canal.");
+  }
+  const channels = [...new Set(payload.channels
+    .filter((item) => typeof item === "string")
+    .map((item) => item.trim().toLowerCase())
+    .filter((item) => ALLOWED_CHANNELS.has(item)))];
+  if (channels.length === 0) throw new Error("Selecione ao menos um canal.");
+
+  const frequency = typeof payload.frequency === "string" ? payload.frequency.trim().toLowerCase() : "immediate";
+  if (!ALLOWED_FREQUENCIES.has(frequency)) throw new Error("Frequência inválida.");
+
+  return {
+    channels,
+    frequency,
+    grouping: Boolean(payload.grouping),
+    muteLowMedium: Boolean(payload.muteLowMedium),
+  };
 }
 
 function parseNotificationLogItemDto(raw) {

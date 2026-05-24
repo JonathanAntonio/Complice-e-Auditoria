@@ -24,6 +24,8 @@ function createHandlers() {
     downloadReportExportUseCase: { execute: vi.fn() } as never,
     dispatchNotificationUseCase: { execute: vi.fn() } as never,
     listNotificationLogsUseCase: { execute: vi.fn() } as never,
+    getNotificationPreferenceUseCase: { execute: vi.fn() } as never,
+    upsertNotificationPreferenceUseCase: { execute: vi.fn() } as never,
     listAdminUsersUseCase: { execute: vi.fn() } as never,
     getAdminUserUseCase: { execute: vi.fn() } as never,
     createAdminUserUseCase: { execute: vi.fn() } as never,

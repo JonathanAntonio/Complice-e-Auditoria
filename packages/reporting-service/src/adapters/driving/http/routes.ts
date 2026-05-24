@@ -2,11 +2,25 @@ import { Router, type Request, type Response } from "express";
 import { sendError, sendValidationError } from "@lframework/shared";
 import { z, ZodError } from "zod";
 import type { ExportJobsService } from "../../../application/export-jobs.service";
+import type { KpiSnapshotsService } from "../../../application/kpi-snapshots.service";
 
 const idSchema = z.string().uuid();
 
-export function createReportingRoutes(service: ExportJobsService): Router {
+export function createReportingRoutes(service: ExportJobsService, kpis: KpiSnapshotsService): Router {
   const router = Router();
+
+  router.get("/reports/kpis", (req: Request, res: Response) => {
+    try {
+      const snapshot = kpis.getSnapshot(req.query);
+      res.status(200).json(snapshot);
+    } catch (err) {
+      if (err instanceof ZodError) {
+        sendValidationError(res, err);
+        return;
+      }
+      throw err;
+    }
+  });
 
   router.post("/reports/exports", (req: Request, res: Response) => {
     try {

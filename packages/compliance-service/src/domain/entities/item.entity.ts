@@ -16,6 +16,8 @@ export class Item {
     private _status: ViolationStatus,
     private _resolvedAt: Date | null,
     private _dismissedAt: Date | null,
+    private _dismissalJustification: string | null,
+    private _dismissalApprovedBy: string | null,
     private _retentionUntil: Date | null,
     private readonly _createdAt: Date
   ) {}
@@ -24,7 +26,7 @@ export class Item {
     if (!name || name.trim().length === 0) {
       throw new Error("Name is required");
     }
-    return new Item(id, name.trim(), price, VIOLATION_STATUS.ABERTA, null, null, null, new Date());
+    return new Item(id, name.trim(), price, VIOLATION_STATUS.ABERTA, null, null, null, null, null, new Date());
   }
 
   static reconstitute(
@@ -36,6 +38,8 @@ export class Item {
     status: ViolationStatus = VIOLATION_STATUS.ABERTA,
     resolvedAt: Date | null = null,
     dismissedAt: Date | null = null,
+    dismissalJustification: string | null = null,
+    dismissalApprovedBy: string | null = null,
     retentionUntil: Date | null = null
   ): Item {
     return new Item(
@@ -45,6 +49,8 @@ export class Item {
       status,
       resolvedAt,
       dismissedAt,
+      dismissalJustification,
+      dismissalApprovedBy,
       retentionUntil,
       createdAt
     );
@@ -82,7 +88,19 @@ export class Item {
     return this._retentionUntil ? new Date(this._retentionUntil.getTime()) : null;
   }
 
-  transitionStatus(nextStatus: ViolationStatus, at: Date): void {
+  get dismissalJustification(): string | null {
+    return this._dismissalJustification;
+  }
+
+  get dismissalApprovedBy(): string | null {
+    return this._dismissalApprovedBy;
+  }
+
+  transitionStatus(
+    nextStatus: ViolationStatus,
+    at: Date,
+    options: { dismissalJustification?: string; dismissalApprovedBy?: string; isCritical?: boolean } = {}
+  ): void {
     if (this._status === nextStatus) {
       return;
     }
@@ -106,17 +124,30 @@ export class Item {
     if (nextStatus === VIOLATION_STATUS.RESOLVIDA) {
       this._resolvedAt = new Date(at.getTime());
       this._dismissedAt = null;
+      this._dismissalJustification = null;
+      this._dismissalApprovedBy = null;
       return;
     }
 
     if (nextStatus === VIOLATION_STATUS.DISPENSADA) {
+      const justification = options.dismissalJustification?.trim();
+      if (!justification) {
+        throw new Error("Dismissed violation requires justification");
+      }
+      if (options.isCritical && !options.dismissalApprovedBy?.trim()) {
+        throw new Error("Critical violation dismissal requires approval");
+      }
       this._dismissedAt = new Date(at.getTime());
       this._resolvedAt = null;
+      this._dismissalJustification = justification;
+      this._dismissalApprovedBy = options.dismissalApprovedBy?.trim() ?? null;
       return;
     }
 
     this._resolvedAt = null;
     this._dismissedAt = null;
+    this._dismissalJustification = null;
+    this._dismissalApprovedBy = null;
   }
 
   setRetentionUntil(value: Date | null): void {

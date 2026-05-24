@@ -799,6 +799,9 @@ export class AuthHandlers {
         exportId: created.id,
         scope: created.scope,
         format: created.format,
+        requestedBy: created.requestedBy,
+        requestedAtUTC: created.createdAtUTC,
+        filters: created.filters ?? parsedBody.filters ?? {},
         status: created.status,
       });
       res.status(201).json(created);

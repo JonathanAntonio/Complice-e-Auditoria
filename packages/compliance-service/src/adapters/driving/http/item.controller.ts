@@ -52,7 +52,8 @@ export class ItemController {
 function toCreateItemDto(raw: unknown): { name: string; priceAmount: number; priceCurrency: "BRL" } {
   const payload = raw as { title: string; severity?: string };
   const normalizedSeverity = typeof payload.severity === "string" ? payload.severity.toLowerCase() : "media";
-  const severityScore = normalizedSeverity === "alta" ? 300 : normalizedSeverity === "baixa" ? 100 : 200;
+  const severityScore =
+    normalizedSeverity === "critica" ? 400 : normalizedSeverity === "alta" ? 300 : normalizedSeverity === "baixa" ? 100 : 200;
   return {
     name: payload.title,
     priceAmount: severityScore,
@@ -65,16 +66,28 @@ function toUpdateItemDto(raw: unknown): {
   priceAmount?: number;
   priceCurrency?: "BRL";
   status?: "aberta" | "em_analise" | "resolvida" | "dispensada";
+  dismissalJustification?: string;
+  dismissalApprovedBy?: string;
 } {
-  const payload = raw as { title?: string; severity?: string; status?: string };
+  const payload = raw as {
+    title?: string;
+    severity?: string;
+    status?: string;
+    dismissalJustification?: string;
+    dismissalApprovedBy?: string;
+  };
   const hasSeverity = typeof payload.severity === "string";
   const normalizedSeverity = hasSeverity ? payload.severity!.toLowerCase() : undefined;
-  const severityScore = normalizedSeverity === "alta" ? 300 : normalizedSeverity === "baixa" ? 100 : 200;
+  const severityScore =
+    normalizedSeverity === "critica" ? 400 : normalizedSeverity === "alta" ? 300 : normalizedSeverity === "baixa" ? 100 : 200;
 
   return {
     name: typeof payload.title === "string" ? payload.title : undefined,
     priceAmount: hasSeverity ? severityScore : undefined,
     priceCurrency: hasSeverity ? "BRL" : undefined,
+    dismissalJustification:
+      typeof payload.dismissalJustification === "string" ? payload.dismissalJustification : undefined,
+    dismissalApprovedBy: typeof payload.dismissalApprovedBy === "string" ? payload.dismissalApprovedBy : undefined,
     status:
       payload.status === "aberta" ||
       payload.status === "em_analise" ||
@@ -88,10 +101,12 @@ function toUpdateItemDto(raw: unknown): {
 function toViolationResponse(raw: unknown): {
   id: string;
   title: string;
-  severity: "baixa" | "media" | "alta";
+  severity: "baixa" | "media" | "alta" | "critica";
   status: "aberta" | "em_analise" | "resolvida" | "dispensada";
   resolvedAt: string | null;
   dismissedAt: string | null;
+  dismissalJustification: string | null;
+  dismissalApprovedBy: string | null;
   retentionUntil: string | null;
   createdAt: string;
 } {
@@ -102,10 +117,13 @@ function toViolationResponse(raw: unknown): {
     status: "aberta" | "em_analise" | "resolvida" | "dispensada";
     resolvedAt: string | null;
     dismissedAt: string | null;
+    dismissalJustification: string | null;
+    dismissalApprovedBy: string | null;
     retentionUntil: string | null;
     createdAt: string;
   };
-  const severity = payload.priceAmount >= 300 ? "alta" : payload.priceAmount <= 100 ? "baixa" : "media";
+  const severity =
+    payload.priceAmount >= 400 ? "critica" : payload.priceAmount >= 300 ? "alta" : payload.priceAmount <= 100 ? "baixa" : "media";
   return {
     id: payload.id,
     title: payload.name,
@@ -113,6 +131,8 @@ function toViolationResponse(raw: unknown): {
     status: payload.status ?? "aberta",
     resolvedAt: payload.resolvedAt ?? null,
     dismissedAt: payload.dismissedAt ?? null,
+    dismissalJustification: payload.dismissalJustification ?? null,
+    dismissalApprovedBy: payload.dismissalApprovedBy ?? null,
     retentionUntil: payload.retentionUntil ?? null,
     createdAt: payload.createdAt,
   };

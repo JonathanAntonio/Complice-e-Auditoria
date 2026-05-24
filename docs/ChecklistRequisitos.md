@@ -15,15 +15,15 @@ Fonte: consolidação dos checklists gerados nesta sessão.
 | RF08 | Registro imutável de ações | Parcial |
 | RF09 | Histórico de alterações por entidade | Completo |
 | RF10 | Versionamento de dados críticos | Parcial |
-| RF11 | Dashboard com KPIs | Parcial |
-| RF12 | Filtros por período/área/risco | Parcial |
+| RF11 | Dashboard com KPIs | Completo |
+| RF12 | Filtros por período/área/risco | Completo |
 | RF13 | Exportação de relatórios (PDF/CSV) | Parcial |
-| RF14 | Atualização dinâmica dos KPIs | Parcial |
+| RF14 | Atualização dinâmica dos KPIs | Completo |
 | RF15 | Motor de regras de compliance configurável | Parcial |
 | RF16 | Geração de violações e pendências | Parcial |
 | RF17 | Cálculo de pontuação de risco | Completo |
 | RF18 | Integração bidirecional API/Webhook | Parcial |
-| RF19 | Alertas automáticos (e-mail/webhook) | Parcial |
+| RF19 | Alertas automáticos (e-mail/webhook) | Completo |
 | RF20 | ML para padrões suspeitos | Parcial |
 | RNF01 | Criptografia de dados sensíveis | Parcial |
 | RNF02 | Proteção SQL Injection / XSS | Parcial |
@@ -75,8 +75,8 @@ Fonte: consolidação dos checklists gerados nesta sessão.
 | RN-034 | Aplicar todas regras ativas compatíveis | Parcial |
 | RN-035 | Violação criada com status Aberta | Completo |
 | RN-036 | Transições de status auditadas | Parcial |
-| RN-037 | Dispensa só por Compliance Officer com justificativa | Parcial |
-| RN-038 | Crítica exige aprovação dupla para dispensa | Parcial |
+| RN-037 | Dispensa só por Compliance Officer com justificativa | Completo |
+| RN-038 | Crítica exige aprovação dupla para dispensa | Completo |
 | RN-039 | SLA para iniciar análise por severidade | Parcial |
 | RN-040 | Score de risco por usuário/área/processo | Completo |
 | RN-041 | Faixas Baixo/Médio/Alto/Crítico | Completo |
@@ -85,17 +85,17 @@ Fonte: consolidação dos checklists gerados nesta sessão.
 | RN-044 | Score não editável manualmente | Completo |
 | RN-045 | Histórico de score para tendências | Completo |
 | RN-050 | Toda violação gera notificação | Parcial |
-| RN-051 | Crítica notificada em até 5 minutos | Parcial |
+| RN-051 | Crítica notificada em até 5 minutos | Completo |
 | RN-052 | Canais mínimos email/webhook | Completo |
-| RN-053 | Destinatário por perfil/estrutura organizacional | Parcial |
+| RN-053 | Destinatário por perfil/estrutura organizacional | Completo |
 | RN-054 | Reprocessar até 3x e dead-letter | Completo |
-| RN-055 | Log de envio por status | Parcial |
-| RN-056 | Preferências de notificação do usuário | Parcial |
+| RN-055 | Log de envio por status | Completo |
+| RN-056 | Preferências de notificação do usuário | Completo |
 | RN-060 | Dashboard por escopo de acesso | Parcial |
-| RN-061 | KPIs com defasagem máxima de 60s | Parcial |
-| RN-062 | Fórmula do índice de conformidade | Parcial |
-| RN-063 | Filtros completos no dashboard | Parcial |
-| RN-064 | Exportação auditada (quem/quando/filtros/formato) | Parcial |
+| RN-061 | KPIs com defasagem máxima de 60s | Completo |
+| RN-062 | Fórmula do índice de conformidade | Completo |
+| RN-063 | Filtros completos no dashboard | Completo |
+| RN-064 | Exportação auditada (quem/quando/filtros/formato) | Completo |
 | RN-065 | Rodapé com metadados no relatório | Completo |
 | RN-070 | Integração externa autenticada | Parcial |
 | RN-071 | Sem auth válida retorna 401 e não processa | Parcial |

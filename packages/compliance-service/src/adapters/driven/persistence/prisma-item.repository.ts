@@ -15,9 +15,9 @@ export class PrismaItemRepository implements IItemRepository {
       `
       INSERT INTO "items" (
         "id", "name", "price_amount", "price_currency", "status",
-        "resolved_at", "dismissed_at", "retention_until", "created_at"
+        "resolved_at", "dismissed_at", "dismissal_justification", "dismissal_approved_by", "retention_until", "created_at"
       ) VALUES (
-        $1, $2, $3, $4, $5::"ViolationStatus", $6, $7, $8, $9
+        $1, $2, $3, $4, $5::"ViolationStatus", $6, $7, $8, $9, $10, $11
       )
       ON CONFLICT ("id") DO UPDATE SET
         "name" = EXCLUDED."name",
@@ -26,6 +26,8 @@ export class PrismaItemRepository implements IItemRepository {
         "status" = EXCLUDED."status",
         "resolved_at" = EXCLUDED."resolved_at",
         "dismissed_at" = EXCLUDED."dismissed_at",
+        "dismissal_justification" = EXCLUDED."dismissal_justification",
+        "dismissal_approved_by" = EXCLUDED."dismissal_approved_by",
         "retention_until" = EXCLUDED."retention_until"
       `,
       item.id,
@@ -35,6 +37,8 @@ export class PrismaItemRepository implements IItemRepository {
       item.status,
       item.resolvedAt,
       item.dismissedAt,
+      item.dismissalJustification,
+      item.dismissalApprovedBy,
       item.retentionUntil,
       item.createdAt
     );
@@ -51,6 +55,8 @@ export class PrismaItemRepository implements IItemRepository {
         "status"::text AS "status",
         "resolved_at" AS "resolvedAt",
         "dismissed_at" AS "dismissedAt",
+        "dismissal_justification" AS "dismissalJustification",
+        "dismissal_approved_by" AS "dismissalApprovedBy",
         "retention_until" AS "retentionUntil",
         "created_at" AS "createdAt"
       FROM "items"
@@ -70,6 +76,8 @@ export class PrismaItemRepository implements IItemRepository {
       row.status,
       row.resolvedAt,
       row.dismissedAt,
+      row.dismissalJustification,
+      row.dismissalApprovedBy,
       row.retentionUntil
     );
   }
@@ -85,6 +93,8 @@ export class PrismaItemRepository implements IItemRepository {
         "status"::text AS "status",
         "resolved_at" AS "resolvedAt",
         "dismissed_at" AS "dismissedAt",
+        "dismissal_justification" AS "dismissalJustification",
+        "dismissal_approved_by" AS "dismissalApprovedBy",
         "retention_until" AS "retentionUntil",
         "created_at" AS "createdAt"
       FROM "items"
@@ -101,6 +111,8 @@ export class PrismaItemRepository implements IItemRepository {
         row.status,
         row.resolvedAt,
         row.dismissedAt,
+        row.dismissalJustification,
+        row.dismissalApprovedBy,
         row.retentionUntil
       )
     );
@@ -115,6 +127,8 @@ interface ItemRow {
   status: ViolationStatus;
   resolvedAt: Date | null;
   dismissedAt: Date | null;
+  dismissalJustification: string | null;
+  dismissalApprovedBy: string | null;
   retentionUntil: Date | null;
   createdAt: Date;
 }

@@ -8,6 +8,8 @@ export const itemResponseDtoSchema = z.object({
   status: z.enum(["aberta", "em_analise", "resolvida", "dispensada"]),
   resolvedAt: z.string().datetime().nullable(),
   dismissedAt: z.string().datetime().nullable(),
+  dismissalJustification: z.string().nullable(),
+  dismissalApprovedBy: z.string().nullable(),
   retentionUntil: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
 });

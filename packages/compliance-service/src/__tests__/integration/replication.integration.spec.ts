@@ -28,6 +28,10 @@ describe("Data replication integration", () => {
     redisUrl,
     rabbitmqUrl,
     jwtSecret: jwtSecret.length >= 32 ? jwtSecret : "integration-test-secret-min-32-chars-for-jwt",
+    notificationServiceBaseUrl: "http://localhost:3008/api/v1",
+    notificationScopeOwner: "owner@example.com",
+    notificationAreaManager: "manager@example.com",
+    notificationComplianceOfficer: "officer@example.com",
     cacheOverride: createNoOpCache(),
     eventConsumerOverride: createNoOpEventConsumer(),
   };

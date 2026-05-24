@@ -4,7 +4,7 @@ NGROK_URL ?= rage-awhile-snowcap.ngrok-free.dev
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install infra-up infra-wait infra-down migrate dev run test lint build monitoring-up monitoring-down backup-db restore-db
+.PHONY: help install infra-up infra-wait infra-down migrate dev run test lint build monitoring-up monitoring-down backup-db restore-db sprint3-check
 
 help:
 	@echo "Targets disponíveis:"
@@ -17,6 +17,7 @@ help:
 	@echo "  make dev         - sobe identity, compliance, integration, audit, risk, reporting, notification, messaging, api-docs, bff e frontend"
 	@echo "  make run         - instala deps, sobe infra e inicia todos os serviços"
 	@echo "  make test        - roda testes"
+	@echo "  make sprint3-check - sobe infra, aplica migrate do compliance-service e roda testes de compliance/notification"
 	@echo "  make lint        - roda lint"
 	@echo "  make build       - roda build de todos os pacotes"
 	@echo "  make monitoring-up   - sobe Prometheus + Alertmanager"
@@ -61,6 +62,16 @@ run: install infra-up infra-wait dev
 
 test:
 	pnpm test
+
+sprint3-check: infra-up infra-wait
+	@echo "Aplicando migrations do compliance-service..."
+	@set -a; source .env; set +a; cd packages/compliance-service && pnpm exec prisma migrate deploy
+	@echo "Aplicando migrations do notification-service..."
+	@set -a; source .env; set +a; cd packages/notification-service && pnpm exec prisma migrate deploy
+	@echo "Rodando testes do compliance-service..."
+	pnpm --filter compliance-service test
+	@echo "Rodando testes do notification-service..."
+	pnpm --filter notification-service test
 
 lint:
 	pnpm lint

@@ -10,20 +10,24 @@ extendZodWithOpenApi(z);
 const ErrorSchema = z.object({ error: z.string(), message: z.string() }).openapi("Error");
 const CreateViolationBodySchema = z.object({
   title: z.string().min(3).max(120),
-  severity: z.enum(["baixa", "media", "alta"]).optional().default("media"),
+  severity: z.enum(["baixa", "media", "alta", "critica"]).optional().default("media"),
 }).openapi("CreateViolationBody");
 const UpdateViolationBodySchema = z.object({
   title: z.string().min(3).max(120).optional(),
-  severity: z.enum(["baixa", "media", "alta"]).optional(),
+  severity: z.enum(["baixa", "media", "alta", "critica"]).optional(),
   status: z.enum(["aberta", "em_analise", "resolvida", "dispensada"]).optional(),
+  dismissalJustification: z.string().min(5).max(500).optional(),
+  dismissalApprovedBy: z.string().min(3).max(120).optional(),
 }).openapi("UpdateViolationBody");
 const ViolationResponseSchema = z.object({
   id: z.string(),
   title: z.string(),
-  severity: z.enum(["baixa", "media", "alta"]),
+  severity: z.enum(["baixa", "media", "alta", "critica"]),
   status: z.enum(["aberta", "em_analise", "resolvida", "dispensada"]),
   resolvedAt: z.string().nullable(),
   dismissedAt: z.string().nullable(),
+  dismissalJustification: z.string().nullable(),
+  dismissalApprovedBy: z.string().nullable(),
   retentionUntil: z.string().nullable(),
   createdAt: z.string(),
 }).openapi("ViolationResponse");

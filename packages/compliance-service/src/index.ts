@@ -16,6 +16,10 @@ async function bootstrap() {
     redisUrl: config.redisUrl,
     rabbitmqUrl: config.rabbitmqUrl,
     jwtSecret: config.jwtSecret,
+    notificationServiceBaseUrl: config.notificationServiceBaseUrl,
+    notificationScopeOwner: config.notificationScopeOwner,
+    notificationAreaManager: config.notificationAreaManager,
+    notificationComplianceOfficer: config.notificationComplianceOfficer,
   });
 
   await container.connectRabbitMQ((payload) =>

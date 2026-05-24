@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("NOTIFICATION_DATABASE_URL")
+}
+
+enum NotificationFrequency {
+  immediate
+  hourly_digest
+  daily_digest
+}
+
+model NotificationPreferenceModel {
+  recipient     String                @id
+  channels      String[]
+  frequency     NotificationFrequency @default(immediate)
+  grouping      Boolean               @default(false)
+  muteLowMedium Boolean               @default(false) @map("mute_low_medium")
+  updatedAt     DateTime              @updatedAt @map("updated_at")
+
+  @@map("notification_preferences")
+}

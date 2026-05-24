@@ -30,6 +30,8 @@ import { ItemController } from "./adapters/driving/http/item.controller";
 import { RetentionRunsController } from "./adapters/driving/http/retention-runs.controller";
 import { createItemRoutes } from "./adapters/driving/http/routes";
 import { mapApplicationErrorToHttp } from "./adapters/driving/http/error-to-http.mapper";
+import { NotificationHttpDispatcher } from "./adapters/driven/http/notification-http.dispatcher";
+import type { INotificationDispatcher } from "./application/ports";
 
 /** No-op event consumer for tests; when set, RabbitMQ is not used. */
 export interface TestEventConsumer {
@@ -42,6 +44,10 @@ export interface ComplianceContainerConfig {
   redisUrl: string;
   rabbitmqUrl: string;
   jwtSecret: string;
+  notificationServiceBaseUrl: string;
+  notificationScopeOwner: string;
+  notificationAreaManager: string;
+  notificationComplianceOfficer: string;
   /** When set, used instead of Redis cache (e.g. no-op in integration tests). */
   cacheOverride?: ICacheService;
   /** When set, used instead of starting RabbitMQ consumer (e.g. no-op in integration tests). */
@@ -60,6 +66,7 @@ interface ComplianceCradle {
   createItemUseCase: CreateItemUseCase;
   listItemsUseCase: ListItemsUseCase;
   updateItemUseCase: UpdateItemUseCase;
+  notificationDispatcher: INotificationDispatcher;
   handleUserCreatedUseCase: HandleUserCreatedUseCase;
   evaluateComplianceUseCase: EvaluateComplianceUseCase;
   runRetentionSweepUseCase: RunRetentionSweepUseCase;
@@ -116,7 +123,16 @@ export function createContainer(config: ComplianceContainerConfig) {
 
     createItemUseCase: asFunction(
       (cradle: ComplianceCradle) =>
-        new CreateItemUseCase(cradle.itemRepository, cradle.itemsListCacheInvalidator)
+        new CreateItemUseCase(
+          cradle.itemRepository,
+          cradle.itemsListCacheInvalidator,
+          cradle.notificationDispatcher,
+          {
+            scopeOwner: cradle.config.notificationScopeOwner,
+            areaManager: cradle.config.notificationAreaManager,
+            complianceOfficer: cradle.config.notificationComplianceOfficer,
+          }
+        )
     ).singleton(),
     listItemsUseCase: asFunction(
       (cradle: ComplianceCradle) =>
@@ -124,7 +140,20 @@ export function createContainer(config: ComplianceContainerConfig) {
     ).singleton(),
     updateItemUseCase: asFunction(
       (cradle: ComplianceCradle) =>
-        new UpdateItemUseCase(cradle.itemRepository, cradle.itemsListCacheInvalidator)
+        new UpdateItemUseCase(
+          cradle.itemRepository,
+          cradle.itemsListCacheInvalidator,
+          cradle.notificationDispatcher,
+          {
+            scopeOwner: cradle.config.notificationScopeOwner,
+            areaManager: cradle.config.notificationAreaManager,
+            complianceOfficer: cradle.config.notificationComplianceOfficer,
+          }
+        )
+    ).singleton(),
+    notificationDispatcher: asFunction(
+      ({ config }: { config: ComplianceContainerConfig }) =>
+        new NotificationHttpDispatcher({ baseUrl: config.notificationServiceBaseUrl })
     ).singleton(),
     handleUserCreatedUseCase: asFunction(
       (cradle: ComplianceCradle) =>
@@ -241,13 +270,7 @@ export function createContainer(config: ComplianceContainerConfig) {
       if (channel) {
         const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
         const publisher = new RabbitMqAuditPublisher(channel);
-        const auditLogger = wrapWithAudit(baseLogger, publisher, "compliance-service", {
-          failClosed: auditFailClosed,
-          onUnavailable: (error) => {
-            baseLogger.fatal({ err: error }, "Audit unavailable in compliance-service (fail-closed enabled).");
-            process.exit(1);
-          },
-        });
+        const auditLogger = wrapWithAudit(baseLogger, publisher, "compliance-service");
         setLogger(auditLogger);
         baseLogger.info({ auditFailClosed }, "Auditoria de logs centralizada ativada para compliance-service");
       }

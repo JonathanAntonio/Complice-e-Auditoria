@@ -40,6 +40,8 @@ describe("ListItemsUseCase", () => {
       status: "aberta",
       resolvedAt: null,
       dismissedAt: null,
+      dismissalJustification: null,
+      dismissalApprovedBy: null,
       retentionUntil: null,
       createdAt: "2025-01-01T00:00:00.000Z",
     });
@@ -51,6 +53,8 @@ describe("ListItemsUseCase", () => {
       status: "aberta",
       resolvedAt: null,
       dismissedAt: null,
+      dismissalJustification: null,
+      dismissalApprovedBy: null,
       retentionUntil: null,
       createdAt: "2025-01-02T00:00:00.000Z",
     });
@@ -68,6 +72,8 @@ describe("ListItemsUseCase", () => {
         status: "aberta",
         resolvedAt: null,
         dismissedAt: null,
+        dismissalJustification: null,
+        dismissalApprovedBy: null,
         retentionUntil: null,
         createdAt: "2025-01-01T00:00:00.000Z",
       },

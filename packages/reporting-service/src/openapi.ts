@@ -8,6 +8,18 @@ export function createReportingOpenApi(baseUrl: string): object {
     },
     servers: [{ url: baseUrl }],
     paths: {
+      "/api/v1/reports/kpis": {
+        get: {
+          summary: "Get dashboard KPI snapshot",
+          description:
+            "Retorna snapshot de KPIs com fórmula de conformidade (eventos conformes / eventos validados * 100), " +
+            "filtros por período/área/tipo de evento/nível de risco/status de violação e metadado de defasagem (sourceLagSeconds).",
+          responses: {
+            "200": { description: "OK" },
+            "400": { description: "Validation error" },
+          },
+        },
+      },
       "/api/v1/reports/exports": {
         post: {
           summary: "Create export job",

@@ -11,9 +11,9 @@ Documento de referência: `docs/PlanoFechamentoProjeto.md`
 
 ## Status geral
 
-- Sprint atual: `Sprint 2`
-- Progresso geral: `93%`
-- Última atualização: `2026-05-21`
+- Sprint atual: `Encerrado`
+- Progresso geral: `100%`
+- Última atualização: `2026-05-24`
 
 ---
 
@@ -87,7 +87,7 @@ Objetivo: fechar autorização centralizada e integração robusta/idempotente.
 
 ## Sprint 3 — Compliance e Notificações (P1)
 
-Status: `Não iniciado`  
+Status: `Concluído`  
 Objetivo: fechar ciclo de violações e alertas com requisitos de negócio.
 
 ### Escopo
@@ -112,15 +112,15 @@ Objetivo: fechar ciclo de violações e alertas com requisitos de negócio.
 
 ### Checkpoint
 
-- Último ponto: `A iniciar`
-- Próxima tarefa: `Fechar machine de estados de violação com auditoria completa`
+- Último ponto: `Sprint 3 concluída com validação ponta a ponta: preferências persistentes por usuário (RN-056), supressão low/medium por preferência, envio obrigatório high/critical, fan-out crítico por estrutura organizacional e SLA crítico (5 min) evidenciados em ambiente local`
+- Próxima tarefa: `Migrar execução para Sprint 4 (Dashboard/Export + fechamento documental final)`
 - Bloqueios: `Nenhum`
 
 ---
 
 ## Sprint 4 — Dashboard, Export e Fechamento de Documentação (P1)
 
-Status: `Não iniciado`  
+Status: `Concluído`  
 Objetivo: fechar visão executiva, rastreabilidade e encerramento formal.
 
 ### Escopo
@@ -148,8 +148,8 @@ Objetivo: fechar visão executiva, rastreabilidade e encerramento formal.
 
 ### Checkpoint
 
-- Último ponto: `A iniciar`
-- Próxima tarefa: `Consolidar fonte dos KPIs no reporting-service e validar latência`
+- Último ponto: `Encerramento formal do ciclo de desenvolvimento concluído; trilha operacional contínua definida em docs/operacao/ChecklistMensalPosFechamento.md`
+- Próxima tarefa: `Executar rotina mensal operacional e registrar evidências contínuas`
 - Bloqueios: `Nenhum`
 
 ---
@@ -159,3 +159,15 @@ Objetivo: fechar visão executiva, rastreabilidade e encerramento formal.
 | Data | Sprint | O que foi feito | Próximo passo | Responsável |
 |---|---|---|---|---|
 | 2026-05-21 | Sprint 1 | Planejamento criado + append-only no `audit_logs` + fail-closed de auditoria em HTTP/RabbitMQ + login fail-closed + RN-094 validado por testes + checklist/matriz atualizados + stack de backup/monitoramento adicionada + validação prática executada + critérios de produção formalizados | Sprint 2: expandir trilha auditável para integrações de saída (outbound) | Codex + Levi |
+| 2026-05-22 | Sprint 3 | Compliance-service atualizado com campos de dispensa (`dismissalJustification`, `dismissalApprovedBy`), regra de transição de status para exigir justificativa em `dispensada` e aprovação em caso crítico, severidade `critica` no controller/validação/OpenAPI, migration Prisma criada, suíte de testes do compliance-service estabilizada (`52 passed`, `15 skipped`) | Executar migration no ambiente ativo e cobrir integração de dispensa crítica ponta a ponta; em seguida avançar notificações SLA/perfil | Codex + Levi |
+| 2026-05-22 | Sprint 3 | Testes de integração adicionados para fluxo de dispensa crítica no `PATCH /api/violations/:violationId` (reprovação sem `dismissalApprovedBy` e aprovação com `dismissalApprovedBy`), suíte atualizada (`52 passed`, `17 skipped`) | Rodar os mesmos cenários em ambiente com PostgreSQL/Redis ativos para evidência operacional e seguir para notificações | Codex + Levi |
+| 2026-05-22 | Sprint 3 | Notification-service evoluído com roteamento automático quando `recipient` não é informado (`scopeOwner`, `areaManager`, `complianceOfficer`), fan-out por severidade (`high`/`critical`), resposta de dispatch com `dispatchedCount`, testes unitários atualizados (`5 passed`) | Integrar disparo automático a partir de violação criada/atualizada e validar SLA de crítico até 5 min em teste de integração | Codex + Levi |
+| 2026-05-22 | Sprint 3 | Compliance-service integrado ao notification-service: nova porta `INotificationDispatcher`, adapter HTTP (`/notifications/dispatch`) e disparo automático best-effort para violações críticas em create/update; configs de destinatários adicionadas em runtime; testes do compliance-service atualizados (`53 passed`, `17 skipped`) | Implementar verificação de SLA de envio crítico (RN-051) e base de preferências de notificação por usuário (RN-056) | Codex + Levi |
+| 2026-05-22 | Sprint 3 | SLA de notificação crítica incorporado ao notification-service (janela alvo 5 minutos) com novos campos de trilha (`slaTargetSeconds`, `slaDeadlineUTC`, `slaBreached`) e cobertura de teste para crítico | Implementar preferências de notificação por usuário e aplicar no roteamento efetivo (RN-056 + RN-053) | Codex + Levi |
+| 2026-05-22 | Sprint 3 | RN-056 fechado no notification-service com preferências por usuário (upsert/get por destinatário), endpoints `PUT/GET /api/v1/notifications/preferences/:recipient`, aplicação das preferências no roteamento para `low/medium` e garantia de envio obrigatório para `high/critical`; injeção no bootstrap corrigida; OpenAPI atualizado; testes: notification-service (`10 passed`) e compliance-service (`53 passed`, `17 skipped`) | Implementar persistência durável de preferências (DB) e executar validação ponta a ponta de notificações críticas com serviços externos ativos | Codex + Levi |
+| 2026-05-22 | Sprint 3 | RN-056 evoluído para persistência durável: `notification-service` com Prisma (`NOTIFICATION_DATABASE_URL`), migration `notification_preferences`, repositório persistente de preferências e fluxo de dispatch assíncrono mantendo regra obrigatória para `high/critical`; `make sprint3-check` atualizado para aplicar migrations de compliance+notification e validado com sucesso (`compliance 70/70`, `notification 10/10`) | Criar testes de integração HTTP específicos de preferências no notification-service e consolidar evidências finais da Sprint 3 | Codex + Levi |
+| 2026-05-22 | Sprint 3 | Evidência operacional ponta a ponta coletada em ambiente local: `PUT/GET /api/v1/notifications/preferences/:recipient` persistiu preferências de `evidence.user@example.com`; dispatch `low` via email foi suprimido (`skipped_by_preferences`, `dispatchedCount=0`); dispatch `high` via email para o mesmo usuário permaneceu obrigatório (`status=sent`, `dispatchedCount=1`); criação de violação crítica no compliance (`POST /api/violations`) disparou fan-out no notification para `scope-owner@company.local`, `area-manager@company.local` e `compliance-officer@company.local` com SLA preenchido (`slaTargetSeconds=300`, `slaBreached=false`). Evidências detalhadas registradas em `docs/EvidenciasSprint3.md` | Consolidar pacote final de evidências da Sprint 3 (capturas/logs + checklist/matriz) e preparar transição para Sprint 4 | Codex + Levi |
+| 2026-05-24 | Sprint 4 | Reporting-service evoluído com endpoint `GET /api/v1/reports/kpis` (fórmula de conformidade, filtros por período/área/tipo de evento/risco/status e metadado de defasagem `sourceLagSeconds`); OpenAPI atualizado; testes do reporting-service atualizados e verdes (`5 passed`); evidência operacional registrada em `docs/EvidenciasSprint4.md` | Fechar export auditável fim a fim (RN-064) com evidência operacional e consolidar status final do projeto | Codex + Levi |
+| 2026-05-24 | Sprint 4 | RN-064 concluído no BFF: evento auditável `bff.reports.export.requested` enriquecido com `requestedBy`, `requestedAtUTC`, `filters`, `format`, `scope` e `exportId`; parser DTO ajustado para preservar `filters`; cobertura de teste adicionada em `auth.handlers.spec.ts`; suíte do bff-service verde (`35 passed`) e evidências consolidadas em `docs/EvidenciasSprint4.md` | Revisão final de fechamento (RunbookOperacaoSLO, status geral e formalização de término) | Codex + Levi |
+| 2026-05-24 | Sprint 4 | Runbook operacional atualizado com procedimentos e evidências recentes de KPI e export auditável (`docs/RunbookOperacaoSLO.md`); fechamento documental consolidado (`Checklist`, `Matriz`, `Sprints`, `EvidenciasSprint3`, `EvidenciasSprint4`) | Encerrar ciclo de desenvolvimento e manter trilha operacional contínua em produção | Codex + Levi |
+| 2026-05-24 | Sprint 4 | Checklist mensal pós-fechamento criado para governança operacional contínua (`docs/operacao/ChecklistMensalPosFechamento.md`), cobrindo `RN-102`, `RNF04` e `RNF15` com responsáveis e evidências mínimas; status geral do projeto atualizado para encerrado | Iniciar execução mensal do checklist operacional e manter histórico de evidências | Codex + Levi |

@@ -32,6 +32,10 @@ describe("Compliance API integration", () => {
     redisUrl,
     rabbitmqUrl,
     jwtSecret: jwtSecret.length >= 32 ? jwtSecret : "integration-test-secret-min-32-chars-for-jwt",
+    notificationServiceBaseUrl: "http://localhost:3008/api/v1",
+    notificationScopeOwner: "owner@example.com",
+    notificationAreaManager: "manager@example.com",
+    notificationComplianceOfficer: "officer@example.com",
     cacheOverride: createNoOpCache(),
     eventConsumerOverride: createNoOpEventConsumer(),
   };
@@ -188,6 +192,66 @@ describe("Compliance API integration", () => {
         severity: "alta",
         status: "aberta",
       });
+    });
+
+    it("returns 400 when dismissing critical violation without approver", async ({ skip }) => {
+      if (!dbAvailable) skip();
+
+      const created = await request(app)
+        .post("/api/violations")
+        .set("Authorization", `Bearer ${validToken(["compliance.violations.create"])}`)
+        .send({ title: "Falha crítica sem mitigação", severity: "critica" })
+        .expect(201);
+
+      await request(app)
+        .patch(`/api/violations/${created.body.id}`)
+        .set("Authorization", `Bearer ${validToken(["compliance.violations.create"])}`)
+        .send({ status: "em_analise" })
+        .expect(200);
+
+      await request(app)
+        .patch(`/api/violations/${created.body.id}`)
+        .set("Authorization", `Bearer ${validToken(["compliance.violations.create"])}`)
+        .send({
+          status: "dispensada",
+          dismissalJustification: "Risco aceito temporariamente até correção definitiva",
+        })
+        .expect(400);
+    });
+
+    it("returns 200 when dismissing critical violation with approver", async ({ skip }) => {
+      if (!dbAvailable) skip();
+
+      const created = await request(app)
+        .post("/api/violations")
+        .set("Authorization", `Bearer ${validToken(["compliance.violations.create"])}`)
+        .send({ title: "Falha crítica com aceite formal", severity: "critica" })
+        .expect(201);
+
+      await request(app)
+        .patch(`/api/violations/${created.body.id}`)
+        .set("Authorization", `Bearer ${validToken(["compliance.violations.create"])}`)
+        .send({ status: "em_analise" })
+        .expect(200);
+
+      const updated = await request(app)
+        .patch(`/api/violations/${created.body.id}`)
+        .set("Authorization", `Bearer ${validToken(["compliance.violations.create"])}`)
+        .send({
+          status: "dispensada",
+          dismissalJustification: "Aceite formal registrado pelo comitê de risco",
+          dismissalApprovedBy: "compliance.officer@empresa.com",
+        })
+        .expect(200);
+
+      expect(updated.body).toMatchObject({
+        id: created.body.id,
+        severity: "critica",
+        status: "dispensada",
+        dismissalJustification: "Aceite formal registrado pelo comitê de risco",
+        dismissalApprovedBy: "compliance.officer@empresa.com",
+      });
+      expect(updated.body).toHaveProperty("dismissedAt");
     });
   });
 

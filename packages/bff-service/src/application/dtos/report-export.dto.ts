@@ -13,6 +13,7 @@ export interface ReportExportJobDto {
   status: "queued" | "completed";
   createdAtUTC: string;
   completedAtUTC?: string;
+  filters?: Record<string, unknown>;
 }
 
 export interface ReportDownloadDto {
@@ -67,5 +68,8 @@ export function parseReportExportJobDto(raw: unknown): ReportExportJobDto {
     status: payload.status as ReportExportJobDto["status"],
     createdAtUTC: payload.createdAtUTC,
     completedAtUTC: typeof payload.completedAtUTC === "string" ? payload.completedAtUTC : undefined,
+    filters: payload.filters && typeof payload.filters === "object" && !Array.isArray(payload.filters)
+      ? (payload.filters as Record<string, unknown>)
+      : undefined,
   };
 }

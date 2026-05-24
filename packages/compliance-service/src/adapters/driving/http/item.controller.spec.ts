@@ -65,6 +65,8 @@ describe("ItemController", () => {
           status: "aberta",
           resolvedAt: null,
           dismissedAt: null,
+          dismissalJustification: null,
+          dismissalApprovedBy: null,
           retentionUntil: null,
           createdAt: "2025-01-01T00:00:00.000Z",
         },
@@ -105,7 +107,7 @@ describe("ItemController", () => {
       const created = {
         id: "item-1",
         name: "Produto",
-        priceAmount: 9999,
+        priceAmount: 300,
         priceCurrency: "BRL",
         createdAt: "2025-01-01T00:00:00.000Z",
       };
@@ -130,6 +132,8 @@ describe("ItemController", () => {
         status: "aberta",
         resolvedAt: null,
         dismissedAt: null,
+        dismissalJustification: null,
+        dismissalApprovedBy: null,
         retentionUntil: null,
         createdAt: "2025-01-01T00:00:00.000Z",
       });

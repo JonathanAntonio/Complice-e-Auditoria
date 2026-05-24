@@ -1,6 +1,6 @@
 # Runbook de Operação e SLO
 
-Data de atualização: 2026-04-08
+Data de atualização: 2026-05-24
 
 ## Endpoints de Saúde e Métricas
 
@@ -172,3 +172,54 @@ Validação rápida de alertas:
 ## Checklist de Produção (Sprint 1)
 
 - `docs/operacao/ChecklistProducaoSprint1.md`
+
+## Evidências Operacionais Recentes (Sprint 3 e Sprint 4)
+
+- Sprint 3 (Compliance + Notificações):
+  - `docs/EvidenciasSprint3.md`
+  - Cobertura de evidência: preferências por usuário, supressão `low/medium`, envio obrigatório `high/critical`, fan-out crítico e SLA.
+
+- Sprint 4 (Dashboard KPI + Export auditável):
+  - `docs/EvidenciasSprint4.md`
+  - Cobertura de evidência:
+    - endpoint `GET /api/v1/reports/kpis` com fórmula de conformidade, filtros e `sourceLagSeconds`;
+    - export auditável com metadados `requestedBy`, `requestedAtUTC`, `filters`, `format`, `scope`, `exportId`.
+
+## Operação de KPI (RN-061/RN-062/RN-063)
+
+Endpoint:
+
+- `GET /api/v1/reports/kpis`
+
+Parâmetros suportados:
+
+- `period`: `24h` | `7d` | `30d`
+- `area`
+- `eventType`
+- `riskLevel`: `low` | `medium` | `high` | `critical`
+- `violationStatus`: `aberta` | `em_analise` | `resolvida` | `dispensada`
+
+Campos relevantes na resposta:
+
+- `complianceIndexPercentage` (fórmula `(compliantEvents / validatedEvents) * 100`)
+- `sourceLagSeconds` (defasagem da fonte para validação operacional de atualização)
+- `appliedFilters`
+
+## Operação de Export Auditável (RN-064)
+
+Fluxo:
+
+1. Cliente solicita export em `POST /reports/exports` (via BFF).
+2. BFF publica evento auditável crítico `bff.reports.export.requested`.
+3. Metadados auditáveis incluem:
+   - quem: `requestedBy` + `actorId`;
+   - quando: `requestedAtUTC`;
+   - filtros: `filters`;
+   - formato/escopo: `format` e `scope`;
+   - vínculo da execução: `exportId`.
+4. Download publica evento `bff.reports.export.downloaded`.
+
+Validação automatizada:
+
+- `pnpm --filter bff-service test`
+- `pnpm --filter reporting-service test`

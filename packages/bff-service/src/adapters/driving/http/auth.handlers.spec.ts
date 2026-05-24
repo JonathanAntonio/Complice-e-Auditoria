@@ -371,13 +371,28 @@ describe("AuthHandlers", () => {
 
   it("creates report export when session and payload are valid", async () => {
     const handlers = createHandlers();
-    const req = { body: { format: "csv", scope: "audit" } } as never;
+    const req = {
+      body: {
+        format: "csv",
+        scope: "audit",
+        requestedBy: "qa.user",
+        filters: { period: "7d", area: "finance" },
+      },
+    } as never;
     const res = {
       status: vi.fn().mockReturnThis(),
       json: vi.fn(),
     } as never;
     (handlers as never).deps.cookieSessionService.readSessionToken.mockReturnValue("token");
-    (handlers as never).deps.createReportExportUseCase.execute.mockResolvedValue({ id: "rep-1", status: "completed" });
+    (handlers as never).deps.createReportExportUseCase.execute.mockResolvedValue({
+      id: "rep-1",
+      format: "csv",
+      scope: "audit",
+      requestedBy: "qa.user",
+      status: "completed",
+      createdAtUTC: "2026-05-24T12:00:00.000Z",
+      filters: { period: "7d", area: "finance" },
+    });
 
     handlers.createReportExport(req, res);
     await flushAsync();
@@ -385,9 +400,33 @@ describe("AuthHandlers", () => {
     expect((handlers as never).deps.createReportExportUseCase.execute).toHaveBeenCalledWith("token", {
       format: "csv",
       scope: "audit",
+      requestedBy: "qa.user",
+      filters: { period: "7d", area: "finance" },
     });
+    expect((handlers as never).deps.integrationAuditPublisher.publish).toHaveBeenCalledWith(
+      "bff.reports.export.requested",
+      expect.objectContaining({
+        actorId: null,
+        exportId: "rep-1",
+        scope: "audit",
+        format: "csv",
+        requestedBy: "qa.user",
+        requestedAtUTC: "2026-05-24T12:00:00.000Z",
+        filters: { period: "7d", area: "finance" },
+        status: "completed",
+      }),
+      undefined
+    );
     expect(res.status).toHaveBeenCalledWith(201);
-    expect(res.json).toHaveBeenCalledWith({ id: "rep-1", status: "completed" });
+    expect(res.json).toHaveBeenCalledWith({
+      id: "rep-1",
+      format: "csv",
+      scope: "audit",
+      requestedBy: "qa.user",
+      status: "completed",
+      createdAtUTC: "2026-05-24T12:00:00.000Z",
+      filters: { period: "7d", area: "finance" },
+    });
   });
 
   it("returns 400 on notification dispatch when payload is invalid", async () => {

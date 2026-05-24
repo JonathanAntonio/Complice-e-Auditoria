@@ -22,6 +22,8 @@ model ItemModel {
   status      ViolationStatus @default(aberta)
   resolvedAt  DateTime? @map("resolved_at")
   dismissedAt DateTime? @map("dismissed_at")
+  dismissalJustification String? @map("dismissal_justification")
+  dismissalApprovedBy String? @map("dismissal_approved_by")
   retentionUntil DateTime? @map("retention_until")
   createdAt   DateTime @map("created_at")
 

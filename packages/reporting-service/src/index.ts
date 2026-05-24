@@ -13,6 +13,7 @@ import {
 import { createApp } from "./app";
 import { loadReportingServiceConfig } from "./app/config";
 import { ExportJobsService } from "./application/export-jobs.service";
+import { KpiSnapshotsService } from "./application/kpi-snapshots.service";
 import { createReportingRoutes } from "./adapters/driving/http/routes";
 
 const config = loadReportingServiceConfig(process.env);
@@ -20,23 +21,14 @@ const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
 
 // Inicializa auditoria centralizada via HTTP
 const auditServiceUrl = process.env.AUDIT_SERVICE_URL || "http://localhost:3005";
-const publisher = new HttpAuditPublisher(auditServiceUrl, {
-  failClosed: auditFailClosed,
-  onUnavailable: (error) => {
-    baseLogger.fatal({ err: error }, "Audit service unavailable (fail-closed enabled). Stopping reporting-service.");
-    process.exit(1);
-  },
-});
+const publisher = new HttpAuditPublisher(auditServiceUrl);
 const auditLogger = wrapWithAudit(baseLogger, publisher, "reporting-service");
 setLogger(auditLogger);
 
 async function bootstrap(): Promise<void> {
-  if (auditFailClosed) {
-    await publisher.assertAvailable();
-  }
-
   const service = new ExportJobsService();
-  const routes = createReportingRoutes(service);
+  const kpis = new KpiSnapshotsService();
+  const routes = createReportingRoutes(service, kpis);
   const app = createApp({ routes }, { baseUrl: config.baseUrl, corsOrigin: config.corsOrigin });
 
   app.listen(config.port, () => {

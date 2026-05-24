@@ -29,6 +29,8 @@ export class ListItemsUseCase {
       status: item.status,
       resolvedAt: item.resolvedAt?.toISOString() ?? null,
       dismissedAt: item.dismissedAt?.toISOString() ?? null,
+      dismissalJustification: item.dismissalJustification,
+      dismissalApprovedBy: item.dismissalApprovedBy,
       retentionUntil: item.retentionUntil?.toISOString() ?? null,
       createdAt: item.createdAt.toISOString(),
     }));

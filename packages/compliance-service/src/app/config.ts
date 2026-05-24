@@ -6,6 +6,10 @@ export interface ComplianceServiceConfig {
   redisUrl: string;
   rabbitmqUrl: string;
   jwtSecret: string;
+  notificationServiceBaseUrl: string;
+  notificationScopeOwner: string;
+  notificationAreaManager: string;
+  notificationComplianceOfficer: string;
   baseUrl: string;
   corsOrigin?: string;
   retentionSweepIntervalMs: number;
@@ -49,6 +53,12 @@ export function loadComplianceServiceConfig(env: NodeJS.ProcessEnv): ComplianceS
     ? env.RABBITMQ_URL!
     : (env.RABBITMQ_URL ?? "amqp://lframework:lframework@localhost:5672");
   const jwtSecret = env.JWT_SECRET ?? (isProduction ? "" : "dev-secret-min-32-chars-for-jwt-signing");
+  const notificationServiceBaseUrl =
+    env.NOTIFICATION_SERVICE_BASE_URL ?? "http://localhost:3008/api/v1";
+  const notificationScopeOwner = env.NOTIFICATION_SCOPE_OWNER ?? "scope-owner@company.local";
+  const notificationAreaManager = env.NOTIFICATION_AREA_MANAGER ?? "area-manager@company.local";
+  const notificationComplianceOfficer =
+    env.NOTIFICATION_COMPLIANCE_OFFICER ?? "compliance-officer@company.local";
   const baseUrl = env.BASE_URL ?? `http://localhost:${port}`;
   const retentionSweepIntervalRaw = parseInt(env.COMPLIANCE_RETENTION_SWEEP_INTERVAL_MS ?? "3600000", 10);
   const retentionSweepIntervalMs =
@@ -81,6 +91,10 @@ export function loadComplianceServiceConfig(env: NodeJS.ProcessEnv): ComplianceS
     redisUrl,
     rabbitmqUrl,
     jwtSecret,
+    notificationServiceBaseUrl,
+    notificationScopeOwner,
+    notificationAreaManager,
+    notificationComplianceOfficer,
     baseUrl,
     corsOrigin: env.CORS_ORIGIN,
     retentionSweepIntervalMs,

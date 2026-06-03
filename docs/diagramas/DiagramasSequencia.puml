@@ -41,7 +41,7 @@ else Sem violação
 end
 deactivate CE
 
-note bottom
+note over Ext,NOTIF
   Fluxo da seção 3.2.1 do DDE:\nIntegration → RabbitMQ → Audit (grava) → Compliance Engine → violação (se aplicável) → Notification.
 end note
 

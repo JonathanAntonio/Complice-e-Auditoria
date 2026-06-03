@@ -34,6 +34,9 @@ Objetivo: manter conformidade operacional contínua após encerramento do ciclo 
 - Incidentes/desvios registrados com plano de ação e prazo.
 - Assinatura de revisão por responsável técnico.
 
+Formulário de aprovação formal:
+- `docs/operacao/FechamentoMensalOperacional.md`
+
 ## Registro de execuções
 
 | Mês | Status | Responsável | Link evidências | Observações |

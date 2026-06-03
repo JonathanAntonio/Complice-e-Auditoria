@@ -1,0 +1,13 @@
+=== Operational Evidence Summary ===
+generated_at_utc=20260526T175645Z
+
+output_dir=/home/levi/Projects/Complice-e-Auditoria/out/evidencias-operacionais/20260526T175645Z
+hostname=fedora
+user=levi
+pwd=/home/levi/Projects/Complice-e-Auditoria
+
+Generated files:
+- /home/levi/Projects/Complice-e-Auditoria/out/evidencias-operacionais/20260526T175645Z/summary.txt
+- /home/levi/Projects/Complice-e-Auditoria/out/evidencias-operacionais/20260526T175645Z/rn102_fail_closed.txt
+- /home/levi/Projects/Complice-e-Auditoria/out/evidencias-operacionais/20260526T175645Z/rnf04_backup.txt
+- /home/levi/Projects/Complice-e-Auditoria/out/evidencias-operacionais/20260526T175645Z/rnf15_alerting.txt

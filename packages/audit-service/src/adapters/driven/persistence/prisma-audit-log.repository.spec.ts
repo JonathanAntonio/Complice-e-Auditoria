@@ -36,6 +36,20 @@ describe("PrismaAuditLogRepository", () => {
     );
   });
 
+  it("persists system actor fallback when actor id is missing", async () => {
+    const create = vi.fn().mockResolvedValue(undefined);
+    const prisma = {
+      auditLogModel: { create },
+    } as unknown as ConstructorParameters<typeof PrismaAuditLogRepository>[0];
+
+    const repository = new PrismaAuditLogRepository(prisma);
+    await repository.saveFromEnvelope(makeEnvelope({ payload: { severity: "medium" }, producer: "integration-service" }));
+
+    const arg = create.mock.calls[0][0];
+    expect(arg.data.actorId).toBe("system:integration-service");
+    expect(arg.data.actorType).toBe("system");
+  });
+
   it("ignores duplicate event id errors (P2002)", async () => {
     const create = vi.fn().mockRejectedValue({ code: "P2002" });
     const prisma = {

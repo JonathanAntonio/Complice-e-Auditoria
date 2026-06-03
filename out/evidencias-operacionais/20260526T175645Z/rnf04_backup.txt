@@ -1,0 +1,20 @@
+=== Backup scripts and scheduling templates ===
+generated_at_utc=20260526T175645Z
+
++ rg -n backup-postgres|POSTGRES_BACKUP_RETENTION_DAYS|OnCalendar|0 2 \* \* \* /home/levi/Projects/Complice-e-Auditoria/scripts /home/levi/Projects/Complice-e-Auditoria/deploy -S
+/home/levi/Projects/Complice-e-Auditoria/deploy/cron.backup-postgres.example:2:0 2 * * * cd /opt/complice-e-auditoria && POSTGRES_CONTAINER_NAME=lframework-postgres POSTGRES_BACKUP_DIR=/var/backups/complice/postgres POSTGRES_BACKUP_RETENTION_DAYS=30 POSTGRES_USER=lframework ./scripts/backup-postgres.sh >> /var/log/complice-backup.log 2>&1
+/home/levi/Projects/Complice-e-Auditoria/scripts/collect-operational-evidence.sh:57:run_capture "${RNF04_FILE}" "Backup scripts and scheduling templates" rg -n "backup-postgres|POSTGRES_BACKUP_RETENTION_DAYS|OnCalendar|0 2 \\* \\* \\*" "${ROOT_DIR}/scripts" "${ROOT_DIR}/deploy" -S
+/home/levi/Projects/Complice-e-Auditoria/scripts/backup-postgres.sh:6:RETENTION_DAYS="${POSTGRES_BACKUP_RETENTION_DAYS:-30}"
+/home/levi/Projects/Complice-e-Auditoria/deploy/systemd/ca-postgres-backup.service:11:Environment=POSTGRES_BACKUP_RETENTION_DAYS=30
+/home/levi/Projects/Complice-e-Auditoria/deploy/systemd/ca-postgres-backup.service:13:ExecStart=/opt/complice-e-auditoria/scripts/backup-postgres.sh
+/home/levi/Projects/Complice-e-Auditoria/deploy/systemd/ca-postgres-backup.timer:5:OnCalendar=*-*-* 02:00:00
+
+=== Local backup artifacts ===
+generated_at_utc=20260526T175645Z
+
++ ls -lah /home/levi/Projects/Complice-e-Auditoria/backups/postgres
+total 28K
+drwxr-xr-x. 1 levi levi  64 May 21 11:50 .
+drwxr-xr-x. 1 levi levi  16 May 21 11:46 ..
+-rw-r--r--. 1 levi levi 28K May 21 11:50 postgres_20260521T145029Z.sql.gz
+

@@ -69,33 +69,7 @@ export class PrismaUserRepository implements IUserRepository {
 
   async save(user: User): Promise<void> {
     try {
-      await this.prisma.$transaction(async (tx) => {
-        await ensureAuthorizationRegistry(tx);
-        await tx.$executeRaw`
-          INSERT INTO "users" (
-            "id", "email", "name", "password_hash", "authorization_version", "is_active",
-            "deactivated_at", "failed_login_attempts", "blocked_until", "created_at"
-          )
-          VALUES (
-            ${user.id}, ${user.email.value}, ${user.name}, ${user.passwordHash}, ${user.authorizationVersion},
-            ${user.isActive}, ${user.deactivatedAt}, ${user.failedLoginAttempts}, ${user.blockedUntil}, ${user.createdAt}
-          )
-          ON CONFLICT ("id") DO UPDATE SET
-            "email" = EXCLUDED."email",
-            "name" = EXCLUDED."name",
-            "password_hash" = EXCLUDED."password_hash",
-            "authorization_version" = EXCLUDED."authorization_version",
-            "is_active" = EXCLUDED."is_active",
-            "deactivated_at" = EXCLUDED."deactivated_at",
-            "failed_login_attempts" = EXCLUDED."failed_login_attempts",
-            "blocked_until" = EXCLUDED."blocked_until"
-        `;
-        await syncUserRoles(tx, user);
-      });
-
-      if (this.authzVersionChecker) {
-        await this.authzVersionChecker.updateVersion(user.id, user.authorizationVersion);
-      }
+      await this.persistUserWithOutboxEvents(user, []);
     } catch (err) {
       if (isPrismaP2002(err)) {
         throw new UserAlreadyExistsError("User with this email already exists");
@@ -106,47 +80,68 @@ export class PrismaUserRepository implements IUserRepository {
 
   async saveUserAndOutbox(user: User, outboxEvent: OutboxEvent): Promise<void> {
     try {
-      const envelope = toEnvelope(outboxEvent);
-      await this.prisma.$transaction(async (tx) => {
-        await ensureAuthorizationRegistry(tx);
-        await tx.$executeRaw`
-          INSERT INTO "users" (
-            "id", "email", "name", "password_hash", "authorization_version", "is_active",
-            "deactivated_at", "failed_login_attempts", "blocked_until", "created_at"
-          )
-          VALUES (
-            ${user.id}, ${user.email.value}, ${user.name}, ${user.passwordHash}, ${user.authorizationVersion},
-            ${user.isActive}, ${user.deactivatedAt}, ${user.failedLoginAttempts}, ${user.blockedUntil}, ${user.createdAt}
-          )
-          ON CONFLICT ("id") DO UPDATE SET
-            "email" = EXCLUDED."email",
-            "name" = EXCLUDED."name",
-            "password_hash" = EXCLUDED."password_hash",
-            "authorization_version" = EXCLUDED."authorization_version",
-            "is_active" = EXCLUDED."is_active",
-            "deactivated_at" = EXCLUDED."deactivated_at",
-            "failed_login_attempts" = EXCLUDED."failed_login_attempts",
-            "blocked_until" = EXCLUDED."blocked_until"
-        `;
-        await syncUserRoles(tx, user);
-        await tx.outboxModel.create({
-          data: {
-            id: randomUUID(),
-            eventName: outboxEvent.eventName,
-            payload: envelope as object,
-            createdAt: new Date(),
-          },
-        });
-      });
-
-      if (this.authzVersionChecker) {
-        await this.authzVersionChecker.updateVersion(user.id, user.authorizationVersion);
-      }
+      await this.persistUserWithOutboxEvents(user, [outboxEvent]);
     } catch (err) {
       if (isPrismaP2002(err)) {
         throw new UserAlreadyExistsError("User with this email already exists");
       }
       throw err;
+    }
+  }
+
+  async saveUserAndOutboxBatch(user: User, outboxEvents: OutboxEvent[]): Promise<void> {
+    try {
+      await this.persistUserWithOutboxEvents(user, outboxEvents);
+    } catch (err) {
+      if (isPrismaP2002(err)) {
+        throw new UserAlreadyExistsError("User with this email already exists");
+      }
+      throw err;
+    }
+  }
+
+  private async persistUserWithOutboxEvents(user: User, outboxEvents: OutboxEvent[]): Promise<void> {
+    const envelopes = outboxEvents.map((event) => ({
+      eventName: event.eventName,
+      payload: toEnvelope(event) as object,
+    }));
+
+    await this.prisma.$transaction(async (tx) => {
+      await ensureAuthorizationRegistry(tx);
+      await tx.$executeRaw`
+        INSERT INTO "users" (
+          "id", "email", "name", "password_hash", "authorization_version", "is_active",
+          "deactivated_at", "failed_login_attempts", "blocked_until", "created_at"
+        )
+        VALUES (
+          ${user.id}, ${user.email.value}, ${user.name}, ${user.passwordHash}, ${user.authorizationVersion},
+          ${user.isActive}, ${user.deactivatedAt}, ${user.failedLoginAttempts}, ${user.blockedUntil}, ${user.createdAt}
+        )
+        ON CONFLICT ("id") DO UPDATE SET
+          "email" = EXCLUDED."email",
+          "name" = EXCLUDED."name",
+          "password_hash" = EXCLUDED."password_hash",
+          "authorization_version" = EXCLUDED."authorization_version",
+          "is_active" = EXCLUDED."is_active",
+          "deactivated_at" = EXCLUDED."deactivated_at",
+          "failed_login_attempts" = EXCLUDED."failed_login_attempts",
+          "blocked_until" = EXCLUDED."blocked_until"
+      `;
+      await syncUserRoles(tx, user);
+      for (const envelope of envelopes) {
+        await tx.outboxModel.create({
+          data: {
+            id: randomUUID(),
+            eventName: envelope.eventName,
+            payload: envelope.payload,
+            createdAt: new Date(),
+          },
+        });
+      }
+    });
+
+    if (this.authzVersionChecker) {
+      await this.authzVersionChecker.updateVersion(user.id, user.authorizationVersion);
     }
   }
 

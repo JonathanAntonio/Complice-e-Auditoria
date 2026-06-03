@@ -1,0 +1,42 @@
+=== AUDIT_FAIL_CLOSED in local env files ===
+generated_at_utc=20260526T175645Z
+
++ rg -n ^AUDIT_FAIL_CLOSED= /home/levi/Projects/Complice-e-Auditoria/.env.production.example
+2:AUDIT_FAIL_CLOSED=true
+
+=== Services with explicit fail-closed wiring ===
+generated_at_utc=20260526T175645Z
+
++ rg -n failClosed: auditFailClosed|AUDIT_FAIL_CLOSED|assertAvailable\(|Audit unavailable|Stopping .*service /home/levi/Projects/Complice-e-Auditoria/packages -S
+/home/levi/Projects/Complice-e-Auditoria/packages/risk-analysis-service/src/index.ts:19:const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
+/home/levi/Projects/Complice-e-Auditoria/packages/risk-analysis-service/src/index.ts:24:  failClosed: auditFailClosed,
+/home/levi/Projects/Complice-e-Auditoria/packages/risk-analysis-service/src/index.ts:26:    baseLogger.fatal({ err: error }, "Audit service unavailable (fail-closed enabled). Stopping risk-analysis-service.");
+/home/levi/Projects/Complice-e-Auditoria/packages/risk-analysis-service/src/index.ts:35:    await publisher.assertAvailable();
+/home/levi/Projects/Complice-e-Auditoria/packages/bff-service/src/index.ts:16:const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
+/home/levi/Projects/Complice-e-Auditoria/packages/bff-service/src/index.ts:21:  failClosed: auditFailClosed,
+/home/levi/Projects/Complice-e-Auditoria/packages/bff-service/src/index.ts:32:    await publisher.assertAvailable();
+/home/levi/Projects/Complice-e-Auditoria/packages/audit-service/src/container.ts:104:        const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
+/home/levi/Projects/Complice-e-Auditoria/packages/audit-service/src/container.ts:107:          failClosed: auditFailClosed,
+/home/levi/Projects/Complice-e-Auditoria/packages/audit-service/src/container.ts:109:            baseLogger.fatal({ err: error }, "Audit unavailable in audit-service (fail-closed enabled).");
+/home/levi/Projects/Complice-e-Auditoria/packages/identity-service/src/container.ts:257:          { failClosedAudit: process.env.AUDIT_FAIL_CLOSED === "true" }
+/home/levi/Projects/Complice-e-Auditoria/packages/identity-service/src/container.ts:424:        const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
+/home/levi/Projects/Complice-e-Auditoria/packages/identity-service/src/container.ts:427:          failClosed: auditFailClosed,
+/home/levi/Projects/Complice-e-Auditoria/packages/identity-service/src/container.ts:429:            baseLogger.fatal({ err: error }, "Audit unavailable in identity-service (fail-closed enabled).");
+/home/levi/Projects/Complice-e-Auditoria/packages/shared/src/logger-audit.spec.ts:13:    await expect(publisher.assertAvailable()).resolves.toBeUndefined();
+/home/levi/Projects/Complice-e-Auditoria/packages/shared/src/logger-audit.spec.ts:20:    await expect(publisher.assertAvailable()).rejects.toBeInstanceOf(AuditUnavailableError);
+/home/levi/Projects/Complice-e-Auditoria/packages/shared/src/logger-audit.ts:55:  async assertAvailable(): Promise<void> {
+/home/levi/Projects/Complice-e-Auditoria/packages/integration-service/src/container.ts:80:        const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
+/home/levi/Projects/Complice-e-Auditoria/packages/integration-service/src/container.ts:83:          failClosed: auditFailClosed,
+/home/levi/Projects/Complice-e-Auditoria/packages/integration-service/src/container.ts:85:            baseLogger.fatal({ err: error }, "Audit unavailable in integration-service (fail-closed enabled).");
+/home/levi/Projects/Complice-e-Auditoria/packages/notification-service/src/index.ts:22:const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
+/home/levi/Projects/Complice-e-Auditoria/packages/notification-service/src/index.ts:27:  failClosed: auditFailClosed,
+/home/levi/Projects/Complice-e-Auditoria/packages/notification-service/src/index.ts:29:    baseLogger.fatal({ err: error }, "Audit service unavailable (fail-closed enabled). Stopping notification-service.");
+/home/levi/Projects/Complice-e-Auditoria/packages/notification-service/src/index.ts:38:    await publisher.assertAvailable();
+/home/levi/Projects/Complice-e-Auditoria/packages/reporting-service/src/index.ts:20:const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
+/home/levi/Projects/Complice-e-Auditoria/packages/reporting-service/src/index.ts:25:  failClosed: auditFailClosed,
+/home/levi/Projects/Complice-e-Auditoria/packages/reporting-service/src/index.ts:27:    baseLogger.fatal({ err: error }, "Audit service unavailable (fail-closed enabled). Stopping reporting-service.");
+/home/levi/Projects/Complice-e-Auditoria/packages/reporting-service/src/index.ts:36:    await publisher.assertAvailable();
+/home/levi/Projects/Complice-e-Auditoria/packages/compliance-service/src/container.ts:271:        const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
+/home/levi/Projects/Complice-e-Auditoria/packages/compliance-service/src/container.ts:274:          failClosed: auditFailClosed,
+/home/levi/Projects/Complice-e-Auditoria/packages/compliance-service/src/container.ts:276:            baseLogger.fatal({ err: error }, "Audit unavailable in compliance-service (fail-closed enabled).");
+

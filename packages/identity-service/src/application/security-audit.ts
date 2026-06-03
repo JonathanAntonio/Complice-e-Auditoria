@@ -14,6 +14,7 @@ export const SECURITY_AUDIT_EVENTS = {
   ACCOUNT_LOCKED: "identity.auth.account_locked",
   ACCESS_DENIED: "identity.auth.access_denied",
   ROLE_CHANGED: "identity.auth.role_changed",
+  USER_CREATED: "identity.auth.user_created",
   USER_SECURITY_CHANGED: "identity.auth.user_security_changed",
   USER_DEACTIVATED: "identity.auth.user_deactivated",
   USER_DATA_ANONYMIZED: "identity.data.user_anonymized",

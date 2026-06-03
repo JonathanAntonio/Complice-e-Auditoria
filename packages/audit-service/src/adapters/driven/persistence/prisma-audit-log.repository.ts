@@ -32,22 +32,23 @@ function toSeverity(payload: Record<string, unknown>): string {
   return "medium";
 }
 
-function toActorId(payload: Record<string, unknown>): string | null {
+function toActorId(payload: Record<string, unknown>, producer: string): string {
   const actorId = payload.actorId;
   if (typeof actorId === "string" && actorId.trim().length > 0) return actorId.trim();
 
   const userId = payload.userId;
   if (typeof userId === "string" && userId.trim().length > 0) return userId.trim();
 
-  return null;
+  return `system:${producer}`;
 }
 
-function toActorType(payload: Record<string, unknown>): string | null {
+function toActorType(payload: Record<string, unknown>, producer: string): string {
   const actorType = payload.actorType;
   if (typeof actorType === "string" && actorType.trim().length > 0) return actorType.trim();
 
-  if (toActorId(payload)) return "user";
-  return null;
+  const actorId = toActorId(payload, producer);
+  if (actorId.startsWith("system:")) return "system";
+  return "user";
 }
 
 function asNonEmptyString(value: unknown): string | null {
@@ -88,8 +89,8 @@ export class PrismaAuditLogRepository implements IAuditLogRepository {
           eventId: envelope.eventId,
           eventType: envelope.type,
           occurredAtUTC: new Date(envelope.occurredAtUTC),
-          actorId: toActorId(payload),
-          actorType: toActorType(payload),
+          actorId: toActorId(payload, envelope.producer),
+          actorType: toActorType(payload, envelope.producer),
           sourceService: envelope.producer,
           correlationId: envelope.correlationId,
           severity: toSeverity(payload),

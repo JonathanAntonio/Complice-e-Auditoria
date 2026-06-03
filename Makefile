@@ -4,7 +4,7 @@ NGROK_URL ?= rage-awhile-snowcap.ngrok-free.dev
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install infra-up infra-wait infra-down migrate dev run stop kill-ports test lint build monitoring-up monitoring-down backup-db restore-db sprint3-check
+.PHONY: help install infra-up infra-wait infra-down migrate dev run stop kill-ports test lint build monitoring-up monitoring-down backup-db restore-db evidencias-operacionais sprint3-check
 
 help:
 	@echo "Targets disponíveis:"
@@ -25,6 +25,7 @@ help:
 	@echo "  make monitoring-down - derruba stack de monitoramento"
 	@echo "  make backup-db       - executa backup do PostgreSQL"
 	@echo "  make restore-db FILE=<arquivo.sql.gz> - restaura backup (ou mais recente)"
+	@echo "  make evidencias-operacionais - gera bundle local de evidências RN-102/RNF04/RNF15"
 
 install:
 	pnpm install
@@ -107,3 +108,6 @@ backup-db:
 
 restore-db:
 	./scripts/restore-postgres.sh $(FILE)
+
+evidencias-operacionais:
+	./scripts/collect-operational-evidence.sh

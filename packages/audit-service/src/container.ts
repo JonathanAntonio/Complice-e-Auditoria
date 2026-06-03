@@ -101,10 +101,17 @@ export function createContainer(config: AuditServiceConfig) {
     setupAuditLogging(): void {
       const channel = c.auditEventsAdapter.getChannel();
       if (channel) {
+        const auditFailClosed = process.env.AUDIT_FAIL_CLOSED === "true";
         const publisher = new RabbitMqAuditPublisher(channel);
-        const auditLogger = wrapWithAudit(baseLogger, publisher, "audit-service");
+        const auditLogger = wrapWithAudit(baseLogger, publisher, "audit-service", {
+          failClosed: auditFailClosed,
+          onUnavailable: (error) => {
+            baseLogger.fatal({ err: error }, "Audit unavailable in audit-service (fail-closed enabled).");
+            process.exit(1);
+          },
+        });
         setLogger(auditLogger);
-        baseLogger.info("Auditoria de logs centralizada ativada para audit-service (auto-auditoria)");
+        baseLogger.info({ auditFailClosed }, "Auditoria de logs centralizada ativada para audit-service (auto-auditoria)");
       }
     },
     async disconnect(): Promise<void> {

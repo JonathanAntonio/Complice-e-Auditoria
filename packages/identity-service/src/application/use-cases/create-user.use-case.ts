@@ -10,6 +10,7 @@ import type { UserResponseDto } from "../dtos/user-response.dto";
 import { UserAlreadyExistsError, InvalidEmailError } from "../errors";
 import { DEFAULT_USER_ROLE, USER_ROLES, USER_ROLE_VALUES, type UserRole } from "../../domain/types";
 import { toUserResponseDto } from "../dtos/user-profile.mapper";
+import { createSecurityAuditEvent, SECURITY_AUDIT_EVENTS } from "../security-audit";
 
 export class CreateUserUseCase {
   constructor(
@@ -38,7 +39,7 @@ export class CreateUserUseCase {
     const { primaryRole, roles } = await this.resolveInitialAccessProfile();
     const id = randomUUID();
     const user = User.create(id, email, dto.name, primaryRole, roles, passwordHash);
-    await this.userRepository.saveUserAndOutbox(user, {
+    const userCreatedEvent = {
       eventName: USER_CREATED_EVENT,
       producer: "identity-service",
       payload: {
@@ -47,7 +48,21 @@ export class CreateUserUseCase {
         name: user.name,
         occurredAt: user.createdAt.toISOString(),
       },
+    } as const;
+    const auditUserCreatedEvent = createSecurityAuditEvent(SECURITY_AUDIT_EVENTS.USER_CREATED, {
+      actorUserId: user.id,
+      targetUserId: user.id,
+      name: user.name,
+      email: user.email.value,
+      primaryRole,
+      roles,
+      occurredAt: user.createdAt.toISOString(),
     });
+
+    if (!this.userRepository.saveUserAndOutboxBatch) {
+      throw new Error("Identity repository must support saveUserAndOutboxBatch for atomic audited user creation");
+    }
+    await this.userRepository.saveUserAndOutboxBatch(user, [userCreatedEvent, auditUserCreatedEvent]);
 
     await this.userCreatedNotifier.notify({
       id: user.id,

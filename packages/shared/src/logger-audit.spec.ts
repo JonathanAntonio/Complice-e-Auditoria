@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AuditUnavailableError, HttpAuditPublisher } from "./logger-audit";
+import { AuditUnavailableError, HttpAuditPublisher, buildAuditPayloadFromLog } from "./logger-audit";
 
 describe("HttpAuditPublisher", () => {
   afterEach(() => {
@@ -38,5 +38,40 @@ describe("HttpAuditPublisher", () => {
     ).rejects.toBeInstanceOf(AuditUnavailableError);
 
     expect(onUnavailable).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("buildAuditPayloadFromLog", () => {
+  it("fills required audit fields when missing", () => {
+    const payload = buildAuditPayloadFromLog({}, "identity.user.updated", "identity-service");
+
+    expect(payload.action).toBe("identity.user.updated");
+    expect(payload.entity).toBe("unknown");
+    expect(payload.ipAddress).toBe("unknown");
+    expect(payload.sourceSystem).toBe("identity-service");
+    expect(payload.previousValue).toBeNull();
+    expect(payload.newValue).toBeNull();
+  });
+
+  it("uses explicit and request-derived fields when provided", () => {
+    const payload = buildAuditPayloadFromLog(
+      {
+        action: "user.role.changed",
+        entity: "user",
+        req: { ip: "10.0.0.8" },
+        sourceSystem: "erp-x",
+        previousValue: { role: "viewer" },
+        newValue: { role: "admin" },
+      },
+      "ignored.type",
+      "identity-service"
+    );
+
+    expect(payload.action).toBe("user.role.changed");
+    expect(payload.entity).toBe("user");
+    expect(payload.ipAddress).toBe("10.0.0.8");
+    expect(payload.sourceSystem).toBe("erp-x");
+    expect(payload.previousValue).toEqual({ role: "viewer" });
+    expect(payload.newValue).toEqual({ role: "admin" });
   });
 });

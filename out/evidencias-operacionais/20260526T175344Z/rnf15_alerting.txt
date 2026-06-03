@@ -1,0 +1,17 @@
+=== Prometheus rules configured ===
+generated_at_utc=20260526T175344Z
+
++ rg -n alert: ServiceDown|alert: Api5xxRatioHigh|alert: ApiLatencyP95High /home/levi/Projects/Complice-e-Auditoria/monitoring/alerts.yml -S
+4:      - alert: ServiceDown
+13:      - alert: Api5xxRatioHigh
+27:      - alert: ApiLatencyP95High
+
+=== Alertmanager routing configured ===
+generated_at_utc=20260526T175344Z
+
++ rg -n receiver|webhook_configs|url: /home/levi/Projects/Complice-e-Auditoria/monitoring/alertmanager.yml -S
+2:  receiver: default
+8:receivers:
+10:    webhook_configs:
+11:      - url: "http://host.docker.internal:9999/alerts"
+

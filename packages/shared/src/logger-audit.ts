@@ -24,6 +24,43 @@ export interface AuditStreamOptions {
   onUnavailable?: (error: AuditUnavailableError) => void;
 }
 
+function asNonEmptyString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function resolveIpAddress(log: Record<string, unknown>): string {
+  const req = (typeof log.req === "object" && log.req !== null ? log.req : {}) as Record<string, unknown>;
+  return (
+    asNonEmptyString(log.ipAddress) ??
+    asNonEmptyString(log.ip) ??
+    asNonEmptyString(req.ip) ??
+    asNonEmptyString(req.remoteAddress) ??
+    "unknown"
+  );
+}
+
+/**
+ * Normaliza campos mínimos de auditoria no payload para melhorar rastreabilidade
+ * e evitar gravação de eventos sem contexto básico de ação/entidade/origem.
+ */
+export function buildAuditPayloadFromLog(
+  log: Record<string, unknown>,
+  eventType: string,
+  serviceName: string
+): Record<string, unknown> {
+  return {
+    ...log,
+    action: asNonEmptyString(log.action) ?? eventType,
+    entity: asNonEmptyString(log.entity) ?? "unknown",
+    ipAddress: resolveIpAddress(log),
+    sourceSystem: asNonEmptyString(log.sourceSystem) ?? serviceName,
+    previousValue: log.previousValue ?? null,
+    newValue: log.newValue ?? null,
+  };
+}
+
 /**
  * Publicador que usa um canal RabbitMQ para enviar envelopes de auditoria.
  */
@@ -119,12 +156,13 @@ export function createAuditStream(publisher: AuditPublisher, serviceName: string
         if (isError || isAudit) {
           const severity = isError ? "high" : (log.severity || "medium");
           const type = isError ? "system.error" : (log.eventType || `system.audit.${log.msg?.toLowerCase().replace(/\s+/g, "_") || "log"}`);
+          const payload = buildAuditPayloadFromLog(log as Record<string, unknown>, String(type), serviceName);
 
           const envelope = createEventEnvelopeV1({
             type,
             producer: serviceName,
             payload: {
-              ...log,
+              ...payload,
               severity,
               originalLevel: log.level,
             },

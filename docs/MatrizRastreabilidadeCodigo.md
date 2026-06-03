@@ -1,6 +1,6 @@
 # Matriz de Rastreabilidade de Requisitos x Código
 
-Data de referência: 2026-05-22  
+Data de referência: 2026-05-26  
 Escopo: microservices atuais (`identity`, `compliance`, `audit`, `integration`, `bff`, `risk-analysis`, `reporting`, `notification`, `api-docs`).
 
 ## Resumo Executivo
@@ -56,7 +56,7 @@ Escopo: microservices atuais (`identity`, `compliance`, `audit`, `integration`, 
 | RN-061 / RN-062 | Defasagem KPI <= 60s + fórmula de conformidade | Implementado (baseline atual) | `KpiSnapshotsService` calcula `(compliant/validated)*100` e expõe `sourceLagSeconds`; validações e evidência operacional em `docs/EvidenciasSprint4.md` |
 | RN-064 / RN-065 | Exportação auditável com metadados | Implementado | `bff-service` publica `bff.reports.export.requested` com `requestedBy`, `requestedAtUTC`, `filters`, `format`, `scope` e `exportId`; download registra `bff.reports.export.downloaded`; cobertura em `auth.handlers.spec.ts` e evidência em `docs/EvidenciasSprint4.md` |
 | RN-070..RN-074 | Integração autenticada/validada/registrada | Implementado (nível aplicação) | `integration-service` valida API key/envelope/idempotência + auditoria de entrada (`routes.ts`) e saída (`outbox-relay.adapter.ts`) com `responseStatus`/`responseTimeMs`; cobertura de testes em `routes.spec.ts` e `outbox-relay.adapter.spec.ts` |
-| RN-102 | Sem audit service, suspender processamento | Parcial (controlado por configuração) | `AUDIT_FAIL_CLOSED=true` em publishers HTTP e RabbitMQ: `packages/shared/src/logger-audit.ts`, `bff/reporting/notification/risk-analysis/index.ts`, `identity/compliance/integration/container.ts` |
+| RN-102 | Sem audit service, suspender processamento | Parcial (baseline de código concluído; evidência operacional pendente) | suporte fail-closed em `packages/shared/src/logger-audit.ts`; bootstrap/containers com fail-closed explícito em `packages/bff-service/src/index.ts`, `packages/risk-analysis-service/src/index.ts`, `packages/reporting-service/src/index.ts`, `packages/notification-service/src/index.ts`, `packages/identity-service/src/container.ts`, `packages/compliance-service/src/container.ts`, `packages/integration-service/src/container.ts`, `packages/audit-service/src/container.ts` |
 | RN-080..RN-084 | Retenção e anonimização com trilha | Implementado (monitor-only + anonimização identity) | identity: `anonymize-inactive-users.use-case.ts` (+ testes unitários); compliance: `run-retention-sweep.use-case.ts` + `compliance_retention_runs` + escopo configurável (`COMPLIANCE_RETENTION_SCOPE_STATUSES`); audit: `run-retention-sweep.use-case.ts` + `audit_retention_runs` + escopo configurável (`AUDIT_RETENTION_SCOPE_SOURCE_SERVICES`) |
 | RN-103 | Timestamps em UTC | Implementado | serviços usam `new Date().toISOString()`; frontend converte para visualização |
 | RN-105 | Erros técnicos não expostos ao usuário | Implementado (maior parte) | mapeadores e mensagens controladas em `shared`/handlers |

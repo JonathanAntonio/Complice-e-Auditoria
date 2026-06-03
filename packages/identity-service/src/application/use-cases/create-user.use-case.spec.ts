@@ -14,6 +14,7 @@ describe("CreateUserUseCase", () => {
     userRepository = {
       save: vi.fn().mockResolvedValue(undefined),
       saveUserAndOutbox: vi.fn().mockResolvedValue(undefined),
+      saveUserAndOutboxBatch: vi.fn().mockResolvedValue(undefined),
       findById: vi.fn(),
       findByEmail: vi.fn().mockResolvedValue(null),
       countUsers: vi.fn().mockResolvedValue(1),
@@ -41,7 +42,7 @@ describe("CreateUserUseCase", () => {
     expect(result.id).toBeDefined();
     expect(result.createdAt).toBeDefined();
     expect(userRepository.findByEmail).toHaveBeenCalledWith("user@example.com");
-    expect(userRepository.saveUserAndOutbox).toHaveBeenCalled();
+    expect(userRepository.saveUserAndOutboxBatch).toHaveBeenCalled();
     expect(userCreatedNotifier.notify).toHaveBeenCalled();
   });
 
@@ -79,6 +80,7 @@ describe("CreateUserUseCase", () => {
     await expect(useCase.execute(dto)).rejects.toThrow(UserAlreadyExistsError);
     await expect(useCase.execute(dto)).rejects.toThrow("User with this email already exists");
     expect(userRepository.saveUserAndOutbox).not.toHaveBeenCalled();
+    expect(userRepository.saveUserAndOutboxBatch).not.toHaveBeenCalled();
   });
 
   it("deve lançar InvalidEmailError para email inválido", async () => {
@@ -88,23 +90,32 @@ describe("CreateUserUseCase", () => {
     await expect(useCase.execute(dto)).rejects.toThrow(InvalidEmailError);
     await expect(useCase.execute(dto)).rejects.toThrow("Invalid email");
     expect(userRepository.saveUserAndOutbox).not.toHaveBeenCalled();
+    expect(userRepository.saveUserAndOutboxBatch).not.toHaveBeenCalled();
   });
 
-  it("deve chamar saveUserAndOutbox com user e outboxEvent (user.created)", async () => {
+  it("deve chamar saveUserAndOutboxBatch com eventos de domínio e auditoria", async () => {
     const useCase = new CreateUserUseCase(userRepository, userCreatedNotifier);
     const dto = { email: "evt@example.com", name: "Event User" };
 
     await useCase.execute(dto);
 
-    expect(userRepository.saveUserAndOutbox).toHaveBeenCalledTimes(1);
-    const [user, outboxEvent] = vi.mocked(userRepository.saveUserAndOutbox).mock.calls[0];
+    expect(userRepository.saveUserAndOutboxBatch).toHaveBeenCalledTimes(1);
+    const [user, outboxEvents] = vi.mocked(userRepository.saveUserAndOutboxBatch!).mock.calls[0];
     expect(user.email.value).toBe("evt@example.com");
     expect(user.name).toBe("Event User");
-    expect(outboxEvent.eventName).toBe("user.created");
-    expect(outboxEvent.payload).toMatchObject({
+    expect(outboxEvents).toHaveLength(2);
+    expect(outboxEvents[0].eventName).toBe("user.created");
+    expect(outboxEvents[0].payload).toMatchObject({
       userId: user.id,
       email: "evt@example.com",
       name: "Event User",
+      occurredAt: expect.any(String),
+    });
+    expect(outboxEvents[1].eventName).toBe("identity.auth.user_created");
+    expect(outboxEvents[1].payload).toMatchObject({
+      actorUserId: user.id,
+      targetUserId: user.id,
+      email: "evt@example.com",
       occurredAt: expect.any(String),
     });
   });

@@ -32,6 +32,10 @@ async function bootstrap() {
     databaseUrl: config.databaseUrl,
     rabbitmqUrl: config.rabbitmqUrl,
     integrationApiKey: config.integrationApiKey,
+    complianceBaseUrl: config.complianceBaseUrl,
+    riskBaseUrl: config.riskBaseUrl,
+    auditBaseUrl: config.auditBaseUrl,
+    jwtSecret: config.jwtSecret,
   });
 
   await container.connectRabbitMQ();

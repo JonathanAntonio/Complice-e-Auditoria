@@ -18,5 +18,9 @@ describe("loadIntegrationServiceConfig", () => {
     expect(config.baseUrl).toBe("https://integration.example.com");
     expect(config.corsOrigin).toBe("https://app.example.com");
     expect(config.outboxRelayIntervalMs).toBe(3500);
+    expect(config.complianceBaseUrl).toBe("http://localhost:4002");
+    expect(config.riskBaseUrl).toBe("http://localhost:4006");
+    expect(config.auditBaseUrl).toBe("http://localhost:4005");
+    expect(config.jwtSecret).toBe("change-me-in-production-use-a-long-random-secret");
   });
 });

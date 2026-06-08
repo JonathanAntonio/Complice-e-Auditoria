@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import type { NextFunction, Request, Response } from "express";
 import { createIntegrationRoutes } from "./routes";
 
@@ -21,10 +21,12 @@ function createMockResponse(): Response {
   return res;
 }
 
-function getPostHandler(route: ReturnType<typeof createIntegrationRoutes>) {
-  const layer = route.stack.find((item) => item.route?.path === "/integrations/events");
+function getHandler(route: ReturnType<typeof createIntegrationRoutes>, path: string, method: string) {
+  const layer = route.stack.find(
+    (item) => item.route?.path === path && item.route?.methods[method]
+  );
   if (!layer?.route?.stack) {
-    throw new Error("POST /integrations/events route handler not found");
+    throw new Error(`${method.toUpperCase()} ${path} route handler not found`);
   }
   return layer.route.stack[layer.route.stack.length - 1].handle as (
     req: Request,
@@ -34,14 +36,32 @@ function getPostHandler(route: ReturnType<typeof createIntegrationRoutes>) {
 }
 
 describe("createIntegrationRoutes", () => {
+  const complianceBaseUrl = "http://compliance-service";
+  const riskBaseUrl = "http://risk-service";
+  const auditBaseUrl = "http://audit-service";
+  const jwtSecret = "test-secret-at-least-32-characters-long";
+
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
   it("writes accepted audit with response status/time", async () => {
     const repository = {
       storeInboundAndOutbox: vi.fn().mockResolvedValue({ duplicate: false }),
       appendAuditEvent: vi.fn().mockResolvedValue(undefined),
     };
     const metrics = createMetricsStub();
-    const route = createIntegrationRoutes(repository as never, metrics as never, "valid-key");
-    const handler = getPostHandler(route);
+    const route = createIntegrationRoutes(
+      repository as never,
+      metrics as never,
+      "valid-key",
+      complianceBaseUrl,
+      riskBaseUrl,
+      auditBaseUrl,
+      jwtSecret
+    );
+    const handler = getHandler(route, "/integrations/events", "post");
 
     const req = {
       body: {
@@ -82,8 +102,16 @@ describe("createIntegrationRoutes", () => {
       appendAuditEvent: vi.fn().mockResolvedValue(undefined),
     };
     const metrics = createMetricsStub();
-    const route = createIntegrationRoutes(repository as never, metrics as never, "valid-key");
-    const handler = getPostHandler(route);
+    const route = createIntegrationRoutes(
+      repository as never,
+      metrics as never,
+      "valid-key",
+      complianceBaseUrl,
+      riskBaseUrl,
+      auditBaseUrl,
+      jwtSecret
+    );
+    const handler = getHandler(route, "/integrations/events", "post");
 
     const req = {
       body: {
@@ -124,8 +152,16 @@ describe("createIntegrationRoutes", () => {
       appendAuditEvent: vi.fn().mockResolvedValue(undefined),
     };
     const metrics = createMetricsStub();
-    const route = createIntegrationRoutes(repository as never, metrics as never, "valid-key");
-    const handler = getPostHandler(route);
+    const route = createIntegrationRoutes(
+      repository as never,
+      metrics as never,
+      "valid-key",
+      complianceBaseUrl,
+      riskBaseUrl,
+      auditBaseUrl,
+      jwtSecret
+    );
+    const handler = getHandler(route, "/integrations/events", "post");
 
     const req = {
       body: {
@@ -160,5 +196,184 @@ describe("createIntegrationRoutes", () => {
         }),
       })
     );
+  });
+
+  describe("proxied integration routes", () => {
+    it("GET /integrations/compliance/violations returns 401 with missing api key", async () => {
+      const route = createIntegrationRoutes(
+        {} as never,
+        createMetricsStub() as never,
+        "valid-key",
+        complianceBaseUrl,
+        riskBaseUrl,
+        auditBaseUrl,
+        jwtSecret
+      );
+      const handler = getHandler(route, "/integrations/compliance/violations", "get");
+      const req = { headers: {} } as unknown as Request;
+      const res = createMockResponse();
+
+      await handler(req, res, vi.fn());
+
+      expect(res.status).toHaveBeenCalledWith(401);
+    });
+
+    it("GET /integrations/compliance/violations proxies request successfully with jwt", async () => {
+      const mockViolations = [{ id: "violation-1", name: "GDPR breach" }];
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockViolations,
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const route = createIntegrationRoutes(
+        {} as never,
+        createMetricsStub() as never,
+        "valid-key",
+        complianceBaseUrl,
+        riskBaseUrl,
+        auditBaseUrl,
+        jwtSecret
+      );
+      const handler = getHandler(route, "/integrations/compliance/violations", "get");
+      const req = {
+        headers: { "x-api-key": "valid-key" },
+        query: { limit: "10" },
+      } as unknown as Request;
+      const res = createMockResponse();
+
+      await handler(req, res, vi.fn());
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining(`${complianceBaseUrl}/violations?limit=10`),
+        expect.objectContaining({
+          method: "GET",
+          headers: expect.objectContaining({
+            Authorization: expect.stringMatching(/^Bearer .+/),
+          }),
+        })
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockViolations);
+    });
+
+    it("POST /integrations/compliance/violations proxies request successfully with body", async () => {
+      const mockResponse = { id: "violation-2", status: "created" };
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 201,
+        json: async () => mockResponse,
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const route = createIntegrationRoutes(
+        {} as never,
+        createMetricsStub() as never,
+        "valid-key",
+        complianceBaseUrl,
+        riskBaseUrl,
+        auditBaseUrl,
+        jwtSecret
+      );
+      const handler = getHandler(route, "/integrations/compliance/violations", "post");
+      const req = {
+        headers: { "x-api-key": "valid-key" },
+        body: { description: "Leak", severity: "high" },
+      } as unknown as Request;
+      const res = createMockResponse();
+
+      await handler(req, res, vi.fn());
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${complianceBaseUrl}/violations`,
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({
+            Authorization: expect.stringMatching(/^Bearer .+/),
+          }),
+          body: JSON.stringify({ description: "Leak", severity: "high" }),
+        })
+      );
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith(mockResponse);
+    });
+
+    it("GET /integrations/risk/scores proxies request successfully", async () => {
+      const mockScores = { scores: [78] };
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockScores,
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const route = createIntegrationRoutes(
+        {} as never,
+        createMetricsStub() as never,
+        "valid-key",
+        complianceBaseUrl,
+        riskBaseUrl,
+        auditBaseUrl,
+        jwtSecret
+      );
+      const handler = getHandler(route, "/integrations/risk/scores", "get");
+      const req = {
+        headers: { "x-api-key": "valid-key" },
+        query: { entityType: "user" },
+      } as unknown as Request;
+      const res = createMockResponse();
+
+      await handler(req, res, vi.fn());
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining(`${riskBaseUrl}/risk/scores?entityType=user`),
+        expect.objectContaining({
+          method: "GET",
+        })
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockScores);
+    });
+
+    it("GET /integrations/audit/logs proxies request successfully", async () => {
+      const mockLogs = { logs: [] };
+      const fetchMock = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => mockLogs,
+      });
+      vi.stubGlobal("fetch", fetchMock);
+
+      const route = createIntegrationRoutes(
+        {} as never,
+        createMetricsStub() as never,
+        "valid-key",
+        complianceBaseUrl,
+        riskBaseUrl,
+        auditBaseUrl,
+        jwtSecret
+      );
+      const handler = getHandler(route, "/integrations/audit/logs", "get");
+      const req = {
+        headers: { "x-api-key": "valid-key" },
+        query: {},
+      } as unknown as Request;
+      const res = createMockResponse();
+
+      await handler(req, res, vi.fn());
+
+      expect(fetchMock).toHaveBeenCalledWith(
+        `${auditBaseUrl}/audit/logs`,
+        expect.objectContaining({
+          method: "GET",
+          headers: expect.objectContaining({
+            Authorization: expect.stringMatching(/^Bearer .+/),
+          }),
+        })
+      );
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(mockLogs);
+    });
   });
 });

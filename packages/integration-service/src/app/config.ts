@@ -8,6 +8,10 @@ export interface IntegrationServiceConfig {
   baseUrl: string;
   corsOrigin?: string;
   outboxRelayIntervalMs: number;
+  complianceBaseUrl: string;
+  riskBaseUrl: string;
+  auditBaseUrl: string;
+  jwtSecret: string;
 }
 
 export function loadIntegrationServiceConfig(env: NodeJS.ProcessEnv): IntegrationServiceConfig {
@@ -44,6 +48,11 @@ export function loadIntegrationServiceConfig(env: NodeJS.ProcessEnv): Integratio
       ? outboxRelayIntervalMsRaw
       : 2000;
 
+  const complianceBaseUrl = env.COMPLIANCE_BASE_URL ?? "http://localhost:4002";
+  const riskBaseUrl = env.RISK_BASE_URL ?? "http://localhost:4006";
+  const auditBaseUrl = env.AUDIT_BASE_URL ?? "http://localhost:4005";
+  const jwtSecret = env.JWT_SECRET ?? "change-me-in-production-use-a-long-random-secret";
+
   return {
     port,
     databaseUrl,
@@ -52,5 +61,9 @@ export function loadIntegrationServiceConfig(env: NodeJS.ProcessEnv): Integratio
     baseUrl: env.INTEGRATION_BASE_URL ?? `http://localhost:${port}`,
     corsOrigin: env.CORS_ORIGIN,
     outboxRelayIntervalMs,
+    complianceBaseUrl,
+    riskBaseUrl,
+    auditBaseUrl,
+    jwtSecret,
   };
 }

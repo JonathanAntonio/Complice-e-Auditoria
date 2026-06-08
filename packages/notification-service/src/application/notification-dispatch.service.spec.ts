@@ -62,7 +62,7 @@ describe("NotificationDispatchService", () => {
       message: "First",
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 1));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     const second = await service.dispatch({
       channel: "email",

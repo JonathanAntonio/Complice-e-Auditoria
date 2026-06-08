@@ -1,5 +1,6 @@
-import { Router, type Request, type Response } from "express";
+import { Router, type Request, type Response, type NextFunction } from "express";
 import rateLimit from "express-rate-limit";
+import jwt from "jsonwebtoken";
 import { logger, validateEventEnvelopeV1, sendError, createEventEnvelopeV1 } from "@lframework/shared";
 import type { PrismaEventRepository } from "../../driven/persistence/prisma-event.repository";
 import type { IntegrationMetrics } from "../../../application/metrics";
@@ -17,10 +18,32 @@ function isValidationLikeError(err: unknown): boolean {
   return Array.isArray(maybe.issues);
 }
 
+function generateServiceToken(jwtSecret: string): string {
+  return jwt.sign(
+    {
+      sub: "integration-service",
+      primaryRole: "system",
+      roles: ["system"],
+      permissions: [
+        "compliance.violations.read",
+        "compliance.violations.create",
+        "audit.logs.read",
+      ],
+      authzVersion: 1,
+    },
+    jwtSecret,
+    { algorithm: "HS256", expiresIn: "5m" }
+  );
+}
+
 export function createIntegrationRoutes(
   repository: PrismaEventRepository,
   metrics: IntegrationMetrics,
-  integrationApiKey: string
+  integrationApiKey: string,
+  complianceBaseUrl: string,
+  riskBaseUrl: string,
+  auditBaseUrl: string,
+  jwtSecret: string
 ): Router {
   const router = Router();
 
@@ -126,6 +149,120 @@ export function createIntegrationRoutes(
         }),
       });
       sendError(res, responseStatus, "Internal server error");
+    }
+  });
+
+  router.get("/integrations/compliance/violations", limiter, async (req: Request, res: Response) => {
+    const apiKey = resolveApiKey(req);
+    if (!apiKey || apiKey !== integrationApiKey) {
+      sendError(res, 401, "Unauthorized");
+      return;
+    }
+
+    try {
+      const queryParams = new URLSearchParams(req.query as Record<string, string>).toString();
+      const url = `${complianceBaseUrl}/violations${queryParams ? "?" + queryParams : ""}`;
+      const token = generateServiceToken(jwtSecret);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "x-correlation-id": resolveCorrelationId(req) || req.headers["x-request-id"] as string || "",
+        },
+      });
+
+      const responseData = await response.json().catch(() => ({}));
+      res.status(response.status).json(responseData);
+    } catch (err) {
+      logger.error({ err }, "Integration proxy: compliance violations fetch failed");
+      sendError(res, 502, "Bad Gateway: Compliance service is unavailable");
+    }
+  });
+
+  router.post("/integrations/compliance/violations", limiter, async (req: Request, res: Response) => {
+    const apiKey = resolveApiKey(req);
+    if (!apiKey || apiKey !== integrationApiKey) {
+      sendError(res, 401, "Unauthorized");
+      return;
+    }
+
+    try {
+      const url = `${complianceBaseUrl}/violations`;
+      const token = generateServiceToken(jwtSecret);
+
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "x-correlation-id": resolveCorrelationId(req) || req.headers["x-request-id"] as string || "",
+        },
+        body: JSON.stringify(req.body),
+      });
+
+      const responseData = await response.json().catch(() => ({}));
+      res.status(response.status).json(responseData);
+    } catch (err) {
+      logger.error({ err }, "Integration proxy: compliance violation creation failed");
+      sendError(res, 502, "Bad Gateway: Compliance service is unavailable");
+    }
+  });
+
+  router.get("/integrations/risk/scores", limiter, async (req: Request, res: Response) => {
+    const apiKey = resolveApiKey(req);
+    if (!apiKey || apiKey !== integrationApiKey) {
+      sendError(res, 401, "Unauthorized");
+      return;
+    }
+
+    try {
+      const queryParams = new URLSearchParams(req.query as Record<string, string>).toString();
+      const url = `${riskBaseUrl}/risk/scores${queryParams ? "?" + queryParams : ""}`;
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          "x-correlation-id": resolveCorrelationId(req) || req.headers["x-request-id"] as string || "",
+        },
+      });
+
+      const responseData = await response.json().catch(() => ({}));
+      res.status(response.status).json(responseData);
+    } catch (err) {
+      logger.error({ err }, "Integration proxy: risk scores fetch failed");
+      sendError(res, 502, "Bad Gateway: Risk analysis service is unavailable");
+    }
+  });
+
+  router.get("/integrations/audit/logs", limiter, async (req: Request, res: Response) => {
+    const apiKey = resolveApiKey(req);
+    if (!apiKey || apiKey !== integrationApiKey) {
+      sendError(res, 401, "Unauthorized");
+      return;
+    }
+
+    try {
+      const queryParams = new URLSearchParams(req.query as Record<string, string>).toString();
+      const url = `${auditBaseUrl}/audit/logs${queryParams ? "?" + queryParams : ""}`;
+      const token = generateServiceToken(jwtSecret);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "x-correlation-id": resolveCorrelationId(req) || req.headers["x-request-id"] as string || "",
+        },
+      });
+
+      const responseData = await response.json().catch(() => ({}));
+      res.status(response.status).json(responseData);
+    } catch (err) {
+      logger.error({ err }, "Integration proxy: audit logs fetch failed");
+      sendError(res, 502, "Bad Gateway: Audit service is unavailable");
     }
   });
 

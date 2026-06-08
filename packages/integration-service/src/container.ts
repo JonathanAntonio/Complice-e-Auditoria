@@ -20,6 +20,10 @@ export interface IntegrationContainerConfig {
   databaseUrl: string;
   rabbitmqUrl: string;
   integrationApiKey: string;
+  complianceBaseUrl: string;
+  riskBaseUrl: string;
+  auditBaseUrl: string;
+  jwtSecret: string;
 }
 
 interface IntegrationCradle {
@@ -55,7 +59,15 @@ export function createContainer(config: IntegrationContainerConfig) {
     ).singleton(),
     integrationRoutes: asFunction(
       (cradle: IntegrationCradle) =>
-        createIntegrationRoutes(cradle.repository, cradle.metrics, cradle.config.integrationApiKey)
+        createIntegrationRoutes(
+          cradle.repository,
+          cradle.metrics,
+          cradle.config.integrationApiKey,
+          cradle.config.complianceBaseUrl,
+          cradle.config.riskBaseUrl,
+          cradle.config.auditBaseUrl,
+          cradle.config.jwtSecret
+        )
     ).singleton(),
   });
 

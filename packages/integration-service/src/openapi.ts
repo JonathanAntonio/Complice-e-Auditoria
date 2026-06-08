@@ -87,6 +87,30 @@ export function createIntegrationOpenApi(baseUrl: string): IntegrationOpenApiSpe
             service: { type: "string", enum: ["integration-service"] },
           },
         },
+        CreateViolationBody: {
+          type: "object",
+          required: ["title"],
+          properties: {
+            title: { type: "string", minLength: 3, maxLength: 120 },
+            severity: { type: "string", enum: ["baixa", "media", "alta", "critica"], default: "media" },
+          },
+        },
+        ViolationResponse: {
+          type: "object",
+          required: ["id", "title", "severity", "status", "createdAt"],
+          properties: {
+            id: { type: "string" },
+            title: { type: "string" },
+            severity: { type: "string", enum: ["baixa", "media", "alta", "critica"] },
+            status: { type: "string", enum: ["aberta", "em_analise", "resolvida", "dispensada"] },
+            resolvedAt: { type: "string", format: "date-time", nullable: true },
+            dismissedAt: { type: "string", format: "date-time", nullable: true },
+            dismissalJustification: { type: "string", nullable: true },
+            dismissalApprovedBy: { type: "string", nullable: true },
+            retentionUntil: { type: "string", format: "date-time", nullable: true },
+            createdAt: { type: "string", format: "date-time" },
+          },
+        },
       },
     },
     paths: {
@@ -138,6 +162,153 @@ export function createIntegrationOpenApi(baseUrl: string): IntegrationOpenApiSpe
             },
             "429": {
               description: "Rate limit excedido.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/ErrorResponse" },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/api/integrations/compliance/violations": {
+        get: {
+          summary: "List compliance violations",
+          description: "Consulta violações do compliance-service usando autenticação por API key.",
+          security: [{ ApiKeyAuth: [] }],
+          responses: {
+            "200": {
+              description: "Lista de violações retornada com sucesso.",
+              content: {
+                "application/json": {
+                  schema: {
+                    type: "array",
+                    items: { $ref: "#/components/schemas/ViolationResponse" },
+                  },
+                },
+              },
+            },
+            "401": {
+              description: "API Key ausente ou inválida.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/ErrorResponse" },
+                },
+              },
+            },
+            "502": {
+              description: "Serviço de compliance indisponível.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/ErrorResponse" },
+                },
+              },
+            },
+          },
+        },
+        post: {
+          summary: "Create compliance violation",
+          description: "Cria uma nova violação no compliance-service usando autenticação por API key.",
+          security: [{ ApiKeyAuth: [] }],
+          requestBody: {
+            required: true,
+            content: {
+              "application/json": {
+                schema: { $ref: "#/components/schemas/CreateViolationBody" },
+              },
+            },
+          },
+          responses: {
+            "201": {
+              description: "Violação criada com sucesso.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/ViolationResponse" },
+                },
+              },
+            },
+            "400": {
+              description: "Payload de criação inválido.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/ErrorResponse" },
+                },
+              },
+            },
+            "401": {
+              description: "API Key ausente ou inválida.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/ErrorResponse" },
+                },
+              },
+            },
+            "502": {
+              description: "Serviço de compliance indisponível.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/ErrorResponse" },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/api/integrations/risk/scores": {
+        get: {
+          summary: "List risk scores",
+          description: "Consulta pontuações de risco do risk-analysis-service usando autenticação por API key.",
+          security: [{ ApiKeyAuth: [] }],
+          parameters: [
+            { name: "entityType", in: "query", schema: { type: "string", enum: ["user", "area", "process"] } },
+            { name: "level", in: "query", schema: { type: "string", enum: ["low", "medium", "high", "critical"] } },
+          ],
+          responses: {
+            "200": {
+              description: "Pontuações de risco retornadas com sucesso.",
+            },
+            "401": {
+              description: "API Key ausente ou inválida.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/ErrorResponse" },
+                },
+              },
+            },
+            "502": {
+              description: "Serviço de análise de risco indisponível.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/ErrorResponse" },
+                },
+              },
+            },
+          },
+        },
+      },
+      "/api/integrations/audit/logs": {
+        get: {
+          summary: "List audit logs",
+          description: "Consulta logs de auditoria do audit-service usando autenticação por API key.",
+          security: [{ ApiKeyAuth: [] }],
+          parameters: [
+            { name: "page", in: "query", schema: { type: "integer", default: 1 } },
+            { name: "pageSize", in: "query", schema: { type: "integer", default: 20 } },
+          ],
+          responses: {
+            "200": {
+              description: "Logs de auditoria retornados com sucesso.",
+            },
+            "401": {
+              description: "API Key ausente ou inválida.",
+              content: {
+                "application/json": {
+                  schema: { $ref: "#/components/schemas/ErrorResponse" },
+                },
+              },
+            },
+            "502": {
+              description: "Serviço de auditoria indisponível.",
               content: {
                 "application/json": {
                   schema: { $ref: "#/components/schemas/ErrorResponse" },

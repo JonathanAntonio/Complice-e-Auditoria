@@ -28,7 +28,7 @@ export const resolveNavContext = (pathname) => {
 
   if (!currentItem) {
     return {
-      sectionTitle: "Cockpit",
+      sectionTitle: "Dashboard",
       sectionSubtitle: "Visão consolidada de compliance, auditoria e risco.",
       sectionGroup: "Operação",
       selectedKey: "/",

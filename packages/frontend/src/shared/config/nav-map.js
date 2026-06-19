@@ -17,7 +17,7 @@ export const NAV_GROUPS = [
     items: [
       {
         key: "overview",
-        label: "Cockpit",
+        label: "Dashboard",
         path: "/",
         icon: ChartNoAxesColumn,
         description: "Visão consolidada de compliance, auditoria e risco.",

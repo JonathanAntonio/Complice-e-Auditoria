@@ -106,7 +106,7 @@ export function OverviewPage() {
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <PageHeader
-        title="Cockpit operacional"
+        title="Dashbord operacional"
         subtitle="Painel diário por função para leitura rápida, priorização e ação."
         actions={[
           <Button key="compliance" onClick={() => navigate("/compliance")}>Abrir compliance</Button>,

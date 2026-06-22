@@ -33,6 +33,7 @@ function Show-Help {
   Write-Host "  .\make.ps1 test    - roda testes"
   Write-Host "  .\make.ps1 lint    - roda lint"
   Write-Host "  .\make.ps1 build   - roda build de todos os pacotes"
+  Write-Host "  .\make.ps1 ngrok   - inicia o ngrok para a porta 5173"
 }
 
 function Wait-Infra {
@@ -179,6 +180,24 @@ switch ($Target.ToLowerInvariant()) {
     finally {
       Pop-Location
     }
+  }
+  "ngrok" {
+    $ngrokAuthToken = $env:NGROK_AUTHTOKEN
+    if ([string]::IsNullOrWhiteSpace($ngrokAuthToken)) {
+      $ngrokAuthToken = "3CPFFE4q2RRHyNayNOLCm3Mp0tI_2fnYKa95PeDtoNEqgVZKH"
+    }
+
+    $ngrokUrl = $env:NGROK_URL
+    if ([string]::IsNullOrWhiteSpace($ngrokUrl) -and -not (Test-Path Env:\NGROK_URL)) {
+      $ngrokUrl = "rage-awhile-snowcap.ngrok-free.dev"
+    }
+
+    $ngrokArgs = @("http", "5173", "--authtoken=$ngrokAuthToken")
+    if (-not [string]::IsNullOrWhiteSpace($ngrokUrl)) {
+      $ngrokArgs += "--url=$ngrokUrl"
+    }
+
+    Invoke-Step -FilePath "ngrok" -Arguments $ngrokArgs
   }
   default {
     throw "Target desconhecido: '$Target'. Use '.\make.ps1 help'."

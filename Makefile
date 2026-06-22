@@ -56,6 +56,7 @@ migrate:
 	./packages/compliance-service/node_modules/.bin/prisma migrate dev --name init --schema=./packages/compliance-service/prisma/schema.prisma
 	./packages/integration-service/node_modules/.bin/prisma migrate dev --name init --schema=./packages/integration-service/prisma/schema.prisma
 	./packages/audit-service/node_modules/.bin/prisma migrate dev --name init --schema=./packages/audit-service/prisma/schema.prisma
+	./packages/notification-service/node_modules/.bin/prisma migrate dev --name init --schema=./packages/notification-service/prisma/schema.prisma
 
 stop:
 	@echo "Encerrando serviços Node do projeto nas portas 4000-4011..."

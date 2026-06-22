@@ -81,6 +81,11 @@ function Run-Migrations {
       Name = "audit-service"
       Prisma = Join-Path $RepoRoot "packages/audit-service/node_modules/.bin/prisma.cmd"
       Schema = Join-Path $RepoRoot "packages/audit-service/prisma/schema.prisma"
+    },
+    @{
+      Name = "notification-service"
+      Prisma = Join-Path $RepoRoot "packages/notification-service/node_modules/.bin/prisma.cmd"
+      Schema = Join-Path $RepoRoot "packages/notification-service/prisma/schema.prisma"
     }
   )
 

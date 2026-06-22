@@ -157,6 +157,7 @@ switch ($Target.ToLowerInvariant()) {
     & $MyInvocation.MyCommand.Path install
     & $MyInvocation.MyCommand.Path infra-up
     & $MyInvocation.MyCommand.Path infra-wait
+    & $MyInvocation.MyCommand.Path migrate
     & $MyInvocation.MyCommand.Path dev
   }
   "test" {

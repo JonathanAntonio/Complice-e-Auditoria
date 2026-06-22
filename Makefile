@@ -69,7 +69,7 @@ kill-ports: stop
 dev:
 	pnpm dev
 
-run: stop install infra-up infra-wait dev
+run: stop install infra-up infra-wait migrate dev
 
 test:
 	pnpm test

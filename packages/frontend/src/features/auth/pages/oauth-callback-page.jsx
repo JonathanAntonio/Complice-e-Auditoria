@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Card, Spin, Typography } from "antd";
 import { completeOAuthCallback } from "../../../bff-client";
 
@@ -13,6 +13,8 @@ function redirectToLoginError(provider, message) {
 }
 
 export function OAuthCallbackPage({ provider }) {
+  const calledRef = useRef(false);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get("code") ?? "";
@@ -22,6 +24,11 @@ export function OAuthCallbackPage({ provider }) {
       redirectToLoginError(provider, "Missing code/state on OAuth callback");
       return;
     }
+
+    if (calledRef.current) {
+      return;
+    }
+    calledRef.current = true;
 
     void completeOAuthCallback(provider, code, state)
       .then(() => {

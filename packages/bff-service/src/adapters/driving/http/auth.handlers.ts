@@ -361,14 +361,30 @@ export class AuthHandlers {
       return;
     }
 
+    const existingToken = this.deps.cookieSessionService.readSessionToken(req);
+    if (existingToken) {
+      try {
+        await this.deps.getCurrentUserUseCase.execute(existingToken);
+        logger.info({ provider }, "User already authenticated with valid token, skipping OAuth exchange");
+        res.status(204).send();
+        return;
+      } catch (authErr) {
+        // Token is invalid/expired, we clean the cookie and proceed to exchange the code
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+      }
+    }
+
     try {
       const accessToken = await this.deps.completeOAuthCallbackUseCase.execute(provider, code, state);
       this.deps.cookieSessionService.writeSessionCookie(res, accessToken, secureCookie);
       res.status(204).send();
     } catch (err) {
-      if (err instanceof UpstreamHttpError && err.statusCode === 400 && isInvalidOrExpiredStateError(err.message)) {
-        const existingToken = this.deps.cookieSessionService.readSessionToken(req);
-        if (existingToken) {
+      if (
+        (err instanceof UpstreamHttpError && err.statusCode === 400 && isInvalidOrExpiredStateError(err.message)) ||
+        (err instanceof UpstreamHttpError && err.statusCode === 401 && err.message === "OAuth authentication failed")
+      ) {
+        const afterToken = this.deps.cookieSessionService.readSessionToken(req);
+        if (afterToken) {
           logger.warn({ provider }, "Ignoring duplicated OAuth exchange callback with already-authenticated session");
           res.status(204).send();
           return;
@@ -376,7 +392,9 @@ export class AuthHandlers {
       }
 
       logger.error({ err, provider }, "BFF failed to complete OAuth exchange");
-      this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+      if (existingToken) {
+        this.deps.cookieSessionService.clearSessionCookie(res, secureCookie);
+      }
 
       if (err instanceof UpstreamHttpError && (err.statusCode === 400 || err.statusCode === 401 || err.statusCode === 403)) {
         sendJsonError(res, err.statusCode, toErrorMessage(err, "OAuth callback failed"));

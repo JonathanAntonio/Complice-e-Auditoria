@@ -60,7 +60,17 @@ export class GoogleOAuthProvider implements IOAuthProvider {
       },
       10_000
     );
-    if (!tokenRes.ok) return null;
+    if (!tokenRes.ok) {
+      let errorBody = "";
+      try {
+        errorBody = await tokenRes.text();
+      } catch (_) {}
+      logger.warn(
+        { status: tokenRes.status, errorBody },
+        "Google OAuth token exchange request failed"
+      );
+      return null;
+    }
     let tokenJson: unknown;
     try {
       tokenJson = await tokenRes.json();
@@ -80,7 +90,17 @@ export class GoogleOAuthProvider implements IOAuthProvider {
       { headers: { Authorization: `Bearer ${accessToken}` } },
       10_000
     );
-    if (!userRes.ok) return null;
+    if (!userRes.ok) {
+      let errorBody = "";
+      try {
+        errorBody = await userRes.text();
+      } catch (_) {}
+      logger.warn(
+        { status: userRes.status, errorBody },
+        "Google OAuth userinfo request failed"
+      );
+      return null;
+    }
     let userParse: ReturnType<typeof googleUserResponseSchema.safeParse>;
     try {
       userParse = googleUserResponseSchema.safeParse(await userRes.json());

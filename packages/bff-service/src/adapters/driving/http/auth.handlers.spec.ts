@@ -91,6 +91,7 @@ describe("AuthHandlers", () => {
       send: vi.fn(),
     } as never;
 
+    (handlers as never).deps.getCurrentUserUseCase.execute.mockRejectedValue(new Error("session-expired"));
     (handlers as never).deps.completeOAuthCallbackUseCase.execute.mockRejectedValue(
       new UpstreamHttpError(400, "Invalid or expired state")
     );
@@ -101,7 +102,52 @@ describe("AuthHandlers", () => {
 
     expect(res.status).toHaveBeenCalledWith(204);
     expect(res.send).toHaveBeenCalled();
-    expect((handlers as never).deps.cookieSessionService.clearSessionCookie).not.toHaveBeenCalled();
+  });
+
+  it("returns 204 on duplicated oauth exchange when code already consumed by Google (401) and session exists", async () => {
+    const handlers = createHandlers();
+    const req = {
+      query: { code: "oauth-code", state: "oauth-state" },
+      body: {},
+    } as never;
+    const res = {
+      status: vi.fn().mockReturnThis(),
+      send: vi.fn(),
+    } as never;
+
+    (handlers as never).deps.getCurrentUserUseCase.execute.mockRejectedValue(new Error("session-expired"));
+    (handlers as never).deps.completeOAuthCallbackUseCase.execute.mockRejectedValue(
+      new UpstreamHttpError(401, "OAuth authentication failed")
+    );
+    (handlers as never).deps.cookieSessionService.readSessionToken.mockReturnValue("session-token");
+
+    handlers.googleExchange(req, res);
+    await flushAsync();
+
+    expect(res.status).toHaveBeenCalledWith(204);
+    expect(res.send).toHaveBeenCalled();
+  });
+
+  it("skips exchange and returns 204 immediately if session is already valid", async () => {
+    const handlers = createHandlers();
+    const req = {
+      query: { code: "oauth-code", state: "oauth-state" },
+      body: {},
+    } as never;
+    const res = {
+      status: vi.fn().mockReturnThis(),
+      send: vi.fn(),
+    } as never;
+
+    (handlers as never).deps.getCurrentUserUseCase.execute.mockResolvedValue({ id: "user-id" });
+    (handlers as never).deps.cookieSessionService.readSessionToken.mockReturnValue("valid-token");
+
+    handlers.googleExchange(req, res);
+    await flushAsync();
+
+    expect(res.status).toHaveBeenCalledWith(204);
+    expect(res.send).toHaveBeenCalled();
+    expect((handlers as never).deps.completeOAuthCallbackUseCase.execute).not.toHaveBeenCalled();
   });
 
   it("returns 401 on compliance violations list when session cookie is missing", async () => {

@@ -11,6 +11,7 @@ import { TeamsPage } from "../../features/teams/pages/teams-page";
 import { OAuthCallbackPage } from "../../features/auth/pages/oauth-callback-page";
 import { MessagingFlowPage } from "../../features/messaging/pages/messaging-flow-page";
 import { HealthPage } from "../../features/health/pages/health-page";
+import { ComplianceSlaPage } from "../../features/compliance/pages/compliance-sla-page";
 
 const withPermission = (requiredAny, element) => (
   <PermissionGuard requiredAny={requiredAny}>{element}</PermissionGuard>
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <OverviewPage /> },
       { path: "compliance", element: withPermission(["compliance.violations.read"], <CompliancePage />) },
+      { path: "compliance/sla", element: withPermission(["compliance.violations.read"], <ComplianceSlaPage />) },
       { path: "audit", element: withPermission(["audit.logs.read.any", "audit.logs.read.scoped"], <AuditPage />) },
       { path: "operations", element: withPermission(GOVERNANCE_ANY_PERMISSIONS, <GovernancePage />) },
       { path: "retention", element: withPermission(GOVERNANCE_ANY_PERMISSIONS, <GovernancePage />) },

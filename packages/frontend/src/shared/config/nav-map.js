@@ -5,6 +5,7 @@ import {
   FolderKanban,
   Gauge,
   Radar,
+  Timer,
   TriangleAlert,
   UserCog,
   Users,
@@ -29,6 +30,14 @@ export const NAV_GROUPS = [
         path: "/compliance",
         icon: TriangleAlert,
         description: "Gestão de violações e ciclo de tratamento.",
+        requiredAny: ["compliance.violations.read"],
+      },
+      {
+        key: "compliance-sla",
+        label: "SLA de Violações",
+        path: "/compliance/sla",
+        icon: Timer,
+        description: "Monitoramento de prazo de tratamento por severidade.",
         requiredAny: ["compliance.violations.read"],
       },
       {

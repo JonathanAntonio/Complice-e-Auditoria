@@ -24,7 +24,9 @@ export const filterNavGroupsByPermission = (hasAnyPermission) =>
   })).filter((group) => group.items.length > 0);
 
 export const resolveNavContext = (pathname) => {
-  const currentItem = NAV_ITEMS.find((item) => isPathMatch(pathname, item));
+  const currentItem = NAV_ITEMS
+    .filter((item) => isPathMatch(pathname, item))
+    .sort((a, b) => b.path.length - a.path.length)[0];
 
   if (!currentItem) {
     return {

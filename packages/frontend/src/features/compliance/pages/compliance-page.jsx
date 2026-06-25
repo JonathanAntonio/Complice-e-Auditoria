@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button, Form, Input, Select, Space, Table, Typography, message } from "antd";
+import { useNavigate } from "react-router-dom";
 import {
   createComplianceViolation,
   listComplianceViolations,
@@ -31,6 +32,7 @@ function normalizeStatus(value) {
 }
 
 export function CompliancePage() {
+  const navigate = useNavigate();
   const [messageApi, messageContextHolder] = message.useMessage();
   const { hasPermission } = useSession();
   const canCreate = hasPermission("compliance.violations.create");
@@ -92,7 +94,10 @@ export function CompliancePage() {
       <PageHeader
         title="Compliance"
         subtitle="Gestão orientada por fluxo: registrar, priorizar, tratar e encerrar violações."
-        actions={canCreate ? [<Button key="new" type="primary" onClick={() => setCreateOpen(true)}>Nova violação</Button>] : []}
+        actions={[
+          <Button key="sla" onClick={() => navigate("/compliance/sla")}>Ver SLA</Button>,
+          ...(canCreate ? [<Button key="new" type="primary" onClick={() => setCreateOpen(true)}>Nova violação</Button>] : []),
+        ]}
       />
       <WorkflowPanel
         title="Fluxo de tratamento"

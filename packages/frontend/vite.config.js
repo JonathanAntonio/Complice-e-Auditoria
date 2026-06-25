@@ -32,6 +32,7 @@ export default defineConfig(({ mode }) => {
         "/notifications/": { target: bffUrl, changeOrigin: false },
         "/admin/": { target: bffUrl, changeOrigin: false },
         "/integrations/": { target: bffUrl, changeOrigin: false },
+        "/health": { target: bffUrl, changeOrigin: false },
       },
       allowedHosts: ["localhost", ".ngrok-free.app", ".ngrok.app","rage-awhile-snowcap.ngrok-free.dev"]
     },

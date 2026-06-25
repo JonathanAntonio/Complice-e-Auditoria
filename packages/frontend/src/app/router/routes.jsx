@@ -10,6 +10,7 @@ import { AdminPage } from "../../features/admin/pages/admin-page";
 import { TeamsPage } from "../../features/teams/pages/teams-page";
 import { OAuthCallbackPage } from "../../features/auth/pages/oauth-callback-page";
 import { MessagingFlowPage } from "../../features/messaging/pages/messaging-flow-page";
+import { HealthPage } from "../../features/health/pages/health-page";
 
 const withPermission = (requiredAny, element) => (
   <PermissionGuard requiredAny={requiredAny}>{element}</PermissionGuard>
@@ -49,7 +50,7 @@ export const router = createBrowserRouter([
       { path: "reports", element: withPermission(GOVERNANCE_ANY_PERMISSIONS, <GovernancePage />) },
       { path: "admin", element: withPermission(["users.read.any", "users.create", "roles.assign", "users.update", "users.deactivate", "system.settings.manage"], <AdminPage />) },
       { path: "teams", element: <TeamsPage /> },
-      { path: "health", element: <OverviewPage /> },
+      { path: "health", element: <HealthPage /> },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

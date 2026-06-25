@@ -33,6 +33,7 @@ export {
   deactivateAdminUser,
 } from "./application/admin-users.service";
 export { publishIntegrationEvent } from "./application/integration-events.service";
+export { getBffHealth } from "./application/health.service";
 
 export {
   clearAuthErrorFromQuery,

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Form, Input, Select, Space, Table, Typography, message } from "antd";
+import { Button, Card, Col, Form, Input, Row, Select, Space, Table, Typography, message } from "antd";
 import { useNavigate } from "react-router-dom";
 import {
   createComplianceViolation,
@@ -72,7 +72,17 @@ export function CompliancePage() {
     },
   });
 
-  const rows = useMemo(() => violationsQuery.data ?? [], [violationsQuery.data]);
+  const [filterSeverity, setFilterSeverity] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+
+  const rows = useMemo(() => {
+    const all = violationsQuery.data ?? [];
+    return all.filter((row) => {
+      if (filterSeverity && normalizeSeverity(row.severity) !== filterSeverity) return false;
+      if (filterStatus && normalizeStatus(row.status) !== filterStatus) return false;
+      return true;
+    });
+  }, [violationsQuery.data, filterSeverity, filterStatus]);
 
   useEffect(() => {
     if (!editing) return;
@@ -105,35 +115,77 @@ export function CompliancePage() {
         steps={["Registrar o desvio com severidade correta", "Avaliar status e owner de resposta", "Encerrar com rastreabilidade da decisão"]}
       />
 
-      <Table
-        rowKey={(row) => row.id}
-        loading={violationsQuery.isLoading}
-        dataSource={rows}
-        locale={{ emptyText: "Nenhuma violação encontrada." }}
-        columns={[
-          { title: "ID", dataIndex: "id", key: "id", render: (value) => <Text strong>{value.slice(0, 8).toUpperCase()}</Text> },
-          { title: "Título", dataIndex: "title", key: "title" },
-          { title: "Severidade", dataIndex: "severity", key: "severity", render: (value) => <SeverityTag value={value} /> },
-          { title: "Status", dataIndex: "status", key: "status" },
-          { title: "Criada em", dataIndex: "createdAt", key: "createdAt", render: toReadableDate },
-          {
-            title: "Ações",
-            key: "actions",
-            render: (_, row) => (
-              canCreate ? (
-                <Button
-                  size="small"
-                  onClick={() => {
-                    setEditing(row);
-                  }}
-                >
-                  Editar
-                </Button>
-              ) : <Text type="secondary">Sem ação</Text>
-            ),
-          },
-        ]}
-      />
+      <Card>
+        <Row gutter={[12, 8]} style={{ marginBottom: 16 }}>
+          <Col xs={24} sm={8}>
+            <Select
+              style={{ width: "100%" }}
+              placeholder="Severidade: todas"
+              allowClear
+              value={filterSeverity || undefined}
+              onChange={(v) => setFilterSeverity(v ?? "")}
+              options={[
+                { label: "Baixa", value: "baixa" },
+                { label: "Média", value: "media" },
+                { label: "Alta", value: "alta" },
+              ]}
+            />
+          </Col>
+          <Col xs={24} sm={8}>
+            <Select
+              style={{ width: "100%" }}
+              placeholder="Status: todos"
+              allowClear
+              value={filterStatus || undefined}
+              onChange={(v) => setFilterStatus(v ?? "")}
+              options={[
+                { label: "Aberta", value: "aberta" },
+                { label: "Em análise", value: "em_analise" },
+                { label: "Resolvida", value: "resolvida" },
+                { label: "Dispensada", value: "dispensada" },
+              ]}
+            />
+          </Col>
+          <Col xs={24} sm={4}>
+            <Button
+              style={{ width: "100%" }}
+              onClick={() => { setFilterSeverity(""); setFilterStatus(""); }}
+            >
+              Limpar
+            </Button>
+          </Col>
+        </Row>
+
+        <Table
+          rowKey={(row) => row.id}
+          loading={violationsQuery.isLoading}
+          dataSource={rows}
+          locale={{ emptyText: "Nenhuma violação encontrada." }}
+          columns={[
+            { title: "ID", dataIndex: "id", key: "id", render: (value) => <Text strong>{value.slice(0, 8).toUpperCase()}</Text> },
+            { title: "Título", dataIndex: "title", key: "title" },
+            { title: "Severidade", dataIndex: "severity", key: "severity", render: (value) => <SeverityTag value={value} /> },
+            { title: "Status", dataIndex: "status", key: "status" },
+            { title: "Criada em", dataIndex: "createdAt", key: "createdAt", render: toReadableDate },
+            {
+              title: "Ações",
+              key: "actions",
+              render: (_, row) => (
+                canCreate ? (
+                  <Button
+                    size="small"
+                    onClick={() => {
+                      setEditing(row);
+                    }}
+                  >
+                    Editar
+                  </Button>
+                ) : <Text type="secondary">Sem ação</Text>
+              ),
+            },
+          ]}
+        />
+      </Card>
 
       <StandardModal
         title="Criar violação"

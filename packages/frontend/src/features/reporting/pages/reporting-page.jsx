@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Button, Card, Descriptions, Form, Input, Select, Space, Table, Tag, Typography, message } from "antd";
+import { Button, Card, Col, Descriptions, Form, Input, Row, Select, Space, Table, Tag, Typography, message } from "antd";
 import { exportAndDownloadReport, getReportExport } from "../../../bff-client";
 import { useSession } from "../../auth/context/session-context";
 import { REPORTING_URL_STATE_SCHEMA } from "../reporting-url-state-schema";
@@ -105,32 +105,48 @@ export function ReportingPage({ embedded = false }) {
           })}
         >
           <Text className="form-helper">Use o escopo correto para evitar retrabalho na investigação.</Text>
-          <div className="form-grid form-grid-2">
-            <Form.Item label="Formato" name="format" rules={[{ required: true }]}>
-              <Select options={[{ label: "CSV", value: "csv" }, { label: "PDF", value: "pdf" }]} />
-            </Form.Item>
-            <Form.Item label="Escopo da exportação" name="scope" rules={[{ required: true }]}>
-              <Select options={[{ label: "Violações", value: "violations" }, { label: "Auditoria", value: "audit" }, { label: "Risco", value: "risk" }]} />
-            </Form.Item>
-            <Form.Item label="Responsável pela solicitação" name="requestedBy" rules={[{ required: true }]}> 
-              <Input maxLength={120} placeholder="Nome para rastreabilidade" />
-            </Form.Item>
-            <Form.Item label="Período" name="period" rules={[{ required: true }]}>
-              <Select options={[{ label: "24 horas", value: "24h" }, { label: "7 dias", value: "7d" }, { label: "30 dias", value: "30d" }]} />
-            </Form.Item>
-            <Form.Item label="Área" name="area">
-              <Input maxLength={120} placeholder="Ex.: finance" />
-            </Form.Item>
-            <Form.Item label="Tipo de evento" name="eventType">
-              <Input maxLength={120} placeholder="Ex.: invoice_updated" />
-            </Form.Item>
-            <Form.Item label="Nível de risco" name="riskLevel">
-              <Select options={[{ label: "Todos", value: "" }, { label: "low", value: "low" }, { label: "medium", value: "medium" }, { label: "high", value: "high" }, { label: "critical", value: "critical" }]} />
-            </Form.Item>
-            <Form.Item label="Status da violação" name="violationStatus">
-              <Select options={[{ label: "Todos", value: "" }, { label: "aberta", value: "aberta" }, { label: "resolvida", value: "resolvida" }, { label: "dispensada", value: "dispensada" }]} />
-            </Form.Item>
-          </div>
+          <Row gutter={[16, 0]}>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Formato" name="format" rules={[{ required: true }]}>
+                <Select options={[{ label: "CSV", value: "csv" }, { label: "PDF", value: "pdf" }]} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Escopo da exportação" name="scope" rules={[{ required: true }]}>
+                <Select options={[{ label: "Violações", value: "violations" }, { label: "Auditoria", value: "audit" }, { label: "Risco", value: "risk" }]} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Responsável pela solicitação" name="requestedBy" rules={[{ required: true }]}>
+                <Input maxLength={120} placeholder="Nome para rastreabilidade" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Período" name="period" rules={[{ required: true }]}>
+                <Select options={[{ label: "24 horas", value: "24h" }, { label: "7 dias", value: "7d" }, { label: "30 dias", value: "30d" }]} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Área" name="area">
+                <Input maxLength={120} placeholder="Ex.: finance" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Tipo de evento" name="eventType">
+                <Input maxLength={120} placeholder="Ex.: invoice_updated" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Nível de risco" name="riskLevel">
+                <Select options={[{ label: "Todos", value: "" }, { label: "low", value: "low" }, { label: "medium", value: "medium" }, { label: "high", value: "high" }, { label: "critical", value: "critical" }]} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Status da violação" name="violationStatus">
+                <Select options={[{ label: "Todos", value: "" }, { label: "aberta", value: "aberta" }, { label: "resolvida", value: "resolvida" }, { label: "dispensada", value: "dispensada" }]} />
+              </Form.Item>
+            </Col>
+          </Row>
           <div className="form-actions">
             <Button onClick={() => form.resetFields()}>Limpar</Button>
             <Button type="primary" htmlType="submit" loading={exportMutation.isPending}>Gerar e baixar</Button>
@@ -140,30 +156,28 @@ export function ReportingPage({ embedded = false }) {
 
       <Card title="Etapa 2: consultar exportação por ID">
         <Text className="form-helper">Cole o ID de uma execução para confirmar status e metadados.</Text>
-        <div className="form-grid form-grid-2">
-          <Space.Compact style={{ width: "100%" }}>
-            <Input
-              value={lookupId}
-              onChange={(event) => {
-                setLookupId(event.target.value);
-                if (!event.target.value.trim()) {
-                  setLookupResult(null);
-                }
-              }}
-              onPressEnter={() => {
-                if (lookupId.trim()) lookupMutation.mutate(lookupId.trim());
-              }}
-              placeholder="ID da exportação"
-            />
-            <Button
-              loading={lookupMutation.isPending}
-              disabled={!lookupId.trim()}
-              onClick={() => lookupMutation.mutate(lookupId.trim())}
-            >
-              Consultar
-            </Button>
-          </Space.Compact>
-        </div>
+        <Space.Compact style={{ width: "100%", maxWidth: 480 }}>
+          <Input
+            value={lookupId}
+            onChange={(event) => {
+              setLookupId(event.target.value);
+              if (!event.target.value.trim()) {
+                setLookupResult(null);
+              }
+            }}
+            onPressEnter={() => {
+              if (lookupId.trim()) lookupMutation.mutate(lookupId.trim());
+            }}
+            placeholder="ID da exportação"
+          />
+          <Button
+            loading={lookupMutation.isPending}
+            disabled={!lookupId.trim()}
+            onClick={() => lookupMutation.mutate(lookupId.trim())}
+          >
+            Consultar
+          </Button>
+        </Space.Compact>
         {lookupResult ? (
           <Descriptions bordered size="small" column={1} style={{ marginTop: 12 }}>
             <Descriptions.Item label="ID">{lookupResult.id}</Descriptions.Item>

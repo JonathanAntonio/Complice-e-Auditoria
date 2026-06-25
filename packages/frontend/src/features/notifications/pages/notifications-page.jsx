@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Button, Card, Checkbox, Form, Input, Select, Space, Switch, Table, Tag, Typography, message } from "antd";
+import { Alert, Button, Card, Checkbox, Col, Form, Input, Row, Select, Space, Switch, Table, Tag, Typography, message } from "antd";
 import { useMemo, useState } from "react";
 import { dispatchNotification, getNotificationPreference, listNotificationLogs, upsertNotificationPreference } from "../../../bff-client";
 import { NOTIFICATIONS_FILTER_URL_SCHEMA } from "../notifications-url-state-schema";
@@ -94,39 +94,51 @@ export function NotificationsPage({ embedded = false }) {
       />
 
       <Card title="Histórico de notificações">
-        <div className="form-grid form-grid-2" style={{ marginBottom: 12 }}>
-          <Select
-            value={filterValues.channel}
-            options={[{ label: "Canal: todos", value: "all" }, { label: "email", value: "email" }, { label: "webhook", value: "webhook" }]}
-            onChange={(channel) => setFilterValues({ ...filterValues, channel })}
-          />
-          <Select
-            value={filterValues.severity}
-            options={[
-              { label: "Severidade: todas", value: "all" },
-              { label: "low", value: "low" },
-              { label: "medium", value: "medium" },
-              { label: "high", value: "high" },
-              { label: "critical", value: "critical" },
-            ]}
-            onChange={(severity) => setFilterValues({ ...filterValues, severity })}
-          />
-          <Select
-            value={filterValues.status}
-            options={[
-              { label: "Status: todos", value: "all" },
-              { label: "sent", value: "sent" },
-              { label: "failed", value: "failed" },
-              { label: "dead_letter", value: "dead_letter" },
-            ]}
-            onChange={(status) => setFilterValues({ ...filterValues, status })}
-          />
-          <Input
-            value={filterValues.recipient}
-            placeholder="Filtrar destinatário"
-            onChange={(event) => setFilterValues({ ...filterValues, recipient: event.target.value })}
-          />
-        </div>
+        <Row gutter={[12, 8]} style={{ marginBottom: 12 }}>
+          <Col xs={24} sm={12} lg={6}>
+            <Select
+              style={{ width: "100%" }}
+              value={filterValues.channel}
+              options={[{ label: "Canal: todos", value: "all" }, { label: "email", value: "email" }, { label: "webhook", value: "webhook" }]}
+              onChange={(channel) => setFilterValues({ ...filterValues, channel })}
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Select
+              style={{ width: "100%" }}
+              value={filterValues.severity}
+              options={[
+                { label: "Severidade: todas", value: "all" },
+                { label: "low", value: "low" },
+                { label: "medium", value: "medium" },
+                { label: "high", value: "high" },
+                { label: "critical", value: "critical" },
+              ]}
+              onChange={(severity) => setFilterValues({ ...filterValues, severity })}
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Select
+              style={{ width: "100%" }}
+              value={filterValues.status}
+              options={[
+                { label: "Status: todos", value: "all" },
+                { label: "sent", value: "sent" },
+                { label: "failed", value: "failed" },
+                { label: "dead_letter", value: "dead_letter" },
+              ]}
+              onChange={(status) => setFilterValues({ ...filterValues, status })}
+            />
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Input
+              style={{ width: "100%" }}
+              value={filterValues.recipient}
+              placeholder="Filtrar destinatário"
+              onChange={(event) => setFilterValues({ ...filterValues, recipient: event.target.value })}
+            />
+          </Col>
+        </Row>
         <Table
           rowKey={(row) => row.id}
           loading={logsQuery.isLoading}
@@ -154,14 +166,18 @@ export function NotificationsPage({ embedded = false }) {
             onFinish={(values) => dispatchMutation.mutate(values)}
           >
             <Text className="form-helper">Use somente em cenário administrativo ou resposta a incidente.</Text>
-            <div className="form-grid form-grid-2">
-              <Form.Item label="Canal de envio" name="channel" rules={[{ required: true }]}>
-                <Select options={[{ label: "Email", value: "email" }, { label: "Webhook", value: "webhook" }]} />
-              </Form.Item>
-              <Form.Item label="Severidade da mensagem" name="severity" rules={[{ required: true }]}>
-                <Select options={[{ label: "Low", value: "low" }, { label: "Medium", value: "medium" }, { label: "High", value: "high" }, { label: "Critical", value: "critical" }]} />
-              </Form.Item>
-            </div>
+            <Row gutter={[16, 0]}>
+              <Col xs={24} sm={12}>
+                <Form.Item label="Canal de envio" name="channel" rules={[{ required: true }]}>
+                  <Select options={[{ label: "Email", value: "email" }, { label: "Webhook", value: "webhook" }]} />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item label="Severidade da mensagem" name="severity" rules={[{ required: true }]}>
+                  <Select options={[{ label: "Low", value: "low" }, { label: "Medium", value: "medium" }, { label: "High", value: "high" }, { label: "Critical", value: "critical" }]} />
+                </Form.Item>
+              </Col>
+            </Row>
             <Form.Item label="Destinatário" name="recipient" rules={[{ required: true }]}>
               <Input placeholder="ops@empresa.com ou https://endpoint/webhook" />
             </Form.Item>

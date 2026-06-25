@@ -1,9 +1,13 @@
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Badge, Button, Card, Col, Row, Space, Statistic, Table, Tag, Typography } from "antd";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { getBffHealth } from "../../../bff-client";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 import { toReadableDate } from "../../../shared/utils/formatters";
+
+const MAX_HISTORY = 20;
 
 const { Text } = Typography;
 
@@ -26,7 +30,8 @@ function StatusBadge({ status, loading }) {
 }
 
 export function HealthPage() {
-  const checkedAt = new Date().toISOString();
+  const [pingHistory, setPingHistory] = useState([]);
+  const pingCountRef = useRef(0);
 
   const bffQuery = useQuery({
     queryKey: ["health", "bff"],
@@ -34,6 +39,18 @@ export function HealthPage() {
     refetchInterval: 30_000,
     retry: 1,
   });
+
+  // Usa o timestamp mais recente entre sucesso e erro para evitar dupla entrada quando ambos mudam juntos
+  const lastSettledAt = Math.max(bffQuery.dataUpdatedAt ?? 0, bffQuery.errorUpdatedAt ?? 0);
+  useEffect(() => {
+    if (lastSettledAt === 0 || bffQuery.isFetching) return;
+    const status = bffQuery.isError ? 0 : 1;
+    const seq = ++pingCountRef.current;
+    setPingHistory((prev) => [
+      ...prev.slice(-(MAX_HISTORY - 1)),
+      { label: `#${seq}`, status, time: new Date().toLocaleTimeString("pt-BR") },
+    ]);
+  }, [lastSettledAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const bffStatus = bffQuery.isError ? "error" : bffQuery.data?.status ?? null;
   const operationalCount = bffStatus === "ok" ? SERVICES.length : 0;
@@ -130,6 +147,25 @@ export function HealthPage() {
           </Card>
         </Col>
       </Row>
+
+      <Card title="Histórico de verificações do BFF (últimas 20)">
+        {pingHistory.length === 0 ? (
+          <Text type="secondary">Aguardando primeira verificação...</Text>
+        ) : (
+          <ResponsiveContainer width="100%" height={120}>
+            <BarChart data={pingHistory} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <XAxis dataKey="time" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+              <YAxis domain={[0, 1]} hide />
+              <Tooltip formatter={(value) => [value === 1 ? "OK" : "Erro", "Status"]} />
+              <Bar dataKey="status" radius={[3, 3, 0, 0]} maxBarSize={20}>
+                {pingHistory.map((entry) => (
+                  <Cell key={entry.label} fill={entry.status === 1 ? "#52c41a" : "#ff4d4f"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </Card>
 
       <Card
         title="Status dos serviços"

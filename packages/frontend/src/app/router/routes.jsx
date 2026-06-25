@@ -5,7 +5,10 @@ import { OverviewPage } from "../../features/overview/pages/overview-page";
 import { CompliancePage } from "../../features/compliance/pages/compliance-page";
 import { AuditPage } from "../../features/audit/pages/audit-page";
 import { RiskPage } from "../../features/risk/pages/risk-page";
-import { GovernancePage } from "../../features/governance/pages/governance-page";
+import { ReportingPage } from "../../features/reporting/pages/reporting-page";
+import { RetentionPage } from "../../features/retention/pages/retention-page";
+import { NotificationsPage } from "../../features/notifications/pages/notifications-page";
+import { IntegrationsPage } from "../../features/integrations/pages/integrations-page";
 import { AdminPage } from "../../features/admin/pages/admin-page";
 import { TeamsPage } from "../../features/teams/pages/teams-page";
 import { OAuthCallbackPage } from "../../features/auth/pages/oauth-callback-page";
@@ -16,15 +19,6 @@ import { ComplianceSlaPage } from "../../features/compliance/pages/compliance-sl
 const withPermission = (requiredAny, element) => (
   <PermissionGuard requiredAny={requiredAny}>{element}</PermissionGuard>
 );
-
-const GOVERNANCE_ANY_PERMISSIONS = [
-  "reports.read",
-  "reports.export",
-  "system.settings.manage",
-  "audit.logs.read.any",
-  "audit.logs.read.scoped",
-  "compliance.violations.read",
-];
 
 export const router = createBrowserRouter([
   {
@@ -43,16 +37,16 @@ export const router = createBrowserRouter([
       { path: "compliance", element: withPermission(["compliance.violations.read"], <CompliancePage />) },
       { path: "compliance/sla", element: withPermission(["compliance.violations.read"], <ComplianceSlaPage />) },
       { path: "audit", element: withPermission(["audit.logs.read.any", "audit.logs.read.scoped"], <AuditPage />) },
-      { path: "operations", element: withPermission(GOVERNANCE_ANY_PERMISSIONS, <GovernancePage />) },
-      { path: "retention", element: withPermission(GOVERNANCE_ANY_PERMISSIONS, <GovernancePage />) },
       { path: "risk", element: withPermission(["risk.scores.read"], <RiskPage />) },
-      { path: "notifications", element: withPermission(GOVERNANCE_ANY_PERMISSIONS, <GovernancePage />) },
-      { path: "integrations", element: withPermission(GOVERNANCE_ANY_PERMISSIONS, <GovernancePage />) },
+      { path: "reports", element: withPermission(["reports.read", "reports.export"], <ReportingPage />) },
+      { path: "retention", element: withPermission(["audit.logs.read.any", "audit.logs.read.scoped", "compliance.violations.read"], <RetentionPage />) },
+      { path: "notifications", element: withPermission(["reports.read", "reports.export", "system.settings.manage"], <NotificationsPage />) },
+      { path: "integrations", element: withPermission(["system.settings.manage"], <IntegrationsPage />) },
       { path: "messaging", element: withPermission(["audit.logs.read.any", "audit.logs.read.scoped", "reports.read", "reports.export", "system.settings.manage"], <MessagingFlowPage />) },
-      { path: "reports", element: withPermission(GOVERNANCE_ANY_PERMISSIONS, <GovernancePage />) },
       { path: "admin", element: withPermission(["users.read.any", "users.create", "roles.assign", "users.update", "users.deactivate", "system.settings.manage"], <AdminPage />) },
       { path: "teams", element: <TeamsPage /> },
       { path: "health", element: <HealthPage /> },
+      { path: "operations", element: <Navigate to="/reports" replace /> },
       { path: "*", element: <Navigate to="/" replace /> },
     ],
   },

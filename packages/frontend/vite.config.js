@@ -30,7 +30,7 @@ export default defineConfig(({ mode }) => {
         "/audit/retention": { target: bffUrl, changeOrigin: false },
         "/risk/scores": { target: bffUrl, changeOrigin: false },
         "/risk/events": { target: bffUrl, changeOrigin: false },
-        "/messaging/flow": { target: bffUrl, changeOrigin: false },
+        "/messaging/": { target: bffUrl, changeOrigin: false },
         "/reports/": { target: bffUrl, changeOrigin: false },
         "/notifications/": { target: bffUrl, changeOrigin: false },
         "/admin/": { target: bffUrl, changeOrigin: false },

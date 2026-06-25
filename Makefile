@@ -4,7 +4,7 @@ NGROK_URL ?= rage-awhile-snowcap.ngrok-free.dev
 
 .DEFAULT_GOAL := help
 
-.PHONY: help install infra-up infra-wait infra-down migrate dev run stop kill-ports test lint build monitoring-up monitoring-down backup-db restore-db evidencias-operacionais sprint3-check
+.PHONY: help install infra-up infra-wait infra-down migrate seed dev run stop kill-ports test lint build monitoring-up monitoring-down backup-db restore-db evidencias-operacionais sprint3-check
 
 help:
 	@echo "Targets disponíveis:"
@@ -14,6 +14,7 @@ help:
 	@echo "  make infra-wait  - aguarda infraestrutura ficar saudável (healthcheck)"
 	@echo "  make infra-down  - derruba infraestrutura Docker"
 	@echo "  make migrate     - executa migrações dos serviços"
+	@echo "  make seed        - popula o banco com dados de demonstração"
 	@echo "  make dev         - sobe identity, compliance, integration, audit, risk, reporting, notification, messaging, api-docs, bff e frontend"
 	@echo "  make run         - instala deps, sobe infra e inicia todos os serviços"
 	@echo "  make stop        - encerra todos os serviços Node do projeto"
@@ -57,6 +58,9 @@ migrate:
 	./packages/integration-service/node_modules/.bin/prisma migrate dev --name init --schema=./packages/integration-service/prisma/schema.prisma
 	./packages/audit-service/node_modules/.bin/prisma migrate dev --name init --schema=./packages/audit-service/prisma/schema.prisma
 	./packages/notification-service/node_modules/.bin/prisma migrate dev --name init --schema=./packages/notification-service/prisma/schema.prisma
+
+seed: migrate
+	@bash ./scripts/seed.sh
 
 stop:
 	@echo "Encerrando serviços Node do projeto nas portas 4000-4011..."

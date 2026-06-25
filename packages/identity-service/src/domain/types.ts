@@ -14,7 +14,7 @@ export const USER_ROLES = {
 
 export type UserRole = (typeof USER_ROLES)[keyof typeof USER_ROLES];
 
-export const DEFAULT_USER_ROLE: UserRole = USER_ROLES.VISUALIZADOR;
+export const DEFAULT_USER_ROLE: UserRole = USER_ROLES.ADMINISTRADOR;
 
 export const USER_ROLE_VALUES = Object.values(USER_ROLES);
 

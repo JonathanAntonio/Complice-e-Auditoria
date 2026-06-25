@@ -4,8 +4,10 @@ import {
   Alert,
   Button,
   Card,
+  Col,
   Form,
   Input,
+  Row,
   Select,
   Space,
   Statistic,
@@ -13,6 +15,10 @@ import {
   Tag,
   Typography,
 } from "antd";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
+  LineChart, Line, CartesianGrid, Legend,
+} from "recharts";
 import { getRiskScoreHistory, listRiskScores } from "../../../bff-client";
 import { PageHeader } from "../../../shared/ui/page-header";
 import { toReadableDate } from "../../../shared/utils/formatters";
@@ -20,6 +26,8 @@ import { StandardModal } from "../../../shared/ui/standard-modal";
 import { WorkflowPanel } from "../../../shared/ui/workflow-panel";
 
 const { Text } = Typography;
+
+const RISK_COLORS = { critical: "#ff4d4f", high: "#fa8c16", medium: "#1677ff", low: "#52c41a" };
 
 const ENTITY_OPTIONS = [
   { label: "Todos", value: "all" },
@@ -82,6 +90,13 @@ export function RiskPage() {
     criticalCount: 0,
   };
 
+  const riskChartData = useMemo(() => [
+    { name: "Crítico", quantidade: summary.criticalCount, level: "critical" },
+    { name: "Alto",    quantidade: summary.highCount,     level: "high" },
+    { name: "Médio",   quantidade: summary.mediumCount,   level: "medium" },
+    { name: "Baixo",   quantidade: summary.lowCount,      level: "low" },
+  ], [summary.criticalCount, summary.highCount, summary.mediumCount, summary.lowCount]);
+
   return (
     <Space direction="vertical" size="large" style={{ width: "100%" }}>
       <PageHeader
@@ -102,14 +117,34 @@ export function RiskPage() {
         />
       ) : null}
 
-      <Card>
-        <Space size="large" wrap>
-          <Statistic title="Crítico" value={summary.criticalCount} valueStyle={{ color: "#cf1322" }} />
-          <Statistic title="Alto" value={summary.highCount} valueStyle={{ color: "#d48806" }} />
-          <Statistic title="Médio" value={summary.mediumCount} valueStyle={{ color: "#1677ff" }} />
-          <Statistic title="Baixo" value={summary.lowCount} valueStyle={{ color: "#389e0d" }} />
-          <Statistic title="Gerado em" value={toReadableDate(scoresQuery.data?.generatedAtUTC)} />
-        </Space>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} sm={12} xl={6}>
+          <Card><Statistic title="Crítico" value={summary.criticalCount} valueStyle={{ color: "#cf1322" }} /></Card>
+        </Col>
+        <Col xs={24} sm={12} xl={6}>
+          <Card><Statistic title="Alto" value={summary.highCount} valueStyle={{ color: "#d48806" }} /></Card>
+        </Col>
+        <Col xs={24} sm={12} xl={6}>
+          <Card><Statistic title="Médio" value={summary.mediumCount} valueStyle={{ color: "#1677ff" }} /></Card>
+        </Col>
+        <Col xs={24} sm={12} xl={6}>
+          <Card><Statistic title="Baixo" value={summary.lowCount} valueStyle={{ color: "#389e0d" }} /></Card>
+        </Col>
+      </Row>
+
+      <Card title="Distribuição por nível de risco" loading={scoresQuery.isLoading && !scoresQuery.data}>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={riskChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+            <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+            <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+            <Tooltip />
+            <Bar dataKey="quantidade" radius={[4, 4, 0, 0]}>
+              {riskChartData.map((entry) => (
+                <Cell key={entry.level} fill={RISK_COLORS[entry.level]} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </Card>
 
       <Card title="Fila de priorização de risco">
@@ -126,14 +161,18 @@ export function RiskPage() {
             });
           }}
         >
-          <div className="form-grid form-grid-2">
-            <Form.Item label="Tipo de entidade" name="entityType">
-              <Select options={ENTITY_OPTIONS} />
-            </Form.Item>
-            <Form.Item label="Nível" name="level">
-              <Select options={LEVEL_OPTIONS} />
-            </Form.Item>
-          </div>
+          <Row gutter={[16, 0]}>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Tipo de entidade" name="entityType">
+                <Select options={ENTITY_OPTIONS} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Nível" name="level">
+                <Select options={LEVEL_OPTIONS} />
+              </Form.Item>
+            </Col>
+          </Row>
           <Form.Item label="Busca por entidade (ID)" name="search">
             <Input placeholder="ex: user-123, financeiro, approval" />
           </Form.Item>
@@ -210,19 +249,28 @@ export function RiskPage() {
         ) : null}
         {historyQuery.data ? (
           <Space direction="vertical" style={{ width: "100%" }}>
-            <Text><strong>Janela:</strong> {toReadableDate(historyQuery.data.fromUTC)} - {toReadableDate(historyQuery.data.toUTC)}</Text>
-            <Text><strong>Delta:</strong> {historyQuery.data.delta >= 0 ? `+${historyQuery.data.delta}` : historyQuery.data.delta}</Text>
-            <Table
-              size="small"
-              rowKey={(row) => row.bucketUTC}
-              dataSource={historyQuery.data.points}
-              pagination={{ pageSize: 10, showSizeChanger: false }}
-              columns={[
-                { title: "Bucket", dataIndex: "bucketUTC", key: "bucketUTC", render: toReadableDate },
-                { title: "Score", dataIndex: "score", key: "score" },
-                { title: "Nível", dataIndex: "level", key: "level", render: (value) => <Tag color={levelColor(value)}>{value}</Tag> },
-              ]}
-            />
+            <Space>
+              <Text><strong>Janela:</strong> {toReadableDate(historyQuery.data.fromUTC)} — {toReadableDate(historyQuery.data.toUTC)}</Text>
+              <Tag color={historyQuery.data.delta >= 0 ? "red" : "green"}>
+                Delta: {historyQuery.data.delta >= 0 ? `+${historyQuery.data.delta}` : historyQuery.data.delta}
+              </Tag>
+            </Space>
+            <ResponsiveContainer width="100%" height={240}>
+              <LineChart
+                data={historyQuery.data.points.map((p) => ({
+                  ...p,
+                  bucket: toReadableDate(p.bucketUTC),
+                }))}
+                margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="bucket" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                <YAxis domain={[0, 100]} tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(value, name) => [value, "Score"]} />
+                <Legend />
+                <Line type="monotone" dataKey="score" stroke="#1677ff" dot={{ r: 3 }} strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
           </Space>
         ) : (
           <Text type="secondary">{historyQuery.isLoading ? "Carregando histórico..." : "Sem histórico para esta entidade."}</Text>

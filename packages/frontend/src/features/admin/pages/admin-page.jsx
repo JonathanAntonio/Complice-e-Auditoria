@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Button, Card, Form, Input, Popconfirm, Select, Space, Table, Tag, Typography, message } from "antd";
+import { Alert, Button, Card, Col, Form, Input, Popconfirm, Row, Select, Space, Table, Tag, Typography, message } from "antd";
 import {
   createAdminUser,
   deactivateAdminUser,
@@ -417,20 +417,28 @@ export function AdminPage() {
             initialValues={{ userId: "", area: "", processType: "", severity: "medium" }}
             onFinish={(values) => riskIngestMutation.mutate(values)}
           >
-            <div className="form-grid form-grid-2">
-              <Form.Item label="User ID" name="userId" rules={[{ required: true }]}>
-                <Input placeholder="user-123" />
-              </Form.Item>
-              <Form.Item label="Área" name="area" rules={[{ required: true }]}>
-                <Input placeholder="financeiro" />
-              </Form.Item>
-              <Form.Item label="Tipo de processo" name="processType" rules={[{ required: true }]}>
-                <Input placeholder="aprovacao-pagamento" />
-              </Form.Item>
-              <Form.Item label="Severidade" name="severity" rules={[{ required: true }]}>
-                <Select options={[{ label: "Low", value: "low" }, { label: "Medium", value: "medium" }, { label: "High", value: "high" }, { label: "Critical", value: "critical" }]} />
-              </Form.Item>
-            </div>
+            <Row gutter={[16, 0]}>
+              <Col xs={24} sm={12}>
+                <Form.Item label="User ID" name="userId" rules={[{ required: true }]}>
+                  <Input placeholder="user-123" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item label="Área" name="area" rules={[{ required: true }]}>
+                  <Input placeholder="financeiro" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item label="Tipo de processo" name="processType" rules={[{ required: true }]}>
+                  <Input placeholder="aprovacao-pagamento" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item label="Severidade" name="severity" rules={[{ required: true }]}>
+                  <Select options={[{ label: "Low", value: "low" }, { label: "Medium", value: "medium" }, { label: "High", value: "high" }, { label: "Critical", value: "critical" }]} />
+                </Form.Item>
+              </Col>
+            </Row>
             <div className="form-actions">
               <Button onClick={() => riskIngestForm.resetFields()}>Limpar</Button>
               <Button type="primary" htmlType="submit" loading={riskIngestMutation.isPending}>Registrar evento</Button>

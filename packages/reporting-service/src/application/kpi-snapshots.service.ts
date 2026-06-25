@@ -10,7 +10,7 @@ const kpiQuerySchema = z.object({
 
 type KpiQuery = z.infer<typeof kpiQuerySchema>;
 
-interface KpiEvent {
+export interface KpiEvent {
   area: string;
   eventType: string;
   riskLevel: "low" | "medium" | "high" | "critical";
@@ -33,7 +33,7 @@ export interface KpiSnapshot {
   riskDistribution: Record<"low" | "medium" | "high" | "critical", number>;
 }
 
-const baseEvents: KpiEvent[] = [
+export const baseEvents: KpiEvent[] = [
   { area: "finance", eventType: "invoice_created", riskLevel: "medium", violationStatus: "resolvida", isCompliant: true, occurredAtOffsetSeconds: 10 },
   { area: "finance", eventType: "invoice_updated", riskLevel: "high", violationStatus: "aberta", isCompliant: false, occurredAtOffsetSeconds: 15 },
   { area: "hr", eventType: "employee_updated", riskLevel: "low", violationStatus: "dispensada", isCompliant: true, occurredAtOffsetSeconds: 20 },

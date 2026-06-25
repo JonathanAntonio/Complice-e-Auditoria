@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Alert, Button, Card, Form, Input, Space, Table, Tag, Typography, message } from "antd";
+import { Alert, Button, Card, Col, Form, Input, Row, Space, Table, Tag, Typography, message } from "antd";
 import { publishIntegrationEvent } from "../../../bff-client";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
@@ -77,14 +77,18 @@ export function IntegrationsPage({ embedded = false }) {
             }}
           >
             <Text className="form-helper">Use somente para testes operacionais controlados e incident response.</Text>
-            <div className="form-grid form-grid-2">
-              <Form.Item label="Tipo de evento" name="type" rules={[{ required: true }]}> 
-                <Input placeholder="compliance.violation.updated" />
-              </Form.Item>
-              <Form.Item label="Correlation ID (opcional)" name="correlationId">
-                <Input placeholder="req-8f8a6..." />
-              </Form.Item>
-            </div>
+            <Row gutter={[16, 0]}>
+              <Col xs={24} sm={12}>
+                <Form.Item label="Tipo de evento" name="type" rules={[{ required: true }]}>
+                  <Input placeholder="compliance.violation.updated" />
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12}>
+                <Form.Item label="Correlation ID (opcional)" name="correlationId">
+                  <Input placeholder="req-8f8a6..." />
+                </Form.Item>
+              </Col>
+            </Row>
             <Form.Item
               label="Payload JSON"
               name="payload"

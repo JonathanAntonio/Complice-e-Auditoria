@@ -33,9 +33,9 @@ describe("CreateUserUseCase", () => {
     expect(result).toMatchObject({
       email: "user@example.com",
       name: "João Silva",
-      primaryRole: USER_ROLES.VISUALIZADOR,
-      roles: [USER_ROLES.VISUALIZADOR],
-      permissions: permissionsForRole(USER_ROLES.VISUALIZADOR),
+      primaryRole: USER_ROLES.ADMINISTRADOR,
+      roles: [USER_ROLES.ADMINISTRADOR],
+      permissions: permissionsForRole(USER_ROLES.ADMINISTRADOR),
       authzVersion: 1,
       isActive: true,
     });

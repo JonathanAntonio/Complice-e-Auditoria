@@ -1,7 +1,11 @@
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Badge, Button, Card, Col, Progress, Row, Select, Space, Statistic, Table, Tag, Typography, message } from "antd";
 import { useNavigate } from "react-router-dom";
+import { Badge, Button, Card, Col, Progress, Row, Select, Space, Statistic, Table, Tag, Typography, message } from "antd";
+import {
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell,
+} from "recharts";
 import { listComplianceViolations, updateComplianceViolation } from "../../../bff-client";
 import { useSession } from "../../auth/context/session-context";
 import { PageHeader } from "../../../shared/ui/page-header";
@@ -14,6 +18,8 @@ const { Text } = Typography;
 
 const SLA_DAYS = { alta: 3, media: 7, baixa: 14 };
 const ACTIVE_STATUSES = new Set(["aberta", "em_analise"]);
+const SEVERITY_COLORS = { alta: "#ff4d4f", media: "#fa8c16", baixa: "#52c41a" };
+const STATUS_COLORS = { aberta: "#fa8c16", em_analise: "#1677ff" };
 
 function getAgeDays(createdAt) {
   const ms = Date.now() - Date.parse(createdAt);
@@ -67,31 +73,49 @@ export function ComplianceSlaPage() {
     },
   });
 
-  const rows = useMemo(() => {
-    const active = (violationsQuery.data ?? []).filter((v) => ACTIVE_STATUSES.has(v.status));
-    const withSla = active.map((v) => {
-      const ageDays = getAgeDays(v.createdAt);
-      const slaInfo = getSlaInfo(v.severity, ageDays);
-      return { ...v, ageDays, slaInfo };
-    });
-
-    const filtered = severityFilter ? withSla.filter((v) => v.severity === severityFilter) : withSla;
-    return filtered.sort((a, b) => b.slaInfo.pct - a.slaInfo.pct);
-  }, [violationsQuery.data, severityFilter]);
-
-  const stats = useMemo(() => {
-    const all = (violationsQuery.data ?? []).filter((v) => ACTIVE_STATUSES.has(v.status));
-    const withSla = all.map((v) => {
-      const ageDays = getAgeDays(v.createdAt);
-      return { ...v, slaInfo: getSlaInfo(v.severity, ageDays) };
-    });
-    return {
-      total: withSla.length,
-      breached: withSla.filter((v) => v.slaInfo.breached).length,
-      critical: withSla.filter((v) => v.slaInfo.critical && !v.slaInfo.breached).length,
-      onTrack: withSla.filter((v) => !v.slaInfo.breached && !v.slaInfo.critical).length,
-    };
+  // Base: todas as violações ativas com SLA calculado — fonte única para rows, stats e gráficos
+  const activeWithSla = useMemo(() => {
+    return (violationsQuery.data ?? [])
+      .filter((v) => ACTIVE_STATUSES.has(v.status))
+      .map((v) => {
+        const ageDays = getAgeDays(v.createdAt);
+        return { ...v, ageDays, slaInfo: getSlaInfo(v.severity, ageDays) };
+      });
   }, [violationsQuery.data]);
+
+  const rows = useMemo(() => {
+    const filtered = severityFilter
+      ? activeWithSla.filter((v) => v.severity === severityFilter)
+      : activeWithSla;
+    return [...filtered].sort((a, b) => b.slaInfo.pct - a.slaInfo.pct);
+  }, [activeWithSla, severityFilter]);
+
+  const stats = useMemo(() => ({
+    total: activeWithSla.length,
+    breached: activeWithSla.filter((v) => v.slaInfo.breached).length,
+    critical: activeWithSla.filter((v) => v.slaInfo.critical && !v.slaInfo.breached).length,
+    onTrack: activeWithSla.filter((v) => !v.slaInfo.breached && !v.slaInfo.critical).length,
+  }), [activeWithSla]);
+
+  const severityChartData = useMemo(() =>
+    ["alta", "media", "baixa"].map((s) => ({
+      name: s.charAt(0).toUpperCase() + s.slice(1),
+      quantidade: activeWithSla.filter((v) => v.severity === s).length,
+      fill: SEVERITY_COLORS[s],
+    })),
+  [activeWithSla]);
+
+  const statusChartData = useMemo(() => {
+    const counts = activeWithSla.reduce((acc, v) => {
+      acc[v.status] = (acc[v.status] ?? 0) + 1;
+      return acc;
+    }, {});
+    return Object.entries(counts).map(([status, value]) => ({
+      name: status === "em_analise" ? "Em análise" : "Aberta",
+      value,
+      fill: STATUS_COLORS[status] ?? "#8884d8",
+    }));
+  }, [activeWithSla]);
 
   const columns = [
     {
@@ -203,6 +227,39 @@ export function ComplianceSlaPage() {
         </Col>
       </Row>
 
+      <Row gutter={[16, 16]}>
+        <Col xs={24} lg={12}>
+          <Card title="Violações por severidade">
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={severityChartData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
+                <Tooltip />
+                <Bar dataKey="quantidade" radius={[4, 4, 0, 0]}>
+                  {severityChartData.map((entry, i) => <Cell key={entry.name} fill={entry.fill} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+        </Col>
+        <Col xs={24} lg={12}>
+          <Card title="Distribuição por status">
+            {statusChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={200}>
+                <PieChart>
+                  <Pie data={statusChartData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={75} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}>
+                    {statusChartData.map((entry) => <Cell key={entry.name} fill={entry.fill} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <Text type="secondary">Sem violações ativas.</Text>
+            )}
+          </Card>
+        </Col>
+      </Row>
+
       <Card
         title="Violações ativas por prazo"
         extra={
@@ -228,9 +285,7 @@ export function ComplianceSlaPage() {
           columns={columns}
           pagination={{ pageSize: 10, showSizeChanger: false }}
           locale={{ emptyText: "Nenhuma violação ativa encontrada." }}
-          rowClassName={(row) =>
-            row.slaInfo.breached ? "ant-table-row-danger" : ""
-          }
+          rowClassName={(row) => row.slaInfo.breached ? "ant-table-row-danger" : ""}
         />
       </Card>
 

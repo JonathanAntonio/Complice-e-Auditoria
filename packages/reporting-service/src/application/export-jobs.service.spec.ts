@@ -33,6 +33,8 @@ describe("ExportJobsService", () => {
     const pdf = service.renderContent(pdfJob);
     expect(pdf.mimeType).toBe("application/pdf");
     expect(pdf.filename).toContain(".pdf");
-    expect(pdf.content).toContain("PDF_PLACEHOLDER");
+    expect(pdf.content).toContain("COMPLIANCE & AUDIT PLATFORM");
+    expect(pdf.content.startsWith("%PDF-")).toBe(true);
+    expect(pdf.content.trim().endsWith("%%EOF")).toBe(true);
   });
 });

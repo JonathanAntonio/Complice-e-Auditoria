@@ -123,30 +123,36 @@ export function MessagingFlowPage() {
             syncFiltersToUrl(next);
           }}
         >
-          <div className="form-grid form-grid-2">
-            <Form.Item label="Serviço" name="sourceService">
-              <Select allowClear placeholder="Selecione o serviço" options={serviceOptions} />
-            </Form.Item>
-            <Form.Item label="Status de notificação" name="notificationStatus">
-              <Select
-                allowClear
-                placeholder="Selecione o status"
-                options={[
-                  { label: "sent", value: "sent" },
-                  { label: "failed", value: "failed" },
-                  { label: "dead_letter", value: "dead_letter" },
-                ]}
-              />
-            </Form.Item>
-          </div>
-          <div className="form-grid form-grid-2">
-            <Form.Item label="Tipo de evento" name="eventType">
-              <Input placeholder="Ex: compliance.violation.updated" />
-            </Form.Item>
-            <Form.Item label="ID de correlação" name="correlationId">
-              <Input placeholder="req-123..." />
-            </Form.Item>
-          </div>
+          <Row gutter={[16, 0]}>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Serviço" name="sourceService">
+                <Select allowClear placeholder="Selecione o serviço" options={serviceOptions} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Status de notificação" name="notificationStatus">
+                <Select
+                  allowClear
+                  placeholder="Selecione o status"
+                  options={[
+                    { label: "sent", value: "sent" },
+                    { label: "failed", value: "failed" },
+                    { label: "dead_letter", value: "dead_letter" },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="Tipo de evento" name="eventType">
+                <Input placeholder="Ex: compliance.violation.updated" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item label="ID de correlação" name="correlationId">
+                <Input placeholder="req-123..." />
+              </Form.Item>
+            </Col>
+          </Row>
           <Form.Item label="Filtro rápido" name="onlyFailures" valuePropName="checked">
             <Switch checkedChildren="Só falhas" unCheckedChildren="Todos" />
           </Form.Item>
